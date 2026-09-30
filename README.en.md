@@ -38,7 +38,10 @@ The game is set in **São Bento do Sul, Santa Catarina, Brazil**, as a way to sh
 
 ## How to play
 
-1. In the menu, pick a level on the map, then the two cooks.
+1. In the menu, pick a level on the map, then the two cooks: Player 1 switches with `A`/`D` and Player 2 with the arrow keys.
+
+   ![Choosing the cooks](docs/images/selecao-personagens.jpg)
+
 2. Orders appear at the top of the screen, each showing the dish, its ingredients and the time left.
 3. Take ingredients from the crates, **chop** them on the cutting board, **cook** them on the stove (pan or pot), **plate** them and **deliver** at the serving counter.
 4. Dirty plates come back and must be **washed** at the sink. If something burns and catches fire, grab the **extinguisher**.

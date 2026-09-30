@@ -38,7 +38,10 @@ O jogo é ambientado em **São Bento do Sul (SC)** como forma de divulgar a cida
 
 ## Como jogar
 
-1. No menu, escolha a fase no mapa e, em seguida, os dois cozinheiros.
+1. No menu, escolha a fase no mapa e, em seguida, os dois cozinheiros: o Jogador 1 troca com `A`/`D` e o Jogador 2 com as setas.
+
+   ![Seleção dos cozinheiros](docs/images/selecao-personagens.jpg)
+
 2. Os pedidos aparecem no topo da tela. Cada um mostra o prato, os ingredientes e o tempo restante.
 3. Pegue os ingredientes nas caixas, **corte** na tábua, **cozinhe** no fogão (frigideira ou panela), **monte** no prato e **entregue** no balcão de entrega.
 4. Pratos sujos voltam e precisam ser **lavados** na pia. Se algo queimar e pegar fogo, use o **extintor**.
