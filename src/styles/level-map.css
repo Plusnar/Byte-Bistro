@@ -1,0 +1,331 @@
+/*
+ * Level map — the São Bento do Sul diorama the stages are picked from. Same collectible-card
+ * language as the rest of the cosmic skin: bright face, layered rim, gold for rewards.
+ */
+
+.game-ui .level-select {
+  width: min(1320px, 96vw);
+  gap: 16px;
+}
+
+.level-map-stage {
+  position: relative;
+  width: 100%;
+  height: clamp(340px, 64vh, 760px);
+  overflow: hidden;
+  border: 1px solid #3c93dc;
+  border-radius: 26px;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 42%, #3a78c0 0%, #1d4a8c 38%, #0f2758 72%, #081534 100%);
+  box-shadow: var(--space-shadow, 0 12px 32px #02051b80);
+}
+
+/* A faint horizon glow under the island, so it reads as floating rather than cut out. */
+.level-map-stage::before {
+  content: "";
+  position: absolute;
+  inset: auto 12% 6% 12%;
+  height: 28%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #66f4cf2e, transparent 70%);
+  pointer-events: none;
+}
+
+.level-map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Drag and pinch belong to the camera, not to the page. */
+  touch-action: none;
+  outline: none;
+}
+
+.level-map-stage:has(.level-map-canvas:focus-visible) {
+  box-shadow: var(--space-shadow, none), 0 0 0 3px var(--space-cyan, #1bdcff);
+}
+
+/* In the corner, clear of the island, which sits in the middle of the frame. */
+.level-map-hint {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.level-map-hint span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border: 1px solid #4ba5ed80;
+  border-radius: 999px;
+  background: #0a1c4ecc;
+  color: var(--space-muted, #acc6ed);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.level-map-hint kbd {
+  min-width: 20px;
+  padding: 1px 5px;
+  border: 1px solid #6fb8f0;
+  border-radius: 6px;
+  background: #16326a;
+  color: var(--space-white, #edfaff);
+  font: inherit;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* --- The level window ------------------------------------------------------------- */
+
+.level-window {
+  --card-accent: #ffc35b;
+  position: absolute;
+  top: 50%;
+  right: 24px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(340px, calc(100% - 32px));
+  padding: 20px 22px 22px;
+  border: 2px solid var(--card-accent);
+  border-radius: 22px 22px 25px 13px;
+  background: linear-gradient(145deg, #ffffff, #fff4df);
+  color: #152d54;
+  box-shadow: 0 6px 0 #10204d, 0 0 0 4px #133567, 0 0 0 5px var(--card-accent), 0 0 26px #ffc35b55, inset 0 0 0 5px #ffffffb3;
+  opacity: 0;
+  transform: translate(28px, -50%) scale(0.94);
+  transform-origin: right center;
+  transition: opacity 200ms ease, transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.level-window[data-open="true"] {
+  opacity: 1;
+  transform: translate(0, -50%) scale(1);
+}
+
+.level-window[hidden] { display: none; }
+
+.level-window-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #b7d0e2;
+  border-radius: 10px;
+  background: #ffffffc0;
+  color: #29456a;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.level-window-close:hover,
+.level-window-close:focus-visible {
+  background: #fff;
+  outline: 2px solid var(--card-accent);
+}
+
+.level-window-kind {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 1px solid #ffffffbd;
+  border-radius: 10px 10px 15px 5px;
+  background: linear-gradient(#ffffff60, #ffffff00), var(--card-accent);
+  color: #102445;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.level-window-title {
+  margin: 0;
+  padding-right: 28px;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.level-window-rank {
+  display: flex;
+  gap: 6px;
+}
+
+.rank-star {
+  width: 38px;
+  height: 38px;
+  fill: #dbe5f1;
+  stroke: #a9bdd6;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.rank-star[data-filled="true"] {
+  fill: #ffc35b;
+  stroke: #b8700f;
+  filter: drop-shadow(0 2px 0 #b8700f66);
+}
+
+.level-window[data-open="true"] .rank-star[data-filled="true"] {
+  animation: rank-star-pop 420ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+.level-window[data-open="true"] .rank-star[data-filled="true"]:nth-child(2) { animation-delay: 90ms; }
+.level-window[data-open="true"] .rank-star[data-filled="true"]:nth-child(3) { animation-delay: 180ms; }
+
+@keyframes rank-star-pop {
+  from { transform: scale(0.4) rotate(-25deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.level-window-best {
+  margin: -2px 0 0;
+  color: #6a7f9c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.level-window-best:not([data-rank=""]) { color: #b8700f; }
+
+.level-window-description {
+  margin: 0;
+  color: #455e7f;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.level-window-description:empty { display: none; }
+
+.level-window-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.level-window-meta span {
+  padding: 3px 9px;
+  border: 1px solid #b7d0e2;
+  border-radius: 7px;
+  background: #ffffffa6;
+  color: #29456a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.level-window-play {
+  justify-content: center;
+  margin-top: 6px;
+}
+
+/* --- The player's own maps -------------------------------------------------------- */
+
+.my-maps {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  max-width: min(340px, calc(100% - 32px));
+}
+
+.my-maps > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #4ba5ed;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #285897, #183768 60%, #12294f);
+  color: var(--space-white, #edfaff);
+  box-shadow: 0 3px 0 #071737, inset 0 1px 0 #92dfff88;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.my-maps > summary::-webkit-details-marker { display: none; }
+.my-maps > summary::after { content: "▾"; font-size: 11px; }
+.my-maps[open] > summary::after { content: "▴"; }
+
+.game-ui .my-maps .level-list {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  max-height: min(46vh, 420px);
+  margin-top: 8px;
+  padding: 4px 4px 8px;
+}
+
+.game-ui .my-maps .level-card {
+  min-height: 0;
+  padding: 14px 16px;
+}
+
+.game-ui .my-maps .level-card::before { display: none; }
+
+.game-ui .my-maps .level-list > li { position: relative; }
+.game-ui .my-maps .level-card { padding-right: 52px; }
+
+.level-card-delete {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #f3b3c3;
+  border-radius: 10px;
+  background: #fff0f4;
+  color: #c43a5c;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.level-card-delete svg { width: 18px; height: 18px; fill: currentColor; }
+
+.level-card-delete:hover,
+.level-card-delete:focus-visible {
+  background: #ff688d;
+  color: #ffffff;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+/* --- Narrow screens: the window becomes a sheet along the bottom ---------------------- */
+
+@media (max-width: 720px) {
+  .level-map-stage { height: clamp(320px, 62vh, 620px); border-radius: 20px; }
+  .level-window {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    transform: translateY(24px) scale(0.97);
+    transform-origin: center bottom;
+  }
+  .level-window[data-open="true"] { transform: none; }
+  .level-map-hint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-window,
+  .level-window[data-open="true"] .rank-star[data-filled="true"] {
+    transition: none;
+    animation: none;
+  }
+}

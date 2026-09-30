@@ -1,0 +1,7 @@
+# Model buffers and images are binary: never touch their bytes.
+*.glb binary
+*.bin binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary

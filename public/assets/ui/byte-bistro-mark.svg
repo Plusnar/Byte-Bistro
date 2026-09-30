@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Byte Bistro logo">
+  <defs>
+    <linearGradient id="bbmBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#152a33"/>
+      <stop offset="0.55" stop-color="#0d1c23"/>
+      <stop offset="1" stop-color="#08141a"/>
+    </linearGradient>
+    <linearGradient id="bbmRim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd166"/>
+      <stop offset="0.5" stop-color="#ffb020"/>
+      <stop offset="1" stop-color="#d98a10"/>
+    </linearGradient>
+    <linearGradient id="bbmBowl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd166"/>
+      <stop offset="1" stop-color="#e08a10"/>
+    </linearGradient>
+    <radialGradient id="bbmCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffb020" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffb020" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="64" cy="64" r="52" fill="url(#bbmCore)"/>
+
+  <!-- chip pins -->
+  <g fill="#2b6b74" fill-opacity="0.9">
+    <rect x="2" y="44" width="14" height="5" rx="2.5"/>
+    <rect x="2" y="58" width="14" height="5" rx="2.5"/>
+    <rect x="2" y="72" width="14" height="5" rx="2.5"/>
+    <rect x="112" y="44" width="14" height="5" rx="2.5"/>
+    <rect x="112" y="58" width="14" height="5" rx="2.5"/>
+    <rect x="112" y="72" width="14" height="5" rx="2.5"/>
+    <rect x="44" y="2" width="5" height="14" rx="2.5"/>
+    <rect x="73" y="2" width="5" height="14" rx="2.5"/>
+    <rect x="44" y="112" width="5" height="14" rx="2.5"/>
+    <rect x="73" y="112" width="5" height="14" rx="2.5"/>
+  </g>
+
+  <!-- hexagon chip body -->
+  <path d="M36 14 H92 L120 64 L92 114 H36 L8 64 Z" fill="url(#bbmBody)" stroke="url(#bbmRim)" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M40 23 H88 L112 64 L88 105 H40 L16 64 Z" fill="none" stroke="#5fb0bd" stroke-opacity="0.3" stroke-width="1.4"/>
+
+  <!-- circuit steam -->
+  <g fill="none" stroke="#7fe3d0" stroke-opacity="0.85" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 62 V44 H52"/>
+    <path d="M64 62 V44 H76"/>
+    <path d="M64 62 V50"/>
+  </g>
+  <g fill="#7fe3d0">
+    <circle cx="52" cy="44" r="2.6"/>
+    <circle cx="76" cy="44" r="2.6"/>
+  </g>
+  <circle cx="64" cy="50" r="2.2" fill="#ffb020"/>
+
+  <!-- bowl + fork -->
+  <path d="M36 72 H92 A28 28 0 0 1 64 96 A28 28 0 0 1 36 72 Z" fill="url(#bbmBowl)"/>
+  <path d="M36 72 H92" stroke="#fff2cf" stroke-opacity="0.6" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M46 62 H82" stroke="#ffb020" stroke-opacity="0.35" stroke-width="2" stroke-linecap="round"/>
+</svg>

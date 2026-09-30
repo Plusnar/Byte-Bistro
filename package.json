@@ -1,0 +1,25 @@
+{
+  "name": "byte-bistro",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "assets:scenario": "node scripts/embed-scenario-glb-textures.mjs",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "assets:library": "node scripts/prepare-asset-library.mjs"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^8.21.0",
+    "@babylonjs/loaders": "^8.21.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vite": "^7.1.2",
+    "vitest": "^3.2.4"
+  },
+  "license": "UNLICENSED"
+}

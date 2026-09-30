@@ -1,0 +1,602 @@
+/*
+ * Order queue — a horizontal row of cartoon cards pinned to the top of the screen.
+ *
+ * Deliberately unlayered and imported after game.css/tech-theme.css so it wins the cascade
+ * over the old HUD-card styling without having to hunt every `.order-*` rule in those
+ * files. Solid colours, thick dark borders, big icons, very little text.
+ */
+
+.game-ui {
+  --order-ink: #0d1b2a;
+  --order-cyan: #5ce1e6;
+  --order-green: #23c552;
+  --order-amber: #ffb020;
+  --order-red: #ff4d5e;
+}
+
+.game-ui .order-panel {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  display: flex;
+  width: auto;
+  min-height: 0;
+  max-width: min(62vw, 600px);
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  transform: translateX(-50%);
+}
+
+.game-ui .order-tickets {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.game-ui .order-panel.is-empty .order-tickets { display: none; }
+
+.game-ui .order-empty-hint {
+  display: none;
+  margin: 0;
+  padding: 7px 13px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-radius: 13px;
+  background: #16263a;
+  color: #9fb5c9;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.game-ui .order-panel.is-empty .order-empty-hint { display: block; }
+
+/* "+N" when more orders are queued than fit on screen. */
+.game-ui .order-overflow {
+  align-self: center;
+  padding: 7px 10px;
+  border: 3px solid var(--order-ink);
+  border-radius: 12px;
+  background: #ffd166;
+  color: var(--order-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.game-ui .order-overflow[hidden] { display: none; }
+
+/* ------------------------------ the card ------------------------------ */
+
+.game-ui .order-card {
+  position: relative;
+  display: flex;
+  width: 130px;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 8px 9px;
+  border: 4px solid var(--order-ink);
+  border-radius: 16px;
+  background: #f4f7fb;
+  box-shadow: 0 4px 0 var(--order-ink);
+}
+
+/* One-shot: the class is removed once it finishes, so reordering cannot replay it. */
+.game-ui .order-card.is-entering {
+  animation: order-card-in 320ms cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+/* The oldest order is the one to clear next, so it reads louder. */
+.game-ui .order-card[data-lead="1"] {
+  background: #ffffff;
+  box-shadow: 0 5px 0 var(--order-ink), 0 0 0 3px var(--order-cyan);
+}
+
+.game-ui .order-card[data-player="p1"] { border-color: #178fa6; }
+.game-ui .order-card[data-player="p2"] { border-color: #b8397f; }
+
+.game-ui .order-card-dish {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 60px;
+  border: 3px solid var(--order-ink);
+  border-radius: 12px;
+  background: #cfe4f2;
+  place-items: center;
+}
+
+.game-ui .order-card-art {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.game-ui .order-card-art[hidden] { display: none; }
+
+/* Seconds left, stamped on the dish so the eye finds it without reading words. */
+.game-ui .order-card-timer {
+  position: absolute;
+  right: -7px;
+  bottom: -9px;
+  min-width: 30px;
+  padding: 2px 5px;
+  border: 3px solid var(--order-ink);
+  border-radius: 10px;
+  background: var(--order-cyan);
+  color: var(--order-ink);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.game-ui .order-card-name {
+  width: 100%;
+  margin-top: 10px;
+  overflow: hidden;
+  color: var(--order-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* -------------------------- ingredient chips -------------------------- */
+
+.game-ui .order-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.game-ui .order-chip {
+  position: relative;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--order-ink);
+  border-radius: 9px;
+  background: #ffffff;
+  opacity: 1;
+  place-items: center;
+  transition: background-color 160ms linear, opacity 160ms linear;
+}
+
+.game-ui .order-chip img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.game-ui .order-chip img[hidden] { display: none; }
+
+/* No PNG for this ingredient: fall back to its own colour and short name. */
+.game-ui .order-chip[data-fallback="1"] { background: var(--chip-color, #5ce1e6); }
+
+.game-ui .order-chip[data-fallback="1"]::before {
+  content: attr(data-short);
+  color: var(--order-ink);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+/* --- the four ingredient states --- */
+
+/* Not started: dimmed. */
+.game-ui .order-chip[data-state="pending"] {
+  background: #dfe7ee;
+  opacity: 0.5;
+}
+
+/* Being prepared: amber, gently pulsing. */
+.game-ui .order-chip[data-state="preparing"] {
+  background: var(--order-amber);
+  animation: order-chip-working 900ms ease-in-out infinite;
+}
+
+/* Ready to plate: full colour with a cyan ring. */
+.game-ui .order-chip[data-state="ready"] {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px var(--order-cyan);
+}
+
+/* Already on the plate: green with a tick. */
+.game-ui .order-chip[data-state="used"] { background: #7ef0a6; }
+
+.game-ui .order-chip[data-state="used"]::after {
+  content: "✓";
+  position: absolute;
+  right: -6px;
+  bottom: -7px;
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--order-ink);
+  border-radius: 50%;
+  background: var(--order-green);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 11px;
+  text-align: center;
+}
+
+/* ------------------------------ time bar ------------------------------ */
+
+.game-ui .order-card-track {
+  display: block;
+  width: 100%;
+  height: 12px;
+  margin-top: 9px;
+  overflow: hidden;
+  border: 3px solid var(--order-ink);
+  border-radius: 8px;
+  background: #dfe7ee;
+}
+
+.game-ui .order-card-fill {
+  display: block;
+  width: var(--progress, 100%);
+  height: 100%;
+  background: var(--order-green);
+  transition: background-color 200ms linear;
+}
+
+.game-ui .order-card[data-urgency="warning"] .order-card-fill { background: var(--order-amber); }
+.game-ui .order-card[data-urgency="warning"] .order-card-timer { background: var(--order-amber); }
+
+.game-ui .order-card[data-urgency="critical"] .order-card-fill { background: var(--order-red); }
+
+.game-ui .order-card[data-urgency="critical"] .order-card-timer {
+  background: var(--order-red);
+  color: #ffffff;
+}
+
+/* Discreet bob rather than a flash, so it reads as urgent without hurting to look at. */
+.game-ui .order-card[data-urgency="critical"]:not(.is-entering) {
+  animation: order-card-alarm 620ms ease-in-out infinite;
+}
+
+.game-ui .order-card-reward {
+  margin-top: 6px;
+  color: #64798c;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.game-ui .order-card-reward::after { content: " CR"; }
+
+/* Every ingredient plated: the card says "take it to the pass". */
+.game-ui .order-card[data-ready="1"] {
+  background: #e6fff0;
+  box-shadow: 0 5px 0 var(--order-ink), 0 0 0 3px var(--order-green);
+}
+
+.game-ui .order-card[data-ready="1"] .order-card-name::after {
+  content: " • ENTREGAR";
+  color: #12913b;
+}
+
+/* ---------------------- outcome stamps and exit ----------------------- */
+
+.game-ui .order-card-stamp {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  display: none;
+  width: 56px;
+  height: 56px;
+  border: 5px solid currentcolor;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--order-green);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 46px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.game-ui .order-card[data-outcome] { pointer-events: none; }
+
+.game-ui .order-card[data-outcome] .order-card-stamp {
+  display: block;
+  animation: order-stamp-pop 300ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.game-ui .order-card[data-outcome="delivered"] {
+  background: #d7ffe6;
+  animation: order-card-delivered 620ms ease-in both;
+}
+
+.game-ui .order-card[data-outcome="expired"] {
+  background: #ffd9dd;
+  animation: order-card-expired 620ms ease-in both;
+}
+
+.game-ui .order-card[data-outcome="expired"] .order-card-stamp { color: var(--order-red); }
+
+.game-ui .order-card-guest[hidden] { display: none; }
+
+@keyframes order-card-in {
+  from { opacity: 0; transform: translateX(28px) scale(0.86); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes order-card-alarm {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes order-chip-working {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+@keyframes order-stamp-pop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-18deg); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-8deg); }
+}
+
+@keyframes order-card-delivered {
+  0% { transform: scale(1); }
+  22% { transform: scale(1.07); }
+  100% { opacity: 0; transform: scale(0.8) translateY(-18px); }
+}
+
+@keyframes order-card-expired {
+  0% { transform: translateX(0); }
+  15% { transform: translateX(-5px); }
+  30% { transform: translateX(5px); }
+  45% { transform: translateX(-3px); }
+  100% { opacity: 0; transform: translateY(16px) scale(0.9); }
+}
+
+/* ----------------------------- responsive ----------------------------- */
+
+/* The MIRA panel owns the top-left and the shift chips the top-centre-right, so the queue
+   narrows before it ever reaches them. */
+@media (max-width: 1100px) {
+  .game-ui .order-card { width: 112px; }
+  .game-ui .order-card-dish { height: 52px; }
+  .game-ui .order-card-art { width: 45px; height: 45px; }
+  .game-ui .order-chip { width: 25px; height: 25px; }
+  .game-ui .order-chip img { width: 18px; height: 18px; }
+}
+
+@media (max-width: 860px) {
+  .game-ui .order-panel { max-width: calc(100vw - 32px); }
+  .game-ui .order-card { width: 92px; padding: 6px; }
+  .game-ui .order-card-dish { height: 44px; }
+  .game-ui .order-card-art { width: 38px; height: 38px; }
+  .game-ui .order-card-name { font-size: 9px; margin-top: 8px; }
+  .game-ui .order-card-reward { display: none; }
+  .game-ui .order-chip { width: 22px; height: 22px; border-width: 2px; }
+  .game-ui .order-chip img { width: 16px; height: 16px; }
+  .game-ui .order-card-timer { font-size: 11px; min-width: 26px; }
+}
+
+/* Below this the queue would fight the split-screen HUD, so it sits under the top bar. */
+@media (max-width: 620px) {
+  .game-ui .order-panel { top: 64px; gap: 6px; }
+  .game-ui .order-tickets { gap: 6px; }
+  .game-ui .order-card { width: 76px; }
+  .game-ui .order-card[data-ready="1"] .order-card-name::after { content: ""; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .order-card.is-entering,
+  .game-ui .order-card[data-urgency="critical"]:not(.is-entering),
+  .game-ui .order-card[data-outcome="delivered"],
+  .game-ui .order-card[data-outcome="expired"],
+  .game-ui .order-chip[data-state="preparing"],
+  .game-ui .order-card[data-outcome] .order-card-stamp {
+    animation: none;
+  }
+}
+
+/* =====================================================================
+   Shift status — top-right, away from the order queue.
+   The CORE panel and its dialogue were removed from the HUD entirely.
+   ===================================================================== */
+
+.game-ui .shift-cluster {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  left: auto;
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.game-ui .shift-chip {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 12px;
+  border: 4px solid var(--order-ink);
+  border-radius: 14px;
+  background: #f4f7fb;
+  box-shadow: 0 4px 0 var(--order-ink);
+  gap: 0;
+}
+
+.game-ui .shift-chip + .shift-chip { border-left-width: 4px; }
+
+.game-ui .shift-chip small {
+  display: block;
+  color: #64798c;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.game-ui .shift-chip strong {
+  color: var(--order-ink);
+  font-size: 19px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.game-ui .shift-chip.is-urgent {
+  background: var(--order-red);
+  animation: order-card-alarm 620ms ease-in-out infinite;
+}
+
+.game-ui .shift-chip.is-urgent small,
+.game-ui .shift-chip.is-urgent strong { color: #ffffff; }
+
+.game-ui .score-chip { background: var(--order-cyan); }
+.game-ui .combo-chip { display: none; }
+
+/* The CORE panel is gone, so nothing competes for the top-left any more. */
+.game-ui .mira-panel,
+.game-ui .mira-dialogue { display: none; }
+
+@media (max-width: 860px) {
+  .game-ui .shift-chip { padding: 5px 9px; }
+  .game-ui .shift-chip strong { font-size: 15px; }
+  .game-ui .shift-chip small { font-size: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .shift-chip.is-urgent { animation: none; }
+}
+
+
+/* =====================================================================
+   Character select — both cooks on stage, keys beside each one.
+   ===================================================================== */
+
+.game-ui .selection-arena > h2,
+.game-ui .character-status[hidden],
+.game-ui .character-count[hidden],
+.game-ui .selection-controls { display: none; }
+
+.game-ui .character-preview-stage {
+  position: relative;
+  background: none;
+}
+
+/* Anchored to the stage so each hint sits under its own cook. */
+.game-ui .pick-hint {
+  position: absolute;
+  bottom: 6%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 14px 9px;
+  border: 4px solid var(--order-ink);
+  border-radius: 16px;
+  background: #f4f7fb;
+  box-shadow: 0 4px 0 var(--order-ink);
+  gap: 4px;
+  pointer-events: none;
+}
+
+/* Player one stands on the left of frame, player two on the right. */
+.game-ui .pick-hint-p1 { left: 12%; border-color: #178fa6; }
+.game-ui .pick-hint-p2 { right: 12%; border-color: #b8397f; }
+
+.game-ui .pick-badge {
+  padding: 2px 11px;
+  border: 3px solid var(--order-ink);
+  border-radius: 9px;
+  background: var(--order-cyan);
+  color: var(--order-ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.game-ui .pick-hint-p2 .pick-badge { background: #ff9ad4; }
+
+.game-ui .pick-keys { display: flex; gap: 5px; }
+
+.game-ui .pick-keys kbd {
+  min-width: 26px;
+  padding: 3px 0;
+  font-size: 12px;
+  text-align: center;
+}
+
+.game-ui .pick-hint strong {
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--order-ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Confirm: the pair walks forward while the stage eases into a blur. */
+.game-ui .selection-screen[data-confirming="1"] .pick-hint,
+.game-ui .selection-screen[data-confirming="1"] .selection-header,
+.game-ui .selection-screen[data-confirming="1"] .selection-footer {
+  opacity: 0;
+  transition: opacity 380ms ease-out;
+}
+
+.game-ui .selection-screen[data-confirming="1"] .character-preview-stage {
+  animation: selection-confirm-blur 1200ms ease-in forwards;
+}
+
+@keyframes selection-confirm-blur {
+  0% { filter: blur(0); }
+  60% { filter: blur(0); }
+  100% { filter: blur(15px); opacity: 0.3; }
+}
+
+@media (max-width: 860px) {
+  .game-ui .pick-hint-p1 { left: 4%; }
+  .game-ui .pick-hint-p2 { right: 4%; }
+  .game-ui .pick-hint { padding: 6px 10px; }
+  .game-ui .pick-hint strong { font-size: 10px; max-width: 100px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .selection-screen[data-confirming="1"] .character-preview-stage { animation: none; }
+}
+
+/* The "what do I do with this" hint, tied to whatever the player is holding. */
+.game-ui .player-next-step {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border: 3px solid var(--order-ink);
+  border-radius: 10px;
+  background: var(--order-amber);
+  color: var(--order-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.game-ui .player-next-step[hidden] { display: none; }

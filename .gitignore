@@ -1,0 +1,59 @@
+# Allow-list: only what the game needs to build and run is published.
+# Everything else (Blender sources, raw asset packs, design documents, logs, tests,
+# local tooling) stays on the author's machine.
+
+/*
+
+# Build and run
+!/index.html
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+!/vite.config.ts
+!/src/
+!/public/
+# Dev/preview middleware imported by vite.config.ts
+!/server/
+
+# Models the code imports from outside src/ and public/
+!/Scenario/
+/Scenario/*
+!/Scenario/sao_bento_do_sul.glb
+!/Anim/
+/Anim/*
+!/Anim/Animations/
+/Anim/Animations/*
+!/Anim/Animations/gltf/
+/Anim/Animations/gltf/*
+!/Anim/Animations/gltf/Rig_Medium/
+/Anim/Animations/gltf/Rig_Medium/*
+!/Anim/Animations/gltf/Rig_Medium/Rig_Medium_General.glb
+!/Anim/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb
+!/Anim/Animations/gltf/Rig_Medium/Rig_Medium_Simulation.glb
+!/Anim/Mannequin Character/
+/Anim/Mannequin Character/*
+!/Anim/Mannequin Character/characters/
+/Anim/Mannequin Character/characters/*
+!/Anim/Mannequin Character/characters/Mannequin_Medium.glb
+
+# Repository page
+!/README.md
+!/README.en.md
+!/LICENSE
+!/.gitignore
+!/.gitattributes
+!/docs/
+/docs/*
+!/docs/images/
+
+# Never published, wherever they appear
+*.md
+!/README.md
+!/README.en.md
+__tests__/
+*.test.ts
+*.test.mjs
+.env*
+*.log
+node_modules/
+dist/

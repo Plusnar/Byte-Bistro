@@ -1,0 +1,350 @@
+/* Reference skin. Decorative rules only; state, visibility and game layout stay owned
+   by the existing UI. Local SVGs have transparent backgrounds and scale crisply. */
+:root,
+.game-ui {
+  --space-void: #050b27;
+  --space-panel: #0d2255;
+  --space-line: #326cc0;
+  --space-cyan: #1bdcff;
+  --space-pink: #ff71dc;
+  --space-violet: #af78ff;
+  --space-mint: #66f4cf;
+  --space-gold: #ffc35b;
+  --space-white: #edfaff;
+  --space-muted: #acc6ed;
+  --space-surface: linear-gradient(145deg, #1b3d73f5, #102654f7 45%, #091838fa);
+  --space-shadow: 0 12px 32px #02051b80, 0 0 16px #12bfff24, inset 0 1px 0 #cffaff65, inset 0 0 0 4px #07163a;
+  --panel-deep: #0b193e;
+  --panel-base: #102654;
+  --panel-lift: #204680;
+  --panel-text: #edfaff;
+  --panel-muted: #acc6ed;
+  --order-ink: #102445;
+  --order-cyan: #1bdcff;
+  --order-green: #66f4cf;
+  --order-amber: #ffc35b;
+  --order-red: #ff688d;
+}
+
+.game-ui {
+  --tech-void: var(--space-void);
+  --tech-panel: #102654;
+  --tech-panel-2: #122d60;
+  --tech-panel-3: #204680;
+  --tech-line: #284f88;
+  --tech-line-2: #397dcb;
+  --tech-line-hot: var(--space-cyan);
+  --tech-ink: var(--space-white);
+  --tech-ink-soft: var(--space-muted);
+  --tech-ink-dim: #88a7d8;
+  --tech-amber: var(--space-gold);
+  --tech-amber-2: #ffdda2;
+  --tech-mint: var(--space-mint);
+  --tech-red: #ff688d;
+  --ui-cyan-rgb: 27, 220, 255;
+  --ui-violet: var(--space-violet);
+  --bb-purple: var(--space-violet);
+  --bb-pink: var(--space-pink);
+  --bb-rose: var(--space-pink);
+  --ui-radius: 17px;
+  color: var(--space-white);
+}
+
+.game-ui .full-overlay {
+  background: linear-gradient(#050b27bf, #080e30ed);
+}
+.game-ui .full-overlay::before {
+  background: #050b2730;
+  backdrop-filter: blur(7px);
+}
+.game-ui .splash-overlay {
+  background: linear-gradient(180deg, #050b2730, #050b270a 65%, #050b2760), url('/assets/ui/cosmic/space-backdrop.png') center / cover no-repeat, var(--space-void);
+}
+.game-ui .selection-screen {
+  max-width: 1440px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 26px 40px 30px;
+  gap: 24px;
+}
+.game-ui .selection-header {
+  padding: 12px 18px;
+  border: 1px solid #3c93dc;
+  border-radius: 20px;
+  background: linear-gradient(110deg, #123a70ee, #0a1c4ed9 70%, #155b9380);
+  box-shadow: var(--space-shadow);
+}
+.game-ui .selection-header h1 {
+  border: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  font-size: clamp(19px, 2.1vw, 29px);
+  letter-spacing: .035em;
+  text-shadow: 0 2px 0 #09265c, 0 0 22px #26d7ff55;
+}
+.game-ui .selection-header h1::before {
+  width: 58px;
+  height: 58px;
+  background-image: url('/assets/ui/cosmic/orbit-kitchen.svg');
+}
+.game-ui .selection-header h1 span { color: var(--space-cyan); font-weight: 700; }
+.game-ui .selection-header .menu-map-action { min-height: 42px; }
+
+/* A bright cap, pale face and layered rim echo the reference's collectible cards. */
+.game-ui .level-select { align-self: center; gap: 25px; }
+.game-ui .level-select > h2 {
+  font-size: clamp(22px, 2.8vw, 34px);
+  letter-spacing: .14em;
+  text-shadow: 0 3px 0 #051337, 0 0 24px #319ef760;
+}
+.game-ui .level-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 340px));
+  justify-content: center;
+  gap: 22px;
+  padding: 12px 10px 20px;
+}
+.game-ui .level-card {
+  --card-accent: #25d7ff;
+  --card-soft: #dff8ff;
+  position: relative;
+  isolation: isolate;
+  min-height: 320px;
+  gap: 10px;
+  padding: 19px 20px 20px;
+  border: 2px solid var(--card-accent);
+  border-radius: 22px 22px 25px 13px;
+  background: linear-gradient(145deg, #ffffff, var(--card-soft));
+  color: #152d54;
+  box-shadow: 0 6px 0 #10204d, 0 0 0 4px #133567, 0 0 0 5px var(--card-accent), 0 0 22px color-mix(in srgb, var(--card-accent) 32%, transparent), inset 0 0 0 5px #ffffffb3;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.game-ui .level-list > li:nth-child(4n + 2) .level-card { --card-accent: #ffba55; --card-soft: #fff1dc; }
+.game-ui .level-list > li:nth-child(4n + 3) .level-card { --card-accent: #f571df; --card-soft: #fbe6f9; }
+.game-ui .level-list > li:nth-child(4n + 4) .level-card { --card-accent: #ad79ff; --card-soft: #efe6ff; }
+.game-ui .level-card::before {
+  content: '';
+  display: block;
+  order: 1;
+  width: 100%;
+  height: 102px;
+  background: url('/assets/ui/cosmic/phase-glyph.svg') center / auto 100% no-repeat;
+}
+.game-ui .level-card::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 65%, white);
+  border-radius: 15px 15px 18px 8px;
+  pointer-events: none;
+}
+.game-ui .level-card-kind {
+  align-self: stretch;
+  padding: 8px 12px;
+  border: 1px solid #ffffffbd;
+  border-radius: 10px 10px 15px 5px;
+  background: linear-gradient(#ffffff60, #ffffff00), var(--card-accent);
+  color: #102445;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--card-accent) 65%, #173966);
+  font-size: 10px;
+  letter-spacing: .14em;
+}
+.game-ui .level-card-title { order: 2; font-size: 21px; letter-spacing: -.02em; }
+.game-ui .level-card-description { order: 3; color: #455e7f; line-height: 1.55; }
+.game-ui .level-card-meta { order: 4; padding-top: 12px; }
+.game-ui .level-card-meta span { border: 1px solid #b7d0e2; border-radius: 7px; background: #ffffffa6; color: #29456a; }
+.game-ui .level-card:hover,
+.game-ui .level-card:focus-visible,
+.game-ui .level-card[aria-pressed='true'] {
+  background: linear-gradient(145deg, #ffffff, var(--card-soft));
+  border-color: #fff;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 0 #10204d, 0 0 0 4px var(--card-accent), 0 0 0 6px #e3faff, 0 0 28px color-mix(in srgb, var(--card-accent) 50%, transparent), inset 0 0 0 5px #ffffffb3;
+}
+
+/* Chrome surrounds the live 3D preview without changing its scene or camera. */
+.game-ui .selection-arena {
+  border: 2px solid var(--space-cyan);
+  border-radius: 24px;
+  background: #0a1940;
+  box-shadow: var(--space-shadow), 0 0 0 4px #153b74, 0 0 24px #18dfff35;
+}
+.game-ui .selection-arena::after {
+  content: '';
+  inset: 0;
+  z-index: 4;
+  border: 0;
+  border-radius: inherit;
+  background: url('/assets/ui/cosmic/panel-trim.svg') center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+.game-ui .pick-hint {
+  border: 2px solid var(--space-cyan);
+  border-radius: 15px;
+  background: var(--space-surface);
+  box-shadow: var(--space-shadow);
+}
+.game-ui .pick-hint-p2 { border-color: var(--space-pink); box-shadow: 0 0 18px #ff71dc40, inset 0 0 0 3px #241743; }
+.game-ui .pick-hint strong { color: var(--space-white); }
+.game-ui .pick-badge { border: 1px solid #bdffff; border-radius: 7px; background: linear-gradient(#8af5ff, #15cef3); }
+.game-ui .pick-hint-p2 .pick-badge { border-color: #ffd8f6; background: linear-gradient(#ffb0eb, #ef66d3); }
+
+/* Buttons: glossy faces and physical inset edges, with clear keyboard focus. */
+.game-ui .primary-action {
+  border: 2px solid #b9fbff;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #6af2ff, #14d3f4 55%, #0797db);
+  color: #062d50;
+  box-shadow: 0 4px 0 #125e9d, 0 0 0 3px #124582, 0 0 22px #13d9ff40, inset 0 2px 0 #e2ffff;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.game-ui .primary-action:hover:not(:disabled) { background: linear-gradient(#affaff, #32e4ff 55%, #13b9ef); box-shadow: 0 5px 0 #125e9d, 0 0 0 3px #124582, 0 0 28px #13d9ff66; }
+.game-ui .primary-action:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #125e9d, 0 0 0 3px #124582; }
+.game-ui .secondary-action,
+.game-ui .icon-button,
+.game-ui .selection-header .menu-map-action {
+  border: 1px solid #4ba5ed;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #285897, #183768 60%, #12294f);
+  color: var(--space-white);
+  box-shadow: 0 3px 0 #071737, inset 0 1px 0 #92dfff88, inset 0 0 0 3px #132a55;
+}
+.game-ui .secondary-action:hover:not(:disabled),
+.game-ui .icon-button:hover:not(:disabled),
+.game-ui .selection-header .menu-map-action:hover { background: linear-gradient(#3472b1, #1b4381); border-color: #91f5ff; }
+.game-ui button:focus-visible { outline: 3px solid #fff2c9; outline-offset: 5px; }
+.game-ui .primary-action:disabled,
+.game-ui .secondary-action:disabled { background: #263a60; color: #9caac9; border-color: #64769b; box-shadow: none; filter: none; transform: none; }
+.game-ui .start-action { min-width: min(330px, 82vw); min-height: 54px; }
+.game-ui .selection-actions { flex-wrap: wrap; }
+.game-ui kbd,
+.game-ui .keycap { border: 1px solid #b4d6f4; border-radius: 6px; background: linear-gradient(#fff, #daeaff); color: #153058; box-shadow: 0 2px 0 #456795; }
+
+/* In-game cards keep all existing sizes, timer values and state selectors. */
+.game-ui .order-card {
+  --ticket-accent: var(--space-cyan);
+  border: 2px solid var(--ticket-accent);
+  border-radius: 16px 16px 18px 8px;
+  background: linear-gradient(145deg, #fff, #e4f7ff);
+  box-shadow: 0 4px 0 #0c2051, 0 0 0 2px #21519b, 0 0 13px #14caff45, inset 0 0 0 3px #ffffffb3;
+}
+.game-ui .order-card[data-player='p1'] { --ticket-accent: var(--space-cyan); }
+.game-ui .order-card[data-player='p2'] { --ticket-accent: var(--space-pink); background: linear-gradient(145deg, #fff, #fbe3f7); }
+.game-ui .order-card[data-lead='1'] { box-shadow: 0 4px 0 #0c2051, 0 0 0 2px var(--ticket-accent), 0 0 18px #14caff55, inset 0 0 0 3px #fff; }
+.game-ui .order-card-dish { border: 1px solid #99d8ee; border-radius: 11px; background: radial-gradient(ellipse at top, #ffffffaa, #ffffff00), color-mix(in srgb, var(--ticket-accent) 32%, white); }
+.game-ui .order-card-timer { border: 1px solid #e6ffff; border-radius: 8px; background: linear-gradient(#7febff, #28ccf1); box-shadow: 0 2px 0 #328eb8; }
+.game-ui .order-chip { border-width: 1px; border-color: #91b9d6; border-radius: 7px; }
+.game-ui .order-card-track { border: 1px solid #aacbe0; background: #c5dcee; }
+.game-ui .order-card-fill { background: linear-gradient(#98ffdf, #35dcb7); }
+.game-ui .order-card[data-urgency='warning'] .order-card-fill,
+.game-ui .order-card[data-urgency='warning'] .order-card-timer { background: linear-gradient(#ffdf8f, #ffad40); }
+.game-ui .order-card[data-urgency='critical'] .order-card-fill,
+.game-ui .order-card[data-urgency='critical'] .order-card-timer { background: #d83268; color: white; }
+.game-ui .order-card[data-ready='1'] { border-color: #51e6bd; background: linear-gradient(#fff, #d5fff0); box-shadow: 0 0 0 2px #2edfb7, 0 0 20px #5efacb66; }
+.game-ui .order-empty-hint { border: 1px solid #4fa1df; background: #102656e8; color: #bedaf9; box-shadow: inset 0 1px #79dfff55; }
+.game-ui .shift-chip { border: 1px solid #56c9ff; border-radius: 12px; background: var(--space-surface); box-shadow: var(--space-shadow); }
+.game-ui .shift-chip + .shift-chip { border-left-width: 1px; }
+.game-ui .shift-chip small { color: #b9d7f6; }
+.game-ui .shift-chip strong { color: #edfcff; text-shadow: 0 0 12px #34dfff60; }
+.game-ui .score-chip { border-color: #ffca72; background: linear-gradient(#57406a, #282348); }
+.game-ui .score-chip strong { color: #ffdb96; }
+.game-ui .shift-chip.is-urgent { background: #9e204e; border-color: #ff93ba; }
+.game-ui .player-status,
+.game-ui .station-progress,
+.game-ui .game-notification,
+.game-ui .carrying-panel { border: 1px solid #48b7ee; border-radius: 15px; background: var(--space-surface); box-shadow: var(--space-shadow); color: var(--space-white); }
+.game-ui .player-status.player-two { border-color: var(--space-pink); background: linear-gradient(135deg, #352455f7, #171b48f5); }
+.game-ui .player-status header strong { color: var(--space-cyan); }
+.game-ui .player-status.player-two header strong { color: var(--space-pink); }
+.game-ui .player-status header span,
+.game-ui .player-status > small { color: #b8cbed; }
+.game-ui .player-status > div > [data-player-prompt] { color: var(--space-white); }
+.game-ui .player-next-step { border: 1px solid #ffe4b4; background: linear-gradient(#ffda89, #ffb84c); }
+.game-ui .interaction-prompt { border: 1px solid #ffe6b2; border-radius: 13px; background: linear-gradient(#ffe5a7, #ffc365); box-shadow: 0 0 0 3px #604782, 0 0 20px #ffbc4930; color: #34254b; }
+.game-ui .interaction-prompt strong { color: #34254b; }
+.game-ui .station-progress-track { border: 1px solid #3978b8; background: #091a40; }
+.game-ui .station-progress-fill { background: linear-gradient(#78f2ff, #11bfea); }
+.game-ui .station-progress[data-tone='ideal'] .station-progress-fill { background: linear-gradient(#abffe4, #3cddb4); }
+.game-ui .station-progress[data-tone='warning'] .station-progress-fill { background: linear-gradient(#ffe8a5, #ffb347); }
+.game-ui .station-progress[data-tone='danger'] .station-progress-fill { background: linear-gradient(#ff95b4, #e94578); }
+.game-ui .game-notification[data-tone='success'] { border-color: var(--space-mint); background: linear-gradient(#154d61, #102e46); color: #c1ffe8; }
+.game-ui .game-notification[data-tone='warning'] { border-color: var(--space-gold); background: linear-gradient(#594261, #34213e); color: #ffe0a1; }
+.game-ui .game-notification[data-tone='error'] { border-color: #ff688d; background: linear-gradient(#6a274e, #3c1b3f); color: #ffe2ed; }
+.game-ui .notification-signal { border-width: 1px; box-shadow: 0 0 8px currentColor; }
+.game-ui .split-screen-divider { background: linear-gradient(transparent, #3ddfff, transparent); box-shadow: 0 0 12px #18baff80; }
+
+/* Dialogs, recipe database and results share the same luminous panel construction. */
+.game-ui .modal-window,
+.game-ui .pause-card,
+.game-ui .results-window,
+.game-ui .cookbook-window { border: 2px solid #47bcff; border-radius: 23px; background: var(--space-surface); box-shadow: var(--space-shadow), 0 0 0 3px #183d7c; }
+.game-ui .modal-window::after { inset: 6px; border: 1px solid #64cfff38; border-radius: 16px; }
+.game-ui .modal-header,
+.game-ui .results-heading { border-color: #397ec7; background: linear-gradient(110deg, #1f558b9c, #24366b66, #4a2c7666); }
+.game-ui .modal-header { border-radius: 20px 20px 0 0; }
+.game-ui .modal-footer,
+.game-ui .results-footer { border-color: #3267a3; background: #0b1b3f88; }
+.game-ui .panel-kicker,
+.game-ui .modal-header .panel-kicker,
+.game-ui .results-heading .panel-kicker { border: 1px solid #b4faff; border-radius: 6px; background: linear-gradient(#73ecff, #20c9ef); color: #092b50; }
+.game-ui .cookbook-brand .mini-glyph { background-image: url('/assets/ui/cosmic/orbit-kitchen.svg'); width: 48px; height: 48px; }
+.game-ui .cookbook-nav { border-color: #315891; background: #091a3e88; }
+.game-ui .recipe-tab { border: 1px solid #3669a6; border-radius: 11px; background: linear-gradient(#21477c, #163361); box-shadow: inset 0 1px #9bdfff30; }
+.game-ui .recipe-tab:hover { background: #28558b; border-color: #55bcf4; }
+.game-ui .recipe-tab.is-selected { border-color: var(--space-cyan); background: linear-gradient(#2b749c, #214581); box-shadow: inset 3px 0 #36e4ff, 0 0 14px #14dfff20; }
+.game-ui .recipe-tab-copy strong { color: #ecfaff; }
+.game-ui .recipe-tab-copy small { color: #acc6ed; }
+.game-ui .cookbook-detail { border: 1px solid #315c9b; border-radius: 15px; background: #0b1c43; }
+.game-ui .recipe-section,
+.game-ui .recipe-steps li,
+.game-ui .effect-chip { border-color: #305a95; background: #15305c; }
+.game-ui .pause-emblem { border: 2px solid #71eaff; background: url('/assets/ui/cosmic/orbit-kitchen.svg') center / 85% no-repeat, radial-gradient(circle, #285589, #0b1c45); box-shadow: 0 0 32px #1cd5ff33; }
+.game-ui .pause-emblem::before,
+.game-ui .pause-emblem::after { border-color: #459edb; }
+.game-ui .rank-module { border: 2px solid #ead0ff; border-radius: 20px; background: radial-gradient(ellipse at 50% 30%, #d39dff, #9f67eb 65%, #623bbb); box-shadow: 0 0 0 4px #332568, 0 0 30px #b579ff44; }
+.game-ui .rank-module:has(strong[data-rank='S']) { background: radial-gradient(ellipse at 50% 30%, #fff3bf, #ffc65e 65%, #d78025); border-color: #ffecb2; }
+.game-ui .rank-module:has(strong[data-rank='A']) { background: linear-gradient(#c8fff0, #56dfc0); }
+.game-ui .rank-module:has(strong[data-rank='B']) { background: linear-gradient(#b9eeff, #5cafff); }
+.game-ui .rank-module:has(strong[data-rank='C']) { background: linear-gradient(#ffebc4, #ffc577); }
+.game-ui .rank-module:has(strong[data-rank='D']) { background: linear-gradient(#ffc1db, #f778ab); }
+.game-ui .rank-module span,
+.game-ui .rank-module strong[data-rank] { color: #133457; text-shadow: 0 2px 0 #ffffff60; }
+.game-ui .result-grid > div { border: 1px solid #32619c; border-radius: 12px; background: linear-gradient(#193b6c, #10264c); box-shadow: inset 0 1px #73b7ff35; }
+.game-ui .result-grid .result-score { background: linear-gradient(#9bf5ff, #31cdea); border-color: #c7ffff; }
+.game-ui .result-grid .result-credits { background: linear-gradient(#c4ffed, #73e5c8); border-color: #d1ffef; }
+.game-ui .result-grid .result-score span,
+.game-ui .result-grid .result-score strong,
+.game-ui .result-grid .result-credits span,
+.game-ui .result-grid .result-credits strong { color: #12334f; text-shadow: none; }
+
+/* Map editor is presentation-only too; its tool handlers and forms are untouched. */
+
+@media (max-width: 860px) {
+  .game-ui .selection-screen { padding: 16px 20px 22px; gap: 18px; }
+  .game-ui .selection-header { padding: 10px 14px; }
+  .game-ui .selection-header h1::before { width: 44px; height: 44px; }
+  .game-ui .level-list { gap: 19px; }
+  .game-ui .level-card { min-height: 235px; padding: 15px; }
+  .game-ui .level-card::before { height: 76px; }
+}
+@media (max-width: 640px) {
+  .game-ui .selection-screen { padding: 12px; gap: 14px; }
+  .game-ui .selection-actions { gap: 10px; }
+  .game-ui .selection-actions .start-action { min-width: 0; width: 100%; }
+  .game-ui .selection-arena { min-width: 0; }
+  .game-ui .selection-header { gap: 10px; }
+  .game-ui .selection-header h1 { gap: 6px; font-size: 18px; }
+  .game-ui .selection-header h1::before { width: 34px; height: 34px; }
+  .game-ui .selection-header .menu-map-action { min-width: 0; padding: 0 10px; font-size: 10px; }
+  .game-ui .level-select { width: 100%; }
+  .game-ui .level-list { max-height: 58vh; }
+  .game-ui .level-card { min-height: 215px; }
+  .game-ui .level-card::before { height: 62px; }
+  .game-ui .level-card-title { font-size: 19px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .level-card,
+  .game-ui .primary-action,
+  .game-ui .secondary-action { transition: none; }
+  .game-ui .level-card:hover { transform: none; }
+}

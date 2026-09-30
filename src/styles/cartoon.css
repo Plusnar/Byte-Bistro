@@ -1,0 +1,352 @@
+/*
+ * Shared cartoon-panel language, extended from the order card to the rest of the game.
+ *
+ * The order card is the reference: solid fills, a thick dark border, a hard drop shadow
+ * instead of a blur, big bold type, and the same five accent colours. Everything here exists
+ * so the pause screen, the results, the notifications, the prompts and the editor read as
+ * parts of one game rather than three different ones.
+ *
+ * Deliberately unlayered and imported last, so it wins over game.css and tech-theme.css
+ * without having to hunt down every older rule for the same element.
+ */
+
+:root {
+  /* Same values orders.css sets on .game-ui, hoisted so the editor tree can use them too. */
+  --order-ink: #0d1b2a;
+  --order-cyan: #5ce1e6;
+  --order-green: #23c552;
+  --order-amber: #ffb020;
+  --order-red: #ff4d5e;
+  /* Panel fills, darkest to lightest. */
+  --panel-deep: #16263a;
+  --panel-base: #1d3350;
+  --panel-lift: #264366;
+  --panel-text: #eaf2ff;
+  --panel-muted: #a9c2dd;
+}
+
+/* ---------------------------------------------------------------------------
+ * Panels and modals
+ */
+
+.modal-window,
+.pause-card,
+.results-window,
+.cookbook-window {
+  border: 4px solid var(--order-ink);
+  border-radius: 22px;
+  background: var(--panel-base);
+  /* Hard offset shadow, not a blur: the order cards read as stickers, not as glass. */
+  box-shadow: 0 8px 0 var(--order-ink);
+  color: var(--panel-text);
+  backdrop-filter: none;
+}
+
+.full-overlay {
+  background: rgba(7, 16, 27, 0.82);
+}
+
+.modal-header,
+.results-heading,
+.results-footer,
+.modal-footer {
+  border-color: rgba(13, 27, 42, 0.55);
+  background: none;
+}
+
+.modal-window h2,
+.pause-card h2,
+.results-window h2 {
+  color: var(--panel-text);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.modal-window p,
+.pause-card p {
+  color: var(--panel-muted);
+}
+
+.panel-kicker {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--order-cyan);
+  color: var(--order-ink);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------
+ * Buttons
+ */
+
+.primary-action {
+  border: 4px solid var(--order-ink);
+  border-radius: 14px;
+  background: var(--order-green);
+  color: var(--order-ink);
+  box-shadow: 0 4px 0 var(--order-ink);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.secondary-action,
+.icon-button {
+  border: 3px solid var(--order-ink);
+  border-radius: 12px;
+  background: var(--panel-lift);
+  color: var(--panel-text);
+  box-shadow: 0 3px 0 var(--order-ink);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.primary-action:hover:not(:disabled),
+.secondary-action:hover:not(:disabled),
+.icon-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+/* Pressing pushes the button down onto its own shadow. */
+.primary-action:active:not(:disabled),
+.secondary-action:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--order-ink);
+}
+
+.primary-action:disabled,
+.secondary-action:disabled {
+  background: #33455c;
+  color: #7f94ab;
+  box-shadow: 0 3px 0 rgba(13, 27, 42, 0.6);
+  transform: none;
+}
+
+
+
+
+
+/* ---------------------------------------------------------------------------
+ * Keycaps
+ */
+
+.keycap,
+.pause-hint kbd,
+.modal-footer kbd,
+.pick-keys kbd {
+  border: 3px solid var(--order-ink);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--order-ink);
+  box-shadow: 0 2px 0 var(--order-ink);
+  font-weight: 900;
+}
+
+/* ---------------------------------------------------------------------------
+ * In-world HUD: interaction prompt and station progress
+ */
+
+.interaction-prompt {
+  border: 4px solid var(--order-ink);
+  border-radius: 16px;
+  background: var(--order-amber);
+  box-shadow: 0 4px 0 var(--order-ink);
+  color: var(--order-ink);
+  font-weight: 900;
+}
+
+.interaction-prompt strong { color: var(--order-ink); }
+.interaction-prompt .prompt-divider { background: rgba(13, 27, 42, 0.35); }
+
+.station-progress {
+  border: 4px solid var(--order-ink);
+  border-radius: 18px;
+  background: var(--panel-deep);
+  box-shadow: 0 4px 0 var(--order-ink);
+  color: var(--panel-text);
+}
+
+.station-progress header strong,
+.station-progress footer strong { color: var(--panel-text); font-weight: 900; }
+
+.station-progress-track {
+  border: 3px solid var(--order-ink);
+  border-radius: 999px;
+  background: #0d1b2a;
+  overflow: hidden;
+}
+
+.station-progress-fill { background: var(--order-cyan); }
+.station-progress[data-tone="ideal"] .station-progress-fill { background: var(--order-green); }
+.station-progress[data-tone="warning"] .station-progress-fill { background: var(--order-amber); }
+.station-progress[data-tone="danger"] .station-progress-fill { background: var(--order-red); }
+/* The ideal window is a marker over the fill, not part of it. */
+.station-ideal-zone { background: rgba(255, 255, 255, 0.28); }
+
+/* ---------------------------------------------------------------------------
+ * Notifications, including the penalty warnings
+ */
+
+.game-notification {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 4px solid var(--order-ink);
+  border-radius: 14px;
+  background: var(--panel-base);
+  box-shadow: 0 4px 0 var(--order-ink);
+  color: var(--panel-text);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.game-notification .notification-signal {
+  width: 12px;
+  min-width: 12px;
+  height: 12px;
+  border: 3px solid var(--order-ink);
+  border-radius: 50%;
+  background: var(--order-cyan);
+  box-shadow: none;
+}
+
+/* Tone lives in the fill, like the order card's urgency, so it reads at a glance. */
+.game-notification[data-tone="success"] { background: var(--order-green); color: var(--order-ink); }
+.game-notification[data-tone="warning"] { background: var(--order-amber); color: var(--order-ink); }
+.game-notification[data-tone="error"] { background: var(--order-red); color: #ffffff; }
+
+.game-notification[data-tone="success"] .notification-signal,
+.game-notification[data-tone="warning"] .notification-signal { background: var(--order-ink); }
+.game-notification[data-tone="error"] .notification-signal { background: #ffffff; }
+
+/* ---------------------------------------------------------------------------
+ * Results
+ */
+
+.rank-module {
+  border: 4px solid var(--order-ink);
+  border-radius: 18px;
+  background: var(--order-cyan);
+  box-shadow: 0 4px 0 var(--order-ink);
+  color: var(--order-ink);
+}
+
+.rank-module span { color: var(--order-ink); font-weight: 900; }
+.rank-module strong { color: var(--order-ink); font-weight: 900; }
+
+/* Rank colour, worst to best, so the grade is legible before the letter is read. */
+.rank-module strong[data-rank="S"] { color: #0d1b2a; }
+.rank-module:has(strong[data-rank="S"]) { background: var(--order-green); }
+.rank-module:has(strong[data-rank="A"]) { background: var(--order-cyan); }
+.rank-module:has(strong[data-rank="B"]) { background: #9fd8ff; }
+.rank-module:has(strong[data-rank="C"]) { background: var(--order-amber); }
+.rank-module:has(strong[data-rank="D"]) { background: var(--order-red); }
+
+.result-grid > div {
+  border: 3px solid var(--order-ink);
+  border-radius: 12px;
+  background: var(--panel-deep);
+  box-shadow: 0 3px 0 rgba(13, 27, 42, 0.7);
+}
+
+.result-grid > div span { color: var(--panel-muted); font-weight: 700; }
+.result-grid > div strong { color: var(--panel-text); font-weight: 900; }
+
+.result-grid .result-score { background: var(--order-cyan); }
+.result-grid .result-credits { background: var(--order-green); }
+.result-grid .result-score span,
+.result-grid .result-score strong,
+.result-grid .result-credits span,
+.result-grid .result-credits strong { color: var(--order-ink); }
+
+/* ---------------------------------------------------------------------------
+ * Pause
+ */
+
+.pause-emblem {
+  border: 4px solid var(--order-ink);
+  border-radius: 50%;
+  background: var(--order-amber);
+  box-shadow: 0 4px 0 var(--order-ink);
+  color: var(--order-ink);
+}
+
+.pause-emblem span { color: var(--order-ink); font-weight: 900; }
+
+/* ---------------------------------------------------------------------------
+ * Cookbook
+ */
+
+.cookbook-nav button {
+  border: 3px solid var(--order-ink);
+  border-radius: 12px;
+  background: var(--panel-lift);
+  color: var(--panel-text);
+  box-shadow: 0 3px 0 var(--order-ink);
+  font-weight: 800;
+}
+
+.cookbook-nav .is-selected,
+.cookbook-nav [aria-pressed="true"] {
+  background: var(--order-cyan);
+  color: var(--order-ink);
+}
+
+.cookbook-detail {
+  border: 3px solid var(--order-ink);
+  border-radius: 16px;
+  background: var(--panel-deep);
+}
+
+/* ---------------------------------------------------------------------------
+ * Editor
+ *
+ * The editor is where levels get built, so it uses the same vocabulary as the game it builds.
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* The Play gate: green when met, red when not — the same pass/fail colours as a ticket. */
+
+
+
+
+
+
+
+@media (prefers-reduced-motion: reduce) {
+  .primary-action,
+.secondary-action,
+.icon-button,
+.level-card { transition: none; }
+}

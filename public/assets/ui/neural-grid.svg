@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Neural grid pattern">
+  <defs>
+    <linearGradient id="ngBase" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#08131a"/>
+      <stop offset="0.5" stop-color="#060e14"/>
+      <stop offset="1" stop-color="#08131a"/>
+    </linearGradient>
+    <radialGradient id="ngGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffb020" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffb020" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ngGlow2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#38e08a" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#38e08a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="160" height="160" fill="url(#ngBase)"/>
+
+  <!-- fine substrate grid: seamless because it repeats on the tile edges -->
+  <g stroke="#4fb6c6" stroke-opacity="0.055" stroke-width="1" fill="none">
+    <path d="M0 20H160M0 40H160M0 60H160M0 80H160M0 100H160M0 120H160M0 140H160"/>
+    <path d="M20 0V160M40 0V160M60 0V160M80 0V160M100 0V160M120 0V160M140 0V160"/>
+  </g>
+  <g stroke="#7fe3d0" stroke-opacity="0.09" stroke-width="1.4" fill="none">
+    <path d="M0 80H160M80 0V160"/>
+  </g>
+
+  <!-- circuit traces -->
+  <g stroke="#1d565f" stroke-opacity="0.75" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0 60H28L40 48H72"/>
+    <path d="M160 60H132L120 48H88"/>
+    <path d="M0 100H28L40 112H72"/>
+    <path d="M160 100H132L120 112H88"/>
+    <path d="M60 0V22L72 34V48"/>
+    <path d="M100 0V22L88 34V48"/>
+    <path d="M60 160V138L72 126V112"/>
+    <path d="M100 160V138L88 126V112"/>
+  </g>
+  <g stroke="#2b7a72" stroke-opacity="0.5" stroke-width="1.6" fill="none" stroke-linecap="round">
+    <path d="M0 24H44L56 36H160"/>
+    <path d="M0 136H44L56 124H160"/>
+  </g>
+
+  <!-- vias + nodes -->
+  <g>
+    <circle cx="72" cy="48" r="6" fill="url(#ngGlow)"/>
+    <circle cx="88" cy="48" r="6" fill="url(#ngGlow)"/>
+    <circle cx="72" cy="112" r="6" fill="url(#ngGlow2)"/>
+    <circle cx="88" cy="112" r="6" fill="url(#ngGlow2)"/>
+    <circle cx="72" cy="48" r="2.1" fill="#ffb020"/>
+    <circle cx="88" cy="48" r="2.1" fill="#ffb020"/>
+    <circle cx="72" cy="112" r="2.1" fill="#38e08a"/>
+    <circle cx="88" cy="112" r="2.1" fill="#38e08a"/>
+    <circle cx="40" cy="48" r="1.4" fill="#5fb0bd"/>
+    <circle cx="120" cy="112" r="1.4" fill="#5fb0bd"/>
+    <circle cx="56" cy="36" r="1.2" fill="#4b8d99"/>
+    <circle cx="56" cy="124" r="1.2" fill="#4b8d99"/>
+  </g>
+</svg>

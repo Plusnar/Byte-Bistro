@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Data center backdrop">
+  <defs>
+    <linearGradient id="sbSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#04121a"/>
+      <stop offset="0.45" stop-color="#061a22"/>
+      <stop offset="0.72" stop-color="#081d25"/>
+      <stop offset="1" stop-color="#030a0e"/>
+    </linearGradient>
+    <linearGradient id="sbFloor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1f28"/>
+      <stop offset="0.5" stop-color="#07151c"/>
+      <stop offset="1" stop-color="#03090d"/>
+    </linearGradient>
+    <radialGradient id="sbHalo" cx="0.5" cy="0.46" r="0.5">
+      <stop offset="0" stop-color="#ffb020" stop-opacity="0.22"/>
+      <stop offset="0.45" stop-color="#ffb020" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#ffb020" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sbVignette" cx="0.5" cy="0.5" r="0.72">
+      <stop offset="0.45" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.72"/>
+    </radialGradient>
+    <linearGradient id="sbRack" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0e232b"/>
+      <stop offset="0.5" stop-color="#152f38"/>
+      <stop offset="1" stop-color="#0b1b22"/>
+    </linearGradient>
+    <linearGradient id="sbLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dff6ff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#dff6ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="sbTrace" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffb020" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ffb020" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#ffb020" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="sbLedA" width="14" height="18" patternUnits="userSpaceOnUse">
+      <rect width="14" height="18" fill="none"/>
+      <rect x="2" y="3" width="4" height="2" rx="1" fill="#38e08a" fill-opacity="0.85"/>
+      <rect x="8" y="3" width="4" height="2" rx="1" fill="#ffb020" fill-opacity="0.55"/>
+      <rect x="2" y="11" width="4" height="2" rx="1" fill="#ffb020" fill-opacity="0.7"/>
+      <rect x="8" y="11" width="4" height="2" rx="1" fill="#5fb0bd" fill-opacity="0.5"/>
+    </pattern>
+    <pattern id="sbLedB" width="12" height="16" patternUnits="userSpaceOnUse">
+      <rect width="12" height="16" fill="none"/>
+      <rect x="2" y="4" width="3" height="2" rx="1" fill="#ffb020" fill-opacity="0.5"/>
+      <rect x="7" y="10" width="3" height="2" rx="1" fill="#38e08a" fill-opacity="0.45"/>
+    </pattern>
+    <pattern id="sbGrid" width="80" height="80" patternUnits="userSpaceOnUse">
+      <path d="M0 0H80M0 0V80" stroke="#5fb0bd" stroke-opacity="0.16" stroke-width="1"/>
+    </pattern>
+    <pattern id="sbGridFine" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M0 0H20M0 0V20" stroke="#5fb0bd" stroke-opacity="0.06" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sbSky)"/>
+
+  <!-- ceiling light strips -->
+  <g>
+    <rect x="120" y="0" width="420" height="150" fill="url(#sbLight)" opacity="0.5"/>
+    <rect x="1060" y="0" width="420" height="150" fill="url(#sbLight)" opacity="0.5"/>
+    <rect x="620" y="0" width="360" height="120" fill="url(#sbLight)" opacity="0.32"/>
+  </g>
+
+  <!-- back wall porthole -->
+  <g>
+    <circle cx="800" cy="300" r="168" fill="#04121a" stroke="#1f515c" stroke-width="3" stroke-opacity="0.7"/>
+    <circle cx="800" cy="300" r="140" fill="none" stroke="#2b7a72" stroke-width="1.4" stroke-opacity="0.45" stroke-dasharray="14 12"/>
+    <circle cx="800" cy="300" r="96" fill="none" stroke="#5fb0bd" stroke-width="1" stroke-opacity="0.25"/>
+    <circle cx="800" cy="300" r="150" fill="url(#sbHalo)"/>
+    <path d="M760 340 L800 250 L840 340 Z" fill="none" stroke="#ffb020" stroke-opacity="0.5" stroke-width="2"/>
+    <circle cx="800" cy="300" r="6" fill="#ffb020" fill-opacity="0.7"/>
+  </g>
+
+  <!-- left rack bank (perspective) -->
+  <g>
+    <path d="M-40 470 L300 430 L300 760 L-40 830 Z" fill="url(#sbRack)" stroke="#1f515c" stroke-opacity="0.55" stroke-width="2"/>
+    <path d="M-40 470 L300 430 L300 760 L-40 830 Z" fill="url(#sbLedA)" opacity="0.55"/>
+    <g stroke="#000000" stroke-opacity="0.5" stroke-width="2">
+      <path d="M-20 540 L296 502M-20 620 L296 578M-20 700 L296 654"/>
+    </g>
+    <path d="M300 430 L300 760" stroke="#ffb020" stroke-opacity="0.35" stroke-width="3"/>
+  </g>
+
+  <!-- right rack bank (perspective) -->
+  <g>
+    <path d="M1640 470 L1300 430 L1300 760 L1640 830 Z" fill="url(#sbRack)" stroke="#1f515c" stroke-opacity="0.55" stroke-width="2"/>
+    <path d="M1640 470 L1300 430 L1300 760 L1640 830 Z" fill="url(#sbLedA)" opacity="0.55"/>
+    <g stroke="#000000" stroke-opacity="0.5" stroke-width="2">
+      <path d="M1620 540 L1304 502M1620 620 L1304 578M1620 700 L1304 654"/>
+    </g>
+    <path d="M1300 430 L1300 760" stroke="#ffb020" stroke-opacity="0.35" stroke-width="3"/>
+  </g>
+
+  <!-- mid back racks -->
+  <g opacity="0.8">
+    <rect x="360" y="470" width="120" height="250" fill="#0d2027" stroke="#1b4a52" stroke-opacity="0.4"/>
+    <rect x="360" y="470" width="120" height="250" fill="url(#sbLedB)" opacity="0.7"/>
+    <rect x="1120" y="470" width="120" height="250" fill="#0d2027" stroke="#1b4a52" stroke-opacity="0.4"/>
+    <rect x="1120" y="470" width="120" height="250" fill="url(#sbLedB)" opacity="0.7"/>
+  </g>
+
+  <!-- floor -->
+  <path d="M0 620 H1600 V900 H0 Z" fill="url(#sbFloor)"/>
+  <path d="M0 620 H1600 V900 H0 Z" fill="url(#sbGridFine)" opacity="0.6"/>
+  <g transform="matrix(1 0 -0.55 1 350 0)">
+    <rect x="-200" y="620" width="1800" height="280" fill="url(#sbGrid)" opacity="0.55"/>
+  </g>
+  <path d="M0 620 H1600" stroke="#7fe3d0" stroke-opacity="0.35" stroke-width="2"/>
+  <path d="M0 700 H1600" stroke="#ffb020" stroke-opacity="0.14" stroke-width="3"/>
+  <rect x="0" y="850" width="1600" height="50" fill="#03090d"/>
+
+  <!-- data traces along the floor -->
+  <g>
+    <rect x="200" y="742" width="1200" height="2" fill="url(#sbTrace)" opacity="0.5"/>
+    <rect x="340" y="792" width="920" height="2" fill="url(#sbTrace)" opacity="0.35"/>
+  </g>
+
+  <!-- foreground vignette -->
+  <rect width="1600" height="900" fill="url(#sbVignette)"/>
+  <rect y="0" width="1600" height="900" fill="#02141c" opacity="0.18"/>
+</svg>
