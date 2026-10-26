@@ -1,4 +1,5 @@
-import { publicUrl } from "../utils/assetUrl";
+import { translate } from "../i18n";
+import { bundledModelUrl, publicModelUrl } from "../core/assets/assetRegistry";
 
 export const RIG_MEDIUM_JOINTS = [
   "root",
@@ -91,10 +92,52 @@ export interface EmbeddedClipSet {
   readonly showcase: EmbeddedClip;
 }
 
+/**
+ * How a cook's hair swings; see src/entities/hairPhysics.ts. Lengths are in
+ * units of each hair segment, so the numbers hold at any model scale.
+ */
+export interface HairSpring {
+  /** Pull back to the posed shape, per second. Higher is a stiffer, faster lock. */
+  readonly stiffness: number;
+  /** Share of its motion a lock loses each step (0 to 1). Higher settles sooner. */
+  readonly drag: number;
+  /** Sag per second. */
+  readonly gravity: number;
+  /** Furthest a segment swings from its posed direction, in degrees. */
+  readonly maxAngle: number;
+  /**
+   * Share of the stiffness left at the end of a lock, fading linearly from the
+   * root (1, the default, is even). Below 1 the root holds and the end runs free,
+   * as real hair does.
+   */
+  readonly taper?: number;
+  /**
+   * Radius, in model units, of spheres round the upper spine and neck that long
+   * hair may not swing into. Without it a free ponytail passes through the back.
+   */
+  readonly body?: number;
+  /**
+   * The modelled shape already hangs under gravity, so gravity only acts as the
+   * head turns away from upright: tip the head and the lock keeps hanging down.
+   * Off, `gravity` is a plain sag added to the modelled shape.
+   */
+  readonly hang?: boolean;
+  /**
+   * How hard the air the cook walks into blows the hair back, per metre per
+   * second of travel. A lock leans back by about asin(wind × speed ÷ (stiffness
+   * + gravity)) at a steady pace.
+   */
+  readonly wind?: number;
+  /** Stiffness multipliers for single locks, by name: a short lock by the face held firmer than a long tail. */
+  readonly lockStiffness?: Readonly<Record<string, number>>;
+}
+
 /** A character that ships its own animations and is not retargeted. */
 export interface EmbeddedCharacter extends CharacterBase {
   readonly rig: "Embedded";
   readonly clips: EmbeddedClipSet;
+  /** Spring settings for hair joints added by scripts/rig-hair.py. */
+  readonly hair?: HairSpring;
 }
 
 export type CharacterDefinition = RigMediumCharacter | EmbeddedCharacter;
@@ -151,33 +194,104 @@ const SANDY_CLIPS: EmbeddedClipSet = {
   showcase: { name: "You_Groove" },
 };
 
-// Only the two cooks made for this game: William and Sandy.
+/**
+ * Milena ships her own Mixamo library, merged from Meshy's per-animation exports by
+ * scripts/merge-clips.py: the same knock-down, lying, get-up (Stand_Up1) and
+ * pitching clips as Sandy's, timed the same, so their slices carry over. Her
+ * planted feet travel at 1.26 walking and 3.6 running (scripts/measure-stride.py),
+ * and her selection dance is her own Shake_It_Off_Dance.
+ */
+const MILENA_CLIPS: EmbeddedClipSet = {
+  ...SANDY_CLIPS,
+  walk: { ...SANDY_CLIPS.walk, footSpeed: 1.26 },
+  run: { ...SANDY_CLIPS.run, footSpeed: 3.6 },
+  showcase: { name: "Shake_It_Off_Dance" },
+};
+
+/**
+ * Jean ships the same Mixamo library as Sandy (Stand_Up1 for getting up, the same
+ * knock-down and pitching timings) with his own stride, 1.42 walking and 3.8
+ * running, and Hip_Hop_Dance_3 as his selection dance.
+ */
+const JEAN_CLIPS: EmbeddedClipSet = {
+  ...SANDY_CLIPS,
+  walk: { ...SANDY_CLIPS.walk, footSpeed: 1.42 },
+  run: { ...SANDY_CLIPS.run, footSpeed: 3.8 },
+  showcase: { name: "Hip_Hop_Dance_3" },
+};
+
+// The cooks made for this game: William, Sandy, Milena and Jean.
 export const CHARACTERS = [
   {
     id: "william",
     displayName: "William",
-    role: "Head Chef",
+    get role() { return translate("characters.headChef"); },
     modelAssetId: "character-william",
-    // The file name ends in a space before the extension, so it is encoded
-    // rather than typed into the path.
-    modelUrl: publicUrl(`asset-library/Char/Characters/${encodeURIComponent("William .glb")}`),
+    // The file name ends in a space before the extension; the registry encodes it.
+    modelUrl: publicModelUrl("asset-library/Char/Characters/William .glb"),
     previewUrl: "",
     // KayKit-cook proportions: the counters and props were sized for 1.78 to 1.90 m.
     targetHeight: 1.84,
     rig: "Embedded",
     clips: WILLIAM_CLIPS,
+    // Short, swept hair: quick to settle, it flicks as he turns and stops.
+    hair: { stiffness: 14, drag: 0.45, gravity: 0.3, maxAngle: 18 },
   },
   {
     id: "sandy",
     displayName: "Sandy",
-    role: "Sous Chef",
+    get role() { return translate("characters.sousChef"); },
     modelAssetId: "character-sandy",
-    modelUrl: publicUrl("asset-library/Char/Characters/Sandy.glb"),
+    modelUrl: publicModelUrl("asset-library/Char/Characters/Sandy.glb"),
     previewUrl: "",
     // Same authored height as William, so the same fit keeps them level.
     targetHeight: 1.84,
     rig: "Embedded",
     clips: SANDY_CLIPS,
+    // Big curls: softer, so the puff lags and wobbles a little longer.
+    hair: { stiffness: 14, drag: 0.45, gravity: 0.4, maxAngle: 22 },
+  },
+  {
+    id: "milena",
+    displayName: "Milena",
+    get role() { return translate("characters.pastryChef"); },
+    modelAssetId: "character-milena",
+    modelUrl: publicModelUrl("asset-library/Char/Characters/Milena.glb"),
+    previewUrl: "",
+    targetHeight: 1.84,
+    rig: "Embedded",
+    clips: MILENA_CLIPS,
+    // A high ponytail whose two strands hang from the one band on her crown, and
+    // a lock by her left cheek. The modelled shape is how they hang, so gravity
+    // only acts as she tips her head: the tail keeps falling straight down. Soft
+    // and well damped, so it sways slowly (about once a second) rather than
+    // bouncing to her quick in-game stride; it streams back about 18° walking and
+    // 25° running, and drifts down again when she stops. Firmer at the band than
+    // at the ends, kept off her back; the cheek lock is held firmer still.
+    hair: {
+      stiffness: 1,
+      drag: 0.6,
+      gravity: 0.5,
+      maxAngle: 30,
+      taper: 0.5,
+      body: 0.18,
+      hang: true,
+      wind: 0.025,
+      lockStiffness: { lock_l: 3 },
+    },
+  },
+  {
+    id: "jean",
+    displayName: "Jean",
+    get role() { return translate("characters.grillChef"); },
+    modelAssetId: "character-jean",
+    modelUrl: publicModelUrl("asset-library/Char/Characters/Jean.glb"),
+    previewUrl: "",
+    targetHeight: 1.84,
+    rig: "Embedded",
+    clips: JEAN_CLIPS,
+    // A buzz cut barely moves: a hint of give on the turns, held to a few degrees.
+    hair: { stiffness: 14, drag: 0.5, gravity: 0.15, maxAngle: 8 },
   },
 ] as const satisfies readonly CharacterDefinition[];
 
@@ -188,17 +302,11 @@ export const DEFAULT_CHARACTER_ID: CharacterId = "william";
 export const CHARACTER_ANIMATION_ASSETS = {
   general: {
     id: "rig-medium-general",
-    url: new URL(
-      "../../Anim/Animations/gltf/Rig_Medium/Rig_Medium_General.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("Anim/Animations/gltf/Rig_Medium/Rig_Medium_General.glb"),
   },
   movement: {
     id: "rig-medium-movement-basic",
-    url: new URL(
-      "../../Anim/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("Anim/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb"),
   },
   /**
    * Ambient clips for placed robots (waving, sitting, cheering).
@@ -208,10 +316,7 @@ export const CHARACTER_ANIMATION_ASSETS = {
    */
   simulation: {
     id: "rig-medium-simulation",
-    url: new URL(
-      "../../Anim/Animations/gltf/Rig_Medium/Rig_Medium_Simulation.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("Anim/Animations/gltf/Rig_Medium/Rig_Medium_Simulation.glb"),
   },
 } as const;
 

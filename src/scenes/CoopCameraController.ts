@@ -121,6 +121,13 @@ export class CoopCameraController {
     this.secondary.dispose();
   }
 
+  /**
+   * Metres the view trembles by, for fires, crashes and lightning; 0 holds it still.
+   * The tremble is taken back off before the next smoothing step, so it never drifts.
+   */
+  shake = 0;
+  private readonly shakeOffsets = new Map<FreeCamera, Vector3>();
+
   private createCamera(name: string, position: Vector3): FreeCamera {
     const camera = new FreeCamera(name, position.clone(), this.scene);
     camera.fov = BASE_FOV;
@@ -143,9 +150,25 @@ export class CoopCameraController {
       this.offset.y * offsetScale,
       this.offset.z * offsetScale,
     );
+    let shaken = this.shakeOffsets.get(camera);
+    if (!shaken) {
+      shaken = Vector3.Zero();
+      this.shakeOffsets.set(camera, shaken);
+    }
+    camera.position.subtractInPlace(shaken);
     const smoothing = 1 - Math.exp(-this.smoothing * Math.max(0, deltaSeconds));
     Vector3.LerpToRef(camera.position, this.desiredPosition, smoothing, camera.position);
     camera.fov += (fov - camera.fov) * smoothing;
     camera.setTarget(target);
+    if (this.shake > 0) {
+      shaken.set(
+        (Math.random() - 0.5) * 2 * this.shake,
+        (Math.random() - 0.5) * 2 * this.shake,
+        (Math.random() - 0.5) * 2 * this.shake,
+      );
+    } else {
+      shaken.setAll(0);
+    }
+    camera.position.addInPlace(shaken);
   }
 }

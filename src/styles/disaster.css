@@ -1,0 +1,197 @@
+/*
+ * Disasters and chaos, drawn over the kitchen. The card follows the HUD's space
+ * skin (cosmic.css): deep blue surfaces, cyan lines, rounded 17px corners, with
+ * hazard stripes and the order red for danger.
+ */
+.game-ui .disaster-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Fire: a red vignette that pulses with the alarm, stronger the more is burning. */
+.game-ui .disaster-vignette {
+  --chaos: 0;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 48%, #ff2a4d 120%);
+  transition: opacity 0.4s ease;
+}
+.game-ui .disaster-vignette.is-on {
+  opacity: calc(0.35 + var(--chaos) * 0.55);
+  animation: disaster-alarm 0.9s ease-in-out infinite;
+}
+@keyframes disaster-alarm {
+  0%, 100% { filter: brightness(0.75); }
+  50% { filter: brightness(1.35); }
+}
+
+/* Top left, which the HUD leaves free: the order tickets sit in the middle. */
+.game-ui .disaster-chaos-chip,
+.game-ui .disaster-status {
+  position: absolute;
+  left: 16px;
+  padding: 7px 18px;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  box-shadow: var(--space-shadow);
+}
+.game-ui .disaster-chaos-chip {
+  top: 16px;
+  border: 2px solid #ffd0a1;
+  background: linear-gradient(#ff5c3a, #c2183f);
+  color: #fff6ea;
+  animation: disaster-chip-pulse 0.9s ease-in-out infinite;
+}
+.game-ui .disaster-status {
+  top: 60px;
+  border: 2px solid var(--space-gold);
+  background: linear-gradient(#594261, #34213e);
+  color: #ffe0a1;
+}
+@keyframes disaster-chip-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+
+/* The imminent-disaster card. */
+.game-ui .disaster-warning {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: min(560px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  border: 2px solid var(--order-red);
+  border-radius: var(--ui-radius);
+  background: var(--space-surface);
+  box-shadow: 0 0 0 4px #3c1b3f, 0 0 46px #ff688d88, var(--space-shadow);
+  color: var(--space-white);
+  animation: disaster-warning-in 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both,
+    disaster-warning-shake 0.5s ease-in-out 0.45s infinite;
+}
+@keyframes disaster-warning-in {
+  from { transform: translate(-50%, -50%) scale(0.4) rotate(-6deg); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1) rotate(0); opacity: 1; }
+}
+@keyframes disaster-warning-shake {
+  0%, 100% { transform: translate(-50%, -50%) rotate(0); }
+  25% { transform: translate(calc(-50% - 2px), -50%) rotate(-0.6deg); }
+  75% { transform: translate(calc(-50% + 2px), -50%) rotate(0.6deg); }
+}
+
+.game-ui .disaster-stripes {
+  height: 12px;
+  background: repeating-linear-gradient(-45deg, var(--space-gold) 0 14px, #1b1030 14px 28px);
+  background-size: 40px 12px;
+  animation: disaster-stripes-move 0.6s linear infinite;
+}
+@keyframes disaster-stripes-move {
+  from { background-position: 0 0; }
+  to { background-position: 40px 0; }
+}
+
+.game-ui .disaster-warning-body {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px 10px;
+}
+.game-ui .disaster-warning-icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 2px solid var(--order-red);
+  border-radius: 50%;
+  background: radial-gradient(#6a274e, #2a1236);
+  font-size: 2.4rem;
+  box-shadow: 0 0 18px #ff688d99;
+  animation: disaster-icon-pulse 0.7s ease-in-out infinite;
+}
+@keyframes disaster-icon-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+.game-ui .disaster-warning-copy { display: grid; gap: 3px; min-width: 0; }
+.game-ui .disaster-warning-eyebrow {
+  color: var(--order-red);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  font-size: 0.78rem;
+}
+.game-ui .disaster-warning-title {
+  color: var(--space-gold);
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1.05;
+  text-shadow: 0 2px 0 #3c1b3f;
+}
+.game-ui .disaster-warning-detail { margin: 0; color: var(--space-white); font-weight: 700; }
+.game-ui .disaster-warning-cause { margin: 0; color: var(--space-muted); font-size: 0.8rem; }
+.game-ui .disaster-warning-count {
+  min-width: 58px;
+  color: var(--order-red);
+  font-size: 3rem;
+  font-weight: 900;
+  text-align: center;
+  text-shadow: 0 0 16px #ff688d;
+}
+.game-ui .disaster-warning-count.is-ticking { animation: disaster-count-pop 0.35s ease-out; }
+@keyframes disaster-count-pop {
+  from { transform: scale(1.6); }
+  to { transform: scale(1); }
+}
+.game-ui .disaster-warning-track {
+  height: 8px;
+  margin: 0 20px 14px;
+  border: 1px solid #3978b8;
+  border-radius: 999px;
+  background: #091a40;
+  overflow: hidden;
+}
+.game-ui .disaster-warning-bar {
+  --left: 100%;
+  width: var(--left);
+  height: 100%;
+  background: linear-gradient(90deg, #ff95b4, #e94578);
+  transition: width 0.12s linear;
+}
+
+/* Lightning. */
+.game-ui .disaster-flash {
+  --flash: 1;
+  position: absolute;
+  inset: 0;
+  background: #f4fbff;
+  opacity: 0;
+}
+.game-ui .disaster-flash.is-flashing { animation: disaster-flash 0.45s ease-out; }
+@keyframes disaster-flash {
+  0% { opacity: calc(var(--flash) * 0.85); }
+  20% { opacity: calc(var(--flash) * 0.2); }
+  30% { opacity: calc(var(--flash) * 0.6); }
+  100% { opacity: 0; }
+}
+
+@media (max-width: 640px) {
+  .game-ui .disaster-warning-body { grid-template-columns: auto 1fr; }
+  .game-ui .disaster-warning-count { grid-column: 1 / -1; font-size: 2.2rem; }
+  .game-ui .disaster-warning-icon { width: 56px; height: 56px; font-size: 1.8rem; }
+  .game-ui .disaster-warning-title { font-size: 1.2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .disaster-warning,
+  .game-ui .disaster-stripes,
+  .game-ui .disaster-warning-icon,
+  .game-ui .disaster-chaos-chip,
+  .game-ui .disaster-vignette.is-on { animation: none; }
+}

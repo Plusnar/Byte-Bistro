@@ -7,6 +7,7 @@ import {
   LoadAssetContainerAsync,
   Node,
   Scene,
+  Texture,
   type AnimationGroup,
   type Skeleton,
 } from "@babylonjs/core";
@@ -52,6 +53,11 @@ export class AssetManager {
   private readonly definitions = new Map<string, ModelAssetDefinition>();
   private readonly containers = new Map<string, Promise<AssetContainer | null>>();
   private readonly loaded = new Map<string, AssetContainer>();
+  /**
+   * Live instances per model. A container's meshes, materials and textures are shared by
+   * every instance made from it, so it may only be released when this reaches zero.
+   */
+  private readonly liveInstances = new Map<string, number>();
 
   constructor(
     private readonly scene: Scene,
@@ -155,11 +161,16 @@ export class AssetManager {
       }
     }
 
+    this.liveInstances.set(id, (this.liveInstances.get(id) ?? 0) + 1);
+    let disposed = false;
     return {
       rootNodes: entries.rootNodes,
       animationGroups: entries.animationGroups,
       skeletons: entries.skeletons,
       dispose: () => {
+        if (disposed) return;
+        disposed = true;
+        this.liveInstances.set(id, Math.max(0, (this.liveInstances.get(id) ?? 1) - 1));
         for (const animationGroup of entries.animationGroups) {
           animationGroup.dispose();
         }
@@ -173,12 +184,57 @@ export class AssetManager {
     };
   }
 
+  /**
+   * A texture whose image comes through the shared cache (one download, priorities,
+   * retries, the persistent store) instead of Babylon's own request. Returned at once and
+   * filled in when the bytes arrive; a material using it waits for it, as it would for a
+   * texture loading from a URL.
+   */
+  createTexture(url: string, options: { hasAlpha?: boolean; priority?: AssetPriority } = {}): Texture {
+    const absolute = absoluteUrl(url);
+    const texture = new Texture(null, this.scene);
+    texture.name = absolute.slice(absolute.lastIndexOf("/") + 1);
+    if (options.hasAlpha) texture.hasAlpha = true;
+    let disposed = false;
+    texture.onDisposeObservable.addOnce(() => { disposed = true; });
+    void assetCache.fetch(absolute, options.priority ?? "gameplay")
+      .then((bytes) => { if (!disposed) texture.updateURL(absolute, new Uint8Array(bytes)); })
+      .catch((error: unknown) => console.warn(`Texture could not be loaded: ${absolute}`, error));
+    return texture;
+  }
+
+  /**
+   * Frees the parsed copies (geometry, materials, textures on the GPU) of models with no
+   * live instance left, among those `filter` accepts. The downloaded bytes stay in the
+   * shared cache, so using one again re-parses without a download. Returns how many went.
+   */
+  releaseUnused(filter: (id: string) => boolean = () => true): number {
+    let released = 0;
+    for (const [id, container] of this.loaded) {
+      if ((this.liveInstances.get(id) ?? 0) > 0 || !filter(id)) continue;
+      container.dispose();
+      this.loaded.delete(id);
+      this.containers.delete(id);
+      this.liveInstances.delete(id);
+      released += 1;
+    }
+    return released;
+  }
+
+  /** Parsed models and their live instances, for the perf report and leak tests. */
+  stats(): { containers: number; liveInstances: number; pending: number } {
+    let live = 0;
+    for (const count of this.liveInstances.values()) live += count;
+    return { containers: this.loaded.size, liveInstances: live, pending: this.containers.size - this.loaded.size };
+  }
+
   dispose(): void {
     for (const containerPromise of this.containers.values()) {
       void containerPromise.then((container) => container?.dispose());
     }
     this.containers.clear();
     this.loaded.clear();
+    this.liveInstances.clear();
     this.definitions.clear();
   }
 
@@ -211,6 +267,11 @@ export class AssetManager {
       }), priority);
     })()
       .then((container) => {
+        // The glTF loader starts each file's first clip on load. In a container that clip
+        // animates the template, which is never on screen — instances get their own
+        // groups — yet it was evaluated every frame: ~320 bone animations in the kitchen
+        // (Death_A, Running, ...) for nothing.
+        for (const group of container.animationGroups) group.stop();
         this.loaded.set(id, container);
         return container;
       })

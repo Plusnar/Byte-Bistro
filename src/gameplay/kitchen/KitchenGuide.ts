@@ -1,4 +1,5 @@
-import { getFoodDefinition, plateableState } from "../../data/kitchen";
+import { t } from "../../i18n";
+import { MIX_RECIPES, getFoodDefinition, plateableState } from "../../data/kitchen";
 import { getIngredient } from "../../data/ingredients";
 import type { FoodState, KitchenStationKind, RecipeComponent, RecipeData } from "../../types/game";
 import { isCookware, type FoodItem, type KitchenItem } from "./KitchenItems";
@@ -48,7 +49,7 @@ export interface QueueGuideResult {
   readonly byOrder: ReadonlyMap<string, GuideResult>;
 }
 
-type Stage = "fetch" | "chop" | "cook" | "cooking" | "plate" | "plated";
+type Stage = "fetch" | "mix" | "chop" | "cook" | "cooking" | "plate" | "plated";
 
 interface TrackedFood {
   readonly food: FoodItem;
@@ -58,13 +59,19 @@ interface TrackedFood {
 }
 
 const STAGE_RANK: Readonly<Record<Stage, number>> = {
-  plated: 5,
-  plate: 4,
-  cooking: 3,
-  cook: 2,
-  chop: 1,
+  plated: 6,
+  plate: 5,
+  cooking: 4,
+  cook: 3,
+  chop: 2,
+  /** A prepared ingredient has to be made before it can be anything else. */
+  mix: 1,
   fetch: 0,
 };
+
+/** Whether this ingredient comes out of the mixer rather than out of a crate. */
+const mixRecipeFor = (ingredientId: string) =>
+  MIX_RECIPES.find((recipe) => recipe.output === ingredientId) ?? null;
 
 const nameOf = (ingredientId: string): string =>
   getIngredient(ingredientId)?.displayName ?? ingredientId;
@@ -97,8 +104,8 @@ const collectFood = (locations: readonly ItemLocation[]): TrackedFood[] => {
 
 const burntTask = (): GuideTask => ({
   key: "burnt",
-  title: "Descarte a comida queimada",
-  detail: "Leve a frigideira ou panela queimada até o lixo.",
+  title: t("kitchen.guideBurntTitle"),
+  detail: t("kitchen.guideBurntDetail"),
   stationKind: "trash",
 });
 
@@ -126,7 +133,10 @@ const computeGuideWithClaims = (
       if (!best || STAGE_RANK[stage] > STAGE_RANK[best.stage]) best = { tracked, stage };
     }
     if (best) used.add(best.tracked.food);
-    const stage = best?.stage ?? "fetch";
+    // Nothing of this ingredient exists yet: a prepared one has to be mixed, and anything
+    // else is fetched. Without this the guide would send a cook to a crate of dough.
+    const missing: Stage = mixRecipeFor(component.ingredientId) ? "mix" : "fetch";
+    const stage = best?.stage ?? missing;
     componentStages.push({ ingredientId: component.ingredientId, state: component.state, stage });
     if (stage === "plated") {
       completed += 1;
@@ -138,8 +148,8 @@ const computeGuideWithClaims = (
   if (tasks.length === 0) {
     tasks.push({
       key: "deliver",
-      title: `Entregue ${recipe.displayName}`,
-      detail: "Leve o prato montado até o balcão de entrega.",
+      title: t("kitchen.guideDeliverTitle", { dish: recipe.displayName }),
+      detail: t("kitchen.guideDeliverDetail"),
       stationKind: "delivery",
     });
   }
@@ -197,46 +207,60 @@ export const computeQueueGuide = (
 const taskFor = (stage: Stage, component: RecipeComponent, index: number): GuideTask => {
   const name = nameOf(component.ingredientId);
   const definition = getFoodDefinition(component.ingredientId);
-  const cookware = definition?.cook === "pot" ? "panela" : "frigideira";
   const key = `${stage}:${component.ingredientId}:${index}`;
   switch (stage) {
     case "fetch":
       return {
         key,
-        title: `Pegue ${name}`,
-        detail: "Vá até a caixa do ingrediente e pegue um.",
+        title: t("kitchen.guideFetchTitle", { name }),
+        detail: t("kitchen.guideFetchDetail"),
         stationKind: "crate",
         ingredientId: component.ingredientId,
       };
     case "chop":
       return {
         key,
-        title: `Corte ${name}`,
-        detail: "Coloque na tábua e segure a ação para cortar.",
+        title: t("kitchen.guideChopTitle", { name }),
+        detail: t("kitchen.guideChopDetail"),
         stationKind: "cutting_board",
       };
+    case "mix": {
+      const inputs = mixRecipeFor(component.ingredientId)?.inputs ?? [];
+      return {
+        key,
+        title: t("kitchen.guideMixTitle", { name }),
+        detail: t("kitchen.guideMixDetail", {
+          inputs: inputs.map((input) => nameOf(input.ingredientId)).join(" + "),
+        }),
+        stationKind: "mixer",
+      };
+    }
     case "cook":
       return {
         key,
-        title: `Cozinhe ${name}`,
-        detail: `Coloque na ${cookware} que está no fogão.`,
-        stationKind: "stove",
+        title: t("kitchen.guideCookTitle", { name }),
+        detail: definition?.cook === "tray"
+          ? t("kitchen.guideBakeDetail")
+          : definition?.cook === "pot"
+            ? t("kitchen.guideCookInPot")
+            : t("kitchen.guideCookInPan"),
+        stationKind: definition?.cook === "tray" ? "oven" : "stove",
       };
     case "cooking":
       return {
         key,
-        title: `${name} no fogo`,
-        detail: "Tire do fogo quando ficar pronto, antes de queimar!",
-        stationKind: "stove",
+        title: t("kitchen.guideCookingTitle", { name }),
+        detail: t("kitchen.guideCookingDetail"),
+        stationKind: definition?.cook === "tray" ? "oven" : "stove",
       };
     case "plate":
     case "plated":
       return {
         key,
-        title: `Monte ${name} no prato`,
+        title: t("kitchen.guidePlateTitle", { name }),
         detail: definition && plateableState(definition) === "cooked"
-          ? "Leve um prato limpo até o fogão ou despeje a comida no prato."
-          : "Pegue um prato limpo e junte os ingredientes nele.",
+          ? t("kitchen.guidePlateCooked")
+          : t("kitchen.guidePlateRaw"),
         stationKind: "plate_rack",
       };
   }

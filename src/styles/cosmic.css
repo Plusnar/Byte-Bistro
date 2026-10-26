@@ -58,7 +58,7 @@
   backdrop-filter: blur(7px);
 }
 .game-ui .splash-overlay {
-  background: linear-gradient(180deg, #050b2730, #050b270a 65%, #050b2760), url('/assets/ui/cosmic/space-backdrop.png') center / cover no-repeat, var(--space-void);
+  background: linear-gradient(180deg, #050b2730, #050b270a 65%, #050b2760), url('../../optimized/public/assets/ui/cosmic/space-backdrop.webp') center / cover no-repeat, var(--space-void);
 }
 .game-ui .selection-screen {
   max-width: 1440px;
@@ -348,3 +348,36 @@
   .game-ui .secondary-action { transition: none; }
   .game-ui .level-card:hover { transform: none; }
 }
+
+/* PT | EN toggle, in the menu header and on the pause card. */
+.game-ui .selection-header-actions { display: flex; align-items: center; gap: 12px; }
+.game-ui .language-switch {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid #4ba5ed;
+  border-radius: 11px;
+  background: #0b2148cc;
+  box-shadow: 0 3px 0 #071737, inset 0 0 0 2px #132a55;
+}
+.game-ui .language-switch button {
+  min-width: 42px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9fc4ea;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+.game-ui .language-switch button[aria-pressed="true"] {
+  background: linear-gradient(180deg, #3f8be0, #1f5bab);
+  color: var(--space-white);
+  box-shadow: inset 0 1px 0 #a9e6ff88;
+}
+.game-ui .language-switch button:hover:not([aria-pressed="true"]) { color: var(--space-white); }
+.game-ui .pause-card .language-switch { align-self: center; margin-top: 4px; }
+/* Graphics quality: the same segmented control, words instead of two-letter codes. */
+.game-ui .quality-switch button { min-width: 0; letter-spacing: .02em; font-size: .86em; }

@@ -1,4 +1,5 @@
 import type { LevelEntry } from "./levelCatalog";
+import { bundledModelUrl } from "../core/assets/assetRegistry";
 
 /**
  * The level map: São Bento do Sul as a diorama, one star per official level.
@@ -8,7 +9,7 @@ import type { LevelEntry } from "./levelCatalog";
  */
 
 /** Referenced where it sits, so the artist's file is the one the game shows. */
-export const LEVEL_MAP_URL = new URL("../../Scenario/sao_bento_do_sul.glb", import.meta.url).href;
+export const LEVEL_MAP_URL = bundledModelUrl("Scenario/sao_bento_do_sul.glb");
 
 /**
  * Landmarks that hold a star, in level order. The first level sits on the church; more

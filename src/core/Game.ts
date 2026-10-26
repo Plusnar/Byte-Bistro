@@ -1,4 +1,6 @@
-import { Engine, type Scene as BabylonScene } from "@babylonjs/core";
+import { applyTranslations, initLanguage, onLanguageChange, t } from "../i18n";
+import type { AbstractEngine, Scene as BabylonScene } from "@babylonjs/core";
+import { createGameEngine, rendererName } from "./render/createGameEngine";
 import { getShiftDuration } from "../config";
 import { CHARACTERS, DEFAULT_CHARACTER_ID, RECIPES, getCharacter } from "../data";
 import type { CharacterDefinition } from "../data/characters";
@@ -23,6 +25,10 @@ import { SCENARIO_ASSETS } from "../data/scenarioAssets";
 import { MANNEQUIN } from "../systems/WeddingGuests";
 import { absoluteUrl, assetCache } from "./assets/AssetCache";
 import { describeProgress, type LoadGroup } from "./assets/loadProgress";
+import { PerformanceManager } from "./perf/PerformanceManager";
+import { installPerfProbe } from "./perf/perfProbe";
+import { qualityManager } from "./perf/QualityManager";
+import { assetStreaming } from "./assets/AssetStreamingManager";
 import { SaveSystem } from "./SaveSystem";
 import { SceneManager } from "./SceneManager";
 
@@ -39,6 +45,17 @@ const COOK_PRELOAD_DEBOUNCE_MS = 350;
 
 const urlsOf = (definitions: readonly { url: string }[]): string[] =>
   definitions.map((definition) => absoluteUrl(definition.url));
+
+/** Download totals for the perf probe. */
+const summarizeAssetCache = (): { files: number; loadedMb: number; failed: number; pending: number } => {
+  const entries = assetCache.snapshot();
+  return {
+    files: entries.length,
+    loadedMb: entries.reduce((sum, entry) => sum + (entry.state === "loaded" ? entry.loaded : 0), 0) / 1048576,
+    failed: entries.filter((entry) => entry.state === "failed").length,
+    pending: entries.filter((entry) => entry.state === "queued" || entry.state === "loading").length,
+  };
+};
 
 const whenIdle = (callback: () => void): void => {
   const idle = (window as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void })
@@ -59,10 +76,15 @@ const whenIdle = (callback: () => void): void => {
  *      asked for.
  */
 export class Game {
-  private readonly engine: Engine;
+  private readonly engine: AbstractEngine;
   private readonly sceneManager: SceneManager;
+  private readonly performanceManager: PerformanceManager;
+  private readonly uninstallPerfProbe: () => void;
+  private readonly stopQualitySampling: () => void;
   private readonly saveSystem = new SaveSystem();
   private readonly ui: GameUI;
+  /** Level titles and descriptions are copied into the picker's entries; rebuilt on a switch. */
+  private readonly stopLanguage = onLanguageChange(() => this.refreshLevels());
   private readonly loading: LoadingScreen | null;
   private characterPreview: CharacterPreview | null = null;
   /** The level picker's 3D map; the first thing the menu shows. */
@@ -88,30 +110,51 @@ export class Game {
   private menuReady = false;
   private cookPreloadTimer = 0;
 
-  constructor(canvas: HTMLCanvasElement, uiRoot: HTMLElement) {
+  /**
+   * Starts the game. The menu's files are requested first: creating the engine blocks the
+   * main thread for a while (the first context is the expensive one), and requests issued
+   * before it keep downloading on the network thread meanwhile instead of starting after.
+   */
+  static async create(canvas: HTMLCanvasElement, uiRoot: HTMLElement): Promise<Game> {
     performance.mark("bb:game-start");
-    // Ask for the menu's files first. Creating the WebGL engine below blocks the main thread
-    // for a while (the first context is the expensive one); requests issued before it keep
-    // downloading on the network thread meanwhile, instead of starting only after it.
     assetCache.prefetch(absoluteUrl(LevelMapView.assetUrl), "critical");
-    for (const url of CharacterPreview.criticalUrls(this.cooks(DEFAULT_COOP_CHARACTERS))) {
+    const defaultCooks = DEFAULT_COOP_CHARACTERS
+      .map((id) => getCharacter(id))
+      .filter((character): character is CharacterDefinition => character !== undefined);
+    for (const url of CharacterPreview.criticalUrls(defaultCooks)) {
       assetCache.prefetch(absoluteUrl(url), "critical");
     }
+    return new Game(await createGameEngine(canvas), uiRoot);
+  }
+
+  private constructor(engine: AbstractEngine, uiRoot: HTMLElement) {
     this.persistentState = this.saveSystem.load();
-    this.engine = new Engine(
-      canvas,
-      true,
-      {
-        stencil: true,
-        preserveDrawingBuffer: false,
-        powerPreference: "high-performance",
-      },
-      true,
-    );
+    // Before any text is drawn: the save's choice, or the browser's language the first time.
+    initLanguage(this.persistentState.settings.language, (language) => {
+      this.persistentState = {
+        ...this.persistentState,
+        settings: { ...this.persistentState.settings, language },
+      };
+      this.saveSystem.save(this.persistentState);
+    });
+    this.engine = engine;
     this.sceneManager = new SceneManager(this.engine);
+    this.performanceManager = new PerformanceManager(this.engine);
+    // createGameEngine registered the engine with the quality manager; frames feed its
+    // automatic mode from here.
+    this.stopQualitySampling = this.performanceManager.onFrame((interval) => qualityManager.sampleFrame(interval));
+    this.uninstallPerfProbe = installPerfProbe({
+      performance: this.performanceManager,
+      extras: () => ({
+        renderer: rendererName(this.engine),
+        assets: summarizeAssetCache(),
+        streaming: assetStreaming.snapshot(),
+        quality: qualityManager.describe(),
+      }),
+    });
     performance.mark("bb:engine-created");
     this.loading = LoadingScreen.attach();
-    this.loading?.show("boot", "Preparando a cozinha...");
+    this.loading?.show("boot", t("boot.preparingKitchen"));
     this.ui = new GameUI(uiRoot, {
       startVisible: true,
       characters: CHARACTERS,
@@ -142,14 +185,18 @@ export class Game {
     this.characterPreview = new CharacterPreview(this.ui.characterPreviewCanvas(), {
       characters: CHARACTERS,
     });
+    // The UI decided before the preview existed; the first screen is the level map.
+    this.characterPreview.setActive(this.ui.isPreviewActive);
     performance.mark("bb:preview-created");
     this.levelMapView = new LevelMapView(this.ui.levelMapCanvasElement(), {
       onPick: (key) => this.ui.pickMapLevel(key),
     });
     this.ui.attachLevelMap(this.levelMapView);
-    this.ui.setLevelRanks(this.persistentState.levelRanks);
+    this.ui.setLevelRanks(this.persistentState.levelRanks, this.persistentState.levelStars);
     this.ui.refreshCharacterPreview();
     this.refreshLevels();
+    const bootLoader = document.getElementById("boot-loader");
+    if (bootLoader) applyTranslations(bootLoader);
 
     window.addEventListener("resize", this.handleResize);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
@@ -165,6 +212,7 @@ export class Game {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.stopLanguage();
     window.clearTimeout(this.cookPreloadTimer);
     window.removeEventListener("resize", this.handleResize);
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
@@ -177,6 +225,9 @@ export class Game {
     this.levelMapView?.dispose();
     this.levelMapView = null;
     this.sceneManager.dispose();
+    this.uninstallPerfProbe();
+    this.stopQualitySampling();
+    this.performanceManager.dispose();
     this.ui.destroy();
     this.engine.dispose();
   }
@@ -185,6 +236,8 @@ export class Game {
     if (this.disposed) return;
     const deltaSeconds = Math.min(this.engine.getDeltaTime() / 1_000, 0.1);
     this.sceneManager.update(deltaSeconds);
+    // Automatic quality only judges frames of a shift being played, never menus or loads.
+    qualityManager.setAutoActive(!this.ui.isSplashVisible && this.kitchenScene?.isShiftRunning === true);
     // The splash is opaque and covers the whole canvas. Drawing the kitchen behind it —
     // glow layer and all — at 60 fps used to cost every menu frame for nothing.
     if (this.ui.isSplashVisible) return;
@@ -195,6 +248,8 @@ export class Game {
     this.sceneManager.resize();
     this.characterPreview?.resize();
     this.levelMapView?.resize();
+    // A move to a screen with another pixel ratio changes what the cap allows.
+    qualityManager.refreshResolution();
   };
 
   private readonly handleVisibilityChange = (): void => {
@@ -217,24 +272,24 @@ export class Game {
     }
     const urls = preview.menuAssetUrls(this.cooks());
     const groups: LoadGroup[] = [
-      { status: "Abrindo o mapa...", urls: [absoluteUrl(LevelMapView.assetUrl)] },
-      { status: "Preparando a cozinha...", urls: urls.kitchen },
-      { status: "Carregando personagens...", urls: urls.cooks },
-      { status: "Carregando animações...", urls: urls.animations },
+      { status: t("boot.openingMap"), urls: [absoluteUrl(LevelMapView.assetUrl)] },
+      { status: t("boot.loadingScenery"), urls: urls.scenery },
+      { status: t("boot.loadingCooks"), urls: urls.cooks },
+      { status: t("boot.loadingAnimations"), urls: urls.animations },
     ];
     const stopTracking = this.trackProgress(() => describeProgress(
-      assetCache, groups, { done: preview.stagesDone, total: preview.stageCount }, "Quase pronto...",
+      assetCache, groups, { done: preview.stagesDone, total: preview.stageCount }, t("boot.almostReady"),
     ));
 
     // The map is the first screen, so the loader waits for it along with the cooks.
     const mapReady = this.levelMapView?.whenReady() ?? Promise.resolve(true);
     const ready = Promise.all([preview.whenReady(), mapReady]).then(([readiness, map]) => ({
-      failed: map ? readiness.failed : ["mapa de fases", ...readiness.failed],
+      failed: map ? readiness.failed : [t("boot.levelMap"), ...readiness.failed],
     }));
     const slow = window.setTimeout(() => {
       if (this.menuReady) return;
       this.loading?.fail({
-        message: "O carregamento está demorando mais que o normal.",
+        message: t("boot.slow"),
         onContinue: () => this.finishBoot(),
       });
     }, SLOW_BOOT_MS);
@@ -250,7 +305,7 @@ export class Game {
     // Something the menu shows could not load. Say what, offer to try again, and never make
     // the game unreachable over a missing backdrop.
     this.loading.fail({
-      message: `Não foi possível carregar: ${readiness.failed.join(", ")}.`,
+      message: t("boot.couldNotLoad", { items: readiness.failed.join(", ") }),
       onRetry: () => {
         assetCache.retryFailed();
         const [one, two] = this.cooks();
@@ -283,7 +338,7 @@ export class Game {
   private unloadUnusedAssets(): void {
     const preview = this.characterPreview;
     if (!preview || preview.stagesDone === 0) return;
-    const [backdrop] = preview.menuAssetUrls([]).kitchen;
+    const [backdrop] = preview.menuAssetUrls([]).scenery;
     if (backdrop && assetCache.isLoaded(backdrop)) assetCache.release((url) => url === backdrop);
   }
 
@@ -373,6 +428,7 @@ export class Game {
     const kitchen = this.createKitchen(this.persistentState, levelMap, entry?.scenarioId);
     this.kitchenScene = kitchen;
     this.sceneManager.set(kitchen);
+    this.performanceManager.attachScene(kitchen.scene);
     this.activeLevelKey = entry?.key ?? "";
     this.engine.runRenderLoop(this.frame);
     return kitchen;
@@ -396,10 +452,13 @@ export class Game {
     if (!this.mapStore.delete(entry.slotId)) return false;
     if (this.editorSlotId === entry.slotId) this.editorSlotId = "";
     if (entry.key in this.persistentState.levelRanks) {
-      const { [entry.key]: _removed, ...levelRanks } = this.persistentState.levelRanks;
-      this.persistentState = { ...this.persistentState, levelRanks };
+      // A deleted map takes its whole record with it: rank, stars and best coins.
+      const { [entry.key]: _removedRank, ...levelRanks } = this.persistentState.levelRanks;
+      const { [entry.key]: _removedStars, ...levelStars } = this.persistentState.levelStars;
+      const { [entry.key]: _removedCoins, ...levelBestScore } = this.persistentState.levelBestScore;
+      this.persistentState = { ...this.persistentState, levelRanks, levelStars, levelBestScore };
       this.saveSystem.save(this.persistentState);
-      this.ui.setLevelRanks(levelRanks);
+      this.ui.setLevelRanks(levelRanks, levelStars);
     }
     // refreshLevels falls back to the first level when the pick no longer exists.
     this.refreshLevels();
@@ -415,7 +474,7 @@ export class Game {
 
   /** The map a level entry plays; null means the scenario's own built-in layout. */
   private levelMap(entry: LevelEntry): MapData | null {
-    if (entry.kind === "official") return entry.map ?? null;
+    if (entry.map) return entry.map;
     if (entry.kind === "saved" && entry.slotId) return this.mapStore.load(entry.slotId);
     return null;
   }
@@ -431,7 +490,7 @@ export class Game {
     if (!entry || (this.kitchenScene && entry.key === this.activeLevelKey)) return;
     const map = this.levelMap(entry);
     if (entry.kind === "saved" && !map) {
-      this.ui.notify("Esse mapa não está mais salvo. Jogando o cenário original.", "warning");
+      this.ui.notify(t("game.mapGone"), "warning");
     }
     this.installKitchen(entry, map);
   }
@@ -447,11 +506,11 @@ export class Game {
     const named = new Set([...ingredients, ...guests, ...cooks, ...animations]);
     const room = [...needed].filter((url) => !named.has(url));
     return [
-      { status: "Preparando ingredientes...", urls: ingredients },
-      { status: "Montando a cozinha...", urls: [...pick(urlsOf([...KITCHEN_ASSETS, ...SCENARIO_ASSETS])), ...room] },
-      { status: "Chamando os convidados...", urls: guests },
-      { status: "Carregando personagens...", urls: cooks },
-      { status: "Carregando animações...", urls: animations },
+      { status: t("boot.preparingIngredients"), urls: ingredients },
+      { status: t("boot.buildingKitchen"), urls: [...pick(urlsOf([...KITCHEN_ASSETS, ...SCENARIO_ASSETS])), ...room] },
+      { status: t("boot.callingGuests"), urls: guests },
+      { status: t("boot.loadingCooks"), urls: cooks },
+      { status: t("boot.loadingAnimations"), urls: animations },
     ];
   }
 
@@ -507,10 +566,10 @@ export class Game {
       // ahead of anything else, and a short loader shows what is left.
       assetCache.promoteAll("gameplay", "critical");
       for (const url of cookUrls) assetCache.prefetch(url, "critical");
-      this.loading?.show("match", "Preparando ingredientes...");
+      this.loading?.show("match", t("boot.preparingIngredients"));
       const groups = this.matchGroups(kitchen, cookIds);
       stopTracking = this.trackProgress(() => describeProgress(
-        assetCache, groups, { done: steps + (kitchen.isPrepared ? 1 : 0), total: 3 }, "Aquecendo o fogão...",
+        assetCache, groups, { done: steps + (kitchen.isPrepared ? 1 : 0), total: 3 }, t("boot.heatingStove"),
       ));
     }
     try {
@@ -543,19 +602,28 @@ export class Game {
       ? RANK_ORDER.indexOf(this.persistentState.highestRank)
       : Number.POSITIVE_INFINITY;
     const newRankIndex = RANK_ORDER.indexOf(result.rank);
+    const key = this.activeLevelKey;
+    // Stars and coins only ever go up: a worse run on a level already three-starred must
+    // not take anything away from it.
+    const bestStars = Math.max(this.persistentState.levelStars[key] ?? 0, result.stars);
+    const bestCoins = Math.max(this.persistentState.levelBestScore[key] ?? 0, Math.round(result.coins));
     this.persistentState = {
       ...this.persistentState,
       credits: this.persistentState.credits + result.creditsEarned,
-      levelRanks: recordLevelRank(this.persistentState.levelRanks, this.activeLevelKey, result.rank),
+      levelRanks: recordLevelRank(this.persistentState.levelRanks, key, result.rank),
+      levelStars: key ? { ...this.persistentState.levelStars, [key]: bestStars } : this.persistentState.levelStars,
+      levelBestScore: key
+        ? { ...this.persistentState.levelBestScore, [key]: bestCoins }
+        : this.persistentState.levelBestScore,
       highestRank:
         newRankIndex >= 0 && newRankIndex < currentRankIndex
           ? result.rank
           : this.persistentState.highestRank,
     };
     if (!this.saveSystem.save(this.persistentState)) {
-      this.ui.notify("Não foi possível salvar o progresso neste navegador (armazenamento cheio ou bloqueado).", "warning");
+      this.ui.notify(t("game.saveFailed"), "warning");
     }
-    this.ui.setLevelRanks(this.persistentState.levelRanks);
+    this.ui.setLevelRanks(this.persistentState.levelRanks, this.persistentState.levelStars);
   }
 
   // ---------------------------------------------------------------------------------------
@@ -590,7 +658,7 @@ export class Game {
       performance.mark("bb:editor-open");
     } catch (error: unknown) {
       console.error("O editor não pôde ser carregado.", error);
-      this.ui.notify("Não foi possível abrir o editor. Verifique a conexão e tente de novo.", "error");
+      this.ui.notify(t("game.editorFailed"), "error");
     } finally {
       this.openingEditor = false;
     }
@@ -647,7 +715,7 @@ export class Game {
       console.error("Custom map shift initialization failed.", error);
       if (!this.disposed) {
         this.ui.showSplash(true);
-        this.ui.notify("Não foi possível carregar a fase. Abra Criar mapa para ajustar ou tente jogar novamente.", "error");
+        this.ui.notify(t("game.levelFailed"), "error");
       }
     } finally {
       this.loadingMap = false;
@@ -662,14 +730,14 @@ export class Game {
   };
 
   private detachScene(babylonScene: BabylonScene): void {
-    const engine = babylonScene.getEngine() as Engine;
+    const engine = babylonScene.getEngine();
     if (engine.scenes.includes(babylonScene)) {
       engine.scenes = engine.scenes.filter((entry) => entry !== babylonScene);
     }
   }
 
   private attachScene(babylonScene: BabylonScene): void {
-    const engine = babylonScene.getEngine() as Engine;
+    const engine = babylonScene.getEngine();
     if (!engine.scenes.includes(babylonScene)) {
       engine.scenes.push(babylonScene);
     }

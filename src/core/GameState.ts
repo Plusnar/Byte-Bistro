@@ -1,5 +1,11 @@
 import type { PersistentGameState, RuntimeGameState } from "../types/game";
 
+/**
+ * Bump this whenever a save needs work on the way in, and handle the older shape in
+ * `SaveSystem`. 2 added `levelStars` and `levelBestScore`.
+ */
+export const SAVE_VERSION = 2;
+
 export const createInitialRuntimeState = (shiftDuration: number): RuntimeGameState => ({
   shiftTimeRemaining: shiftDuration,
   shiftDuration,
@@ -7,7 +13,6 @@ export const createInitialRuntimeState = (shiftDuration: number): RuntimeGameSta
   activeOrders: [],
   completedOrders: 0,
   failedOrders: 0,
-  coreHunger: 25,
   combo: 0,
   maxCombo: 0,
   meltdowns: 0,
@@ -27,7 +32,7 @@ export const createInitialRuntimeState = (shiftDuration: number): RuntimeGameSta
 });
 
 export const createDefaultPersistentState = (): PersistentGameState => ({
-  version: 1,
+  version: SAVE_VERSION,
   credits: 0,
   unlockedRecipes: ["ram_cake", "cache_cookies", "cooling_gelato"],
   unlockedStations: [
@@ -41,10 +46,13 @@ export const createDefaultPersistentState = (): PersistentGameState => ({
   ],
   highestRank: null,
   levelRanks: {},
+  levelStars: {},
+  levelBestScore: {},
   settings: {
     masterVolume: 0.7,
     reducedMotion: false,
     showDebug: false,
+    language: null,
   },
   chapter: 1,
   upgrades: {},

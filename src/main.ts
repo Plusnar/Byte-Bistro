@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { Game } from "./core/Game";
 
 declare global {
@@ -19,10 +20,10 @@ const showBootError = (message: string): void => {
   loader.hidden = false;
   loader.dataset.state = "error";
   const status = loader.querySelector(".bl-status");
-  if (status) status.textContent = `Não foi possível iniciar o jogo: ${message}`;
+  if (status) status.textContent = t("boot.failedWith", { message });
   const retry = loader.querySelector<HTMLButtonElement>("[data-action='boot-retry']");
   if (retry) {
-    retry.textContent = "Recarregar";
+    retry.textContent = t("boot.reload");
     retry.onclick = () => window.location.reload();
   }
   const skip = loader.querySelector<HTMLButtonElement>("[data-action='boot-continue']");
@@ -36,15 +37,7 @@ if (!canvas || !uiRoot) {
   throw new Error("Byte Bistro could not find its canvas or UI root.");
 }
 
-try {
-  const game = new Game(canvas, uiRoot);
-  // Debug handle for ?dev sessions: lets the screenshot harness open screens that would
-  // otherwise need a full 4-minute shift (results) to reach.
-  if (new URLSearchParams(window.location.search).has("dev")) {
-    (window as unknown as { __bbGame?: Game }).__bbGame = game;
-  }
-  window.addEventListener("beforeunload", () => game.dispose(), { once: true });
-} catch (error: unknown) {
+const showFatal = (error: unknown): void => {
   const message = error instanceof Error ? error.message : "Unknown initialization error";
   const fallback = document.createElement("main");
   fallback.className = "fatal-error";
@@ -56,4 +49,14 @@ try {
   uiRoot.replaceChildren(fallback);
   showBootError(message);
   console.error("Byte Bistro failed to initialize", error);
-}
+};
+
+// Async because the engine may be WebGPU, which starts asynchronously (see createGameEngine).
+Game.create(canvas, uiRoot).then((game) => {
+  // Debug handle for ?dev sessions: lets the screenshot harness open screens that would
+  // otherwise need a full 4-minute shift (results) to reach.
+  if (new URLSearchParams(window.location.search).has("dev")) {
+    (window as unknown as { __bbGame?: Game }).__bbGame = game;
+  }
+  window.addEventListener("beforeunload", () => game.dispose(), { once: true });
+}, showFatal);

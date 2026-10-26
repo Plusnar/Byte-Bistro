@@ -1,211 +1,173 @@
 import { ingredientModelId } from "./ingredientAssets";
+import { bundledModelUrl } from "../core/assets/assetRegistry";
 /** Curated Scenario assets used to build SERVER ROOM 01. */
 export const SCENARIO_ASSETS = [
   {
     id: "scenario-room-wide",
-    url: new URL(
-      "../assets/scenario/space-room-wide.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/space-room-wide.glb"),
     required: true,
   },
   {
     id: "scenario-cables",
-    url: new URL(
-      "../assets/scenario/space-cables.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/space-cables.glb"),
     required: true,
   },
   {
     id: "scenario-machine",
-    url: new URL(
-      "../assets/scenario/factory-machine.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-machine.glb"),
     required: true,
   },
   {
     id: "scenario-machine-fortified",
-    url: new URL(
-      "../assets/scenario/factory-machine-fortified.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-machine-fortified.glb"),
     required: true,
   },
   {
     id: "scenario-machine-bed",
-    url: new URL(
-      "../assets/scenario/factory-machine-bed.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-machine-bed.glb"),
     required: true,
   },
   {
     id: "scenario-hopper",
-    url: new URL(
-      "../assets/scenario/factory-hopper-high-square.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-hopper-high-square.glb"),
     required: true,
   },
   {
     id: "scenario-scanner-low",
-    url: new URL(
-      "../assets/scenario/factory-scanner-low.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-scanner-low.glb"),
     required: true,
   },
   {
     id: "scenario-screen-wide",
-    url: new URL(
-      "../assets/scenario/factory-screen-wide.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-screen-wide.glb"),
     required: true,
   },
   {
     id: "scenario-conveyor-long",
-    url: new URL(
-      "../assets/scenario/factory-conveyor-long-sides.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-conveyor-long-sides.glb"),
     required: true,
   },
   {
     id: "scenario-robot-arm",
-    url: new URL(
-      "../assets/scenario/factory-robot-arm-a.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-robot-arm-a.glb"),
     required: true,
   },
   {
     id: "scenario-pipe-long",
-    url: new URL(
-      "../assets/scenario/factory-pipe-large-long.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-pipe-large-long.glb"),
     required: true,
   },
   {
     id: "scenario-pipe-bend",
-    url: new URL(
-      "../assets/scenario/factory-pipe-large-bend.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-pipe-large-bend.glb"),
     required: true,
   },
   {
     id: "scenario-pipe-valve",
-    url: new URL(
-      "../assets/scenario/factory-pipe-large-valve.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-pipe-large-valve.glb"),
     required: true,
   },
   {
     id: "scenario-box-large",
-    url: new URL(
-      "../assets/scenario/factory-box-large.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-box-large.glb"),
     required: true,
   },
   {
     id: "scenario-box-small",
-    url: new URL(
-      "../assets/scenario/factory-box-small.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/factory-box-small.glb"),
     required: true,
   },
   {
     id: "scenario-freezer-standing",
-    url: new URL(
-      "../assets/scenario/market-freezers-standing.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/market-freezers-standing.glb"),
     required: true,
   },
   {
     id: "scenario-shelf-boxes",
-    url: new URL(
-      "../assets/scenario/market-shelf-boxes.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/market-shelf-boxes.glb"),
     required: true,
   },
   {
     id: "scenario-cash-register",
-    url: new URL(
-      "../assets/scenario/market-cash-register.glb",
-      import.meta.url,
-    ).href,
+    url: bundledModelUrl("src/assets/scenario/market-cash-register.glb"),
     required: true,
   },
   {
     id: "food-chocolate",
-    url: new URL("../assets/scenario/food-chocolate.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-chocolate.glb"),
     required: true,
   },
   {
     id: "food-sugar",
-    url: new URL("../assets/scenario/food-shaker-salt.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-shaker-salt.glb"),
     required: true,
   },
   {
     id: "food-carton",
-    url: new URL("../assets/scenario/food-carton-small.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-carton-small.glb"),
     required: true,
   },
   {
     id: "food-candy-bar",
-    url: new URL("../assets/scenario/food-candy-bar.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-candy-bar.glb"),
     required: true,
   },
   {
     id: "food-coolant",
-    url: new URL("../assets/scenario/food-soda-bottle.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-soda-bottle.glb"),
     required: true,
   },
   {
     id: "food-whipped-cream",
-    url: new URL("../assets/scenario/food-whipped-cream.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-whipped-cream.glb"),
     required: true,
   },
   {
     id: "food-bowl",
-    url: new URL("../assets/scenario/food-bowl.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-bowl.glb"),
     required: true,
   },
   {
     id: "food-bread",
-    url: new URL("../assets/scenario/food-bread.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-bread.glb"),
     required: true,
   },
   {
     id: "food-cake",
-    url: new URL("../assets/scenario/food-cake.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-cake.glb"),
     required: true,
   },
   {
     id: "food-cake-finished",
-    url: new URL("../assets/scenario/food-cake-birthday.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-cake-birthday.glb"),
     required: true,
   },
   {
     id: "food-cookie",
-    url: new URL("../assets/scenario/food-cookie-chocolate.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-cookie-chocolate.glb"),
     required: true,
   },
   {
     id: "food-gelato",
-    url: new URL("../assets/scenario/food-ice-cream-cup.glb", import.meta.url).href,
+    url: bundledModelUrl("src/assets/scenario/food-ice-cream-cup.glb"),
     required: true,
   },
 ] as const;
+
+/**
+ * SCENARIO_ASSETS for a kitchen whose level places `placedAssetIds`.
+ *
+ * The `food-*` models are prepared dishes: any shift can need them, so they load with the
+ * match. The rest are the old server room's machines and shell, which only the editor's
+ * catalogue still offers — downloading and parsing all eighteen before every shift of a
+ * level that places none of them was pure waste. They load on demand instead; a level
+ * that does place one gets it with the match, as before.
+ */
+export const scenarioAssetsFor = (placedAssetIds: Iterable<string>) => {
+  const placed = new Set(placedAssetIds);
+  return SCENARIO_ASSETS.map((asset) =>
+    asset.id.startsWith("food-") || placed.has(asset.id) ? asset : { ...asset, lazy: true });
+};
 
 export interface IngredientScenarioVisual {
   /** A SCENARIO_ASSETS id, or a bespoke ingredient asset id. */

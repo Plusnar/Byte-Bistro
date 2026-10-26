@@ -1,9 +1,8 @@
-﻿import "@babylonjs/loaders/glTF";
-import {
+﻿import {
   AbstractMesh, ArcRotateCamera, Color3, Color4, DirectionalLight, Engine,
-  HemisphericLight, LoadAssetContainerAsync, Scene, TransformNode, Vector3,
-  type AssetContainer,
+  HemisphericLight, Scene, TransformNode, Vector3,
 } from "@babylonjs/core";
+import { assetStreaming } from "../core/assets/AssetStreamingManager";
 import { ASSET_LIBRARY } from "../data/assetLibrary";
 import { SCENARIO_ASSETS } from "../data/scenarioAssets";
 import { createBuildingMesh } from "./building";
@@ -50,17 +49,20 @@ export class CatalogThumbnails {
     this.engine ??= new Engine(this.canvas, true, { preserveDrawingBuffer: true, alpha: true, stencil: false });
     const scene = new Scene(this.engine);
     scene.clearColor = new Color4(0, 0, 0, 0);
-    let container: AssetContainer | null = null;
+    // Through the shared cache like every other load: the editor scene usually has the same
+    // file already, and a thumbnail used to download it a second time.
+    const url = this.urls.get(entry.assetId);
+    const assets = assetStreaming.createSceneAssets(scene, url
+      ? [{ id: entry.assetId, url, lazy: true, priority: "background" }]
+      : []);
     try {
       const root = new TransformNode("thumbnail-root", scene);
       const building = createBuildingMesh(entry.assetId, scene, root, entry.color);
       if (!building) {
-        const url = this.urls.get(entry.assetId);
         if (!url) return null;
-        container = await LoadAssetContainerAsync(url, scene);
-        if (this.disposed) return null;
-        container.addAllToScene();
-        for (const group of container.animationGroups) group.stop();
+        const instance = await assets.instantiateModel(entry.assetId, { namePrefix: "thumbnail-", parent: root });
+        if (!instance || this.disposed) return null;
+        for (const group of instance.animationGroups) group.stop();
       }
       const ambient = new HemisphericLight("thumbnail-ambient", Vector3.Up(), scene);
       ambient.intensity = 1.2;
@@ -90,7 +92,7 @@ export class CatalogThumbnails {
       scene.render();
       return this.canvas.toDataURL("image/png");
     } finally {
-      container?.dispose();
+      assets.dispose();
       scene.dispose();
     }
   }

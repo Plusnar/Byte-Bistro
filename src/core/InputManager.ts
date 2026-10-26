@@ -6,6 +6,8 @@ export type InputAction =
   | "moveLeft"
   | "moveRight"
   | "run"
+  | "dash"
+  | "emote"
   | "interact"
   | "carry"
   | "cookbook"
@@ -19,6 +21,8 @@ export const PLAYER_ONE_BINDINGS: InputBindings = {
   moveLeft: ["KeyA"],
   moveRight: ["KeyD"],
   run: ["ShiftLeft"],
+  dash: ["Space"],
+  emote: ["KeyQ"],
   interact: ["KeyE"],
   carry: ["KeyF"],
   cookbook: ["Tab"],
@@ -33,6 +37,10 @@ export const PLAYER_TWO_BINDINGS: InputBindings = {
   // Not Right Ctrl: Ctrl is one modifier for the whole keyboard, so holding it turned
   // player one's W/Tab/S/D into Ctrl+W (close tab), Ctrl+Tab and other browser shortcuts.
   run: ["Numpad0"],
+  // Right of player two's own run key, so dash sits under the same thumb as on the left
+  // half of the keyboard.
+  dash: ["NumpadDecimal"],
+  emote: ["Numpad1"],
   interact: ["Enter"],
   carry: ["ShiftRight"],
   cookbook: [],
@@ -47,6 +55,11 @@ const KEY_LABELS: Readonly<Record<string, string>> = {
   KeyD: "D",
   KeyE: "E",
   KeyF: "F",
+  KeyQ: "Q",
+  // Unaccented on purpose: keycaps are the one place the game writes letters outside i18n.
+  Space: "SPACE",
+  NumpadDecimal: "NUM .",
+  Numpad1: "NUM 1",
   Tab: "TAB",
   Escape: "ESC",
   Enter: "ENTER",
@@ -98,6 +111,9 @@ const PREVENT_DEFAULT_CODES = new Set([
   "ArrowLeft",
   "ArrowRight",
   "Enter",
+  // Dash. Left alone it scrolls the page; it stays in CLICK_KEYS, so a focused button
+  // still gets it.
+  "Space",
 ]);
 
 /**
@@ -138,6 +154,9 @@ export class InputManager {
   labelFor(action: InputAction): string | null {
     return labelForAction(this.bindings, action);
   }
+
+  /** Swaps left with right and up with down, as the inverted-controls disaster does. */
+  invertMovement = false;
 
   get enabled(): boolean {
     return this.enabledValue;
@@ -187,6 +206,7 @@ export class InputManager {
       Number(this.heldActions.has("moveUp"));
 
     out.set(horizontal, vertical);
+    if (this.invertMovement) out.scaleInPlace(-1);
     if (out.lengthSquared() > 1) {
       out.normalize();
     }

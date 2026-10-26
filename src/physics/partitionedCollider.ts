@@ -7,6 +7,8 @@ import {
   type AbstractMesh,
 } from "@babylonjs/core";
 import { partitionTriangles } from "./spatialPartition";
+import { COLLISION_PROXY_SOURCE } from "../core/render/staticBatching";
+import { markRenderless } from "../core/render/activeMeshCandidates";
 
 /** Cell edge in metres: a little over a cook's reach, so a step touches a few cells. */
 const CELL_SIZE = 2;
@@ -73,6 +75,7 @@ export const createPartitionedCollider = (source: AbstractMesh): Mesh | null => 
   collider.useOctreeForPicking = true;
 
   collider.isVisible = false;
+  markRenderless(collider);
   collider.isPickable = false;
   collider.checkCollisions = true;
   // Stands in for the source, so it is filtered the same way (robots skip ground floors).
@@ -81,6 +84,8 @@ export const createPartitionedCollider = (source: AbstractMesh): Mesh | null => 
   collider.metadata = { ...(collider.metadata ?? {}), collisionProxyFor: source.name };
 
   source.checkCollisions = false;
+  // Static batching keeps such a source alive (invisible) so its stand-in survives.
+  source.metadata = { ...(source.metadata ?? {}), [COLLISION_PROXY_SOURCE]: true };
   source.onDisposeObservable.addOnce(() => collider.dispose());
   return collider;
 };

@@ -156,7 +156,7 @@
       <canvas id="game-canvas" aria-label="Byte Bistro 3D"></canvas>
       <div id="ui-root"></div>
       <div id="boot-loader" class="boot-loader" data-ui="boot-loader" data-state="loading" data-mode="boot"
-        role="progressbar" aria-label="Carregando Byte Bistro" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        role="progressbar" aria-label="Carregando Byte Bistro" data-i18n-attr="aria-label:boot.aria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="bl-card">
           <p class="bl-logo">BYTE <span>BISTRO</span></p>
           <div class="bl-stage" aria-hidden="true">
@@ -170,13 +170,32 @@
             <span class="bl-pct">0%</span>
           </div>
           <div class="bl-actions">
-            <button type="button" data-action="boot-retry" data-primary>Tentar novamente</button>
-            <button type="button" data-action="boot-continue">Continuar mesmo assim</button>
+            <button type="button" data-action="boot-retry" data-primary data-i18n="boot.retry">Tentar novamente</button>
+            <button type="button" data-action="boot-continue" data-i18n="boot.continue">Continuar mesmo assim</button>
           </div>
         </div>
       </div>
     </div>
     <script>
+      // The loader shows before the game's code arrives, so it picks its language itself: the
+      // save's choice, else the browser's, as src/i18n does. Keep the texts in step with
+      // boot.* in src/i18n/en.ts.
+      var bbEnglish = (function () {
+        try {
+          var save = JSON.parse(localStorage.getItem("byte-bistro:save") || "{}");
+          var chosen = save && save.settings && save.settings.language;
+          if (chosen === "pt" || chosen === "en") return chosen === "en";
+        } catch (error) { /* no storage: fall back to the browser */ }
+        return !String(navigator.language || "").toLowerCase().startsWith("pt");
+      })();
+      if (bbEnglish) {
+        document.documentElement.lang = "en-US";
+        var bbLoader = document.getElementById("boot-loader");
+        bbLoader.setAttribute("aria-label", "Loading Byte Bistro");
+        bbLoader.querySelector(".bl-status").textContent = "Loading the game...";
+        bbLoader.querySelector("[data-action='boot-retry']").textContent = "Try again";
+        bbLoader.querySelector("[data-action='boot-continue']").textContent = "Continue anyway";
+      }
       // Watchdog for the one failure the game's own code cannot report: its JavaScript never
       // arriving. main.ts sets __bbBooted as its first act; if that has not happened after
       // 25 s, the loader offers a reload instead of animating forever.
@@ -185,9 +204,9 @@
         var loader = document.getElementById("boot-loader");
         if (!loader) return;
         loader.dataset.state = "error";
-        loader.querySelector(".bl-status").textContent = "Não foi possível carregar o jogo.";
+        loader.querySelector(".bl-status").textContent = bbEnglish ? "The game could not be loaded." : "Não foi possível carregar o jogo.";
         var retry = loader.querySelector("[data-action='boot-retry']");
-        retry.textContent = "Recarregar";
+        retry.textContent = bbEnglish ? "Reload" : "Recarregar";
         retry.onclick = function () { location.reload(); };
         loader.querySelector("[data-action='boot-continue']").hidden = true;
       }, 25000);

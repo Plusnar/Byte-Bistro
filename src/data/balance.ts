@@ -30,6 +30,22 @@ export const BALANCE = {
     qualityRetention: 0.98,
     stationTemperatureInfluence: 0.25,
   },
+  /**
+   * How a thrown ingredient flies. Kept here rather than in the scene so the aiming arc
+   * and the flight itself can never be drawn from different numbers.
+   */
+  throw: {
+    gravity: 18,
+    /** How much speed a bounce keeps. */
+    restitution: 0.42,
+    /** How much sideways speed sliding on a surface keeps. */
+    friction: 0.86,
+    angularDamping: 0.94,
+    /** How close to a cook the item has to land to hit them. */
+    impactRadius: 1.05,
+    launchSpeed: 9.5,
+    verticalKick: 3.2,
+  },
   ai: {
     minimum: 0,
     maximum: 100,
@@ -63,10 +79,10 @@ export const BALANCE = {
     /** One crate round-trip per component, ~12m at the player's walk speed. */
     perComponentFetchSeconds: 7,
     /** Co-op reality (walking, collisions, mistakes) versus the single-cook ideal path. */
-    slackMultiplier: 1.9,
+    slackMultiplier: 2.25,
     roundToSeconds: 5,
     minDurationSeconds: 45,
-    maxDurationSeconds: 120,
+    maxDurationSeconds: 140,
     /** Fires `order:expiring` and flips the HUD ticket to critical. */
     expiringWarningSeconds: 15,
     // --- spawn cadence (see systems/OrderQueue.ts) ---
@@ -82,6 +98,31 @@ export const BALANCE = {
     rescueBonus: 60,
     rescueThreshold: 0.2,
   },
+  /**
+   * Tips, Overcooked style: the dish itself pays (see `score`), and serving it promptly
+   * and in a row pays on top. See `src/systems/TipSystem.ts`.
+   */
+  tip: {
+    /**
+     * A streak survives this long without a delivery. Without a window the streak only
+     * ever broke on a mistake, so it never actually fell during a bad patch.
+     */
+    comboWindowSeconds: 12,
+    /** Tip per consecutive on-time delivery, the last entry repeating from then on. */
+    streakTips: [0, 40, 80, 140, 200],
+    /**
+     * Promptness pays in steps, by how much of the ticket's own deadline is left. Highest
+     * threshold first; a ticket served below them all pays nothing extra.
+     */
+    promptTiers: [
+      { minimumRemaining: 0.6, tip: 60 },
+      { minimumRemaining: 0.35, tip: 30 },
+    ],
+    /** A dish nobody ordered: no tip, and the streak ends. */
+    wrongDishPenalty: 50,
+    /** A ticket that runs out. */
+    failedOrderPenalty: 30,
+  },
   score: {
     completionShare: 0.35,
     qualityShare: 0.4,
@@ -93,8 +134,8 @@ export const BALANCE = {
     stabilityBonusMaximum: 100,
   },
   shift: {
-    standardDurationSeconds: 240,
-    developmentDurationSeconds: 240,
+    standardDurationSeconds: 195,
+    developmentDurationSeconds: 195,
     creditsPerScore: 0.1,
     targetScorePerOrder: 300,
     resultWeights: {

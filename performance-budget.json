@@ -1,0 +1,68 @@
+{
+  "$comment": "Performance budget and rules for Byte Bistro. Enforced by `npm run check:perf` (code rules + assets, before every build), scripts/perf/check-bundle-budget.mjs (after every build) and `npm run perf:bench` (browser benchmark). Raise a limit only with a measurement and a reason in the commit; see docs/PERFORMANCE_ARCHITECTURE.md.",
+
+  "bundle": {
+    "$comment": "Measured 2026-10-15: main chunk 7,359 kB min / 1,552 kB gzip (all of Babylon via the barrel import; see PERFORMANCE_AUDIT.md P1). The limit is a ratchet just above today's size: it stops growth now and should be lowered when deep imports land.",
+    "maxMainChunkGzipKb": 1600,
+    "maxInitialJsGzipKb": 1650,
+    "maxSingleChunkKb": 7600
+  },
+
+  "assets": {
+    "$comment": "Applies to every model the game loads (the file actually served: the optimized copy when there is one).",
+    "maxTextureSize": 2048,
+    "maxModelBytes": 3145728,
+    "maxCharacterBytes": 3145728,
+    "maxTrianglesPerModel": 80000,
+    "requirePipeline": [
+      "src/assets/**/*.glb",
+      "public/asset-library/Char/Characters/*.glb",
+      "public/assets/environment/*.glb"
+    ],
+    "exceptions": {
+      "Anim/Animations/gltf/Rig_Medium/Rig_Medium_Simulation.glb": "Clip pack: meshopt would split its shared skin (see asset-pipeline.json); 0.84 MB, background priority.",
+      "src/assets/ingredients/ram_module.glb": "Joining its 82 instanced parts makes the file 25% larger; kept as authored.",
+      "src/assets/ingredients/ram_module_item.glb": "Same as ram_module.glb: joining instanced parts grows it 89%."
+    }
+  },
+
+  "runtime": {
+    "$comment": "Checked by `npm run perf:bench` during a running shift of the official level. Ratchets set 2026-10-15 from measurements (before -> after): draw calls 1833 -> 326, active meshes 2227 -> 866, scene meshes 2718 -> 2443, preview textures 134.6 -> 37.6 MB, heap growth over 3 rebuilds 1.6 MB. Counts are hardware-independent; frame times depend on the machine and only fail past the ceiling.",
+    "maxDrawCalls": 450,
+    "maxActiveMeshes": 1100,
+    "maxSceneMeshes": 2800,
+    "frameTargets": { "desktopMs": 16.7, "lowEndMs": 33.3 },
+    "maxBenchFrameP95Ms": 250,
+    "maxTextureMbPerEngine": 64,
+    "maxHeapGrowthMbAfterLevelCycles": 20
+  },
+
+  "network": {
+    "$comment": "Cold cache, throttled (perf:bench --mbps 20 --rtt 40). Measured 2026-10-15 (before -> after): before menu 18.86 -> 7.84 MB, until match prepared 25.74 -> 13.07 MB, menu ready 14.5 -> 4.8-5.9 s; warm reload 0 MB of geometry from the network.",
+    "maxBytesBeforeMenuMb": 9,
+    "maxBytesUntilGameplayReadyMb": 16,
+    "maxMenuReadyMs": 9000,
+    "warmReloadMaxNetworkModelMb": 1
+  },
+
+  "persistentCache": {
+    "maxBytesMb": 160,
+    "maxAgeDays": 30
+  },
+
+  "codeRules": {
+    "$comment": "Static rules (scripts/perf/check-perf-rules.mjs). A line may opt out with `// perf-allow: <reason>`; every opt-out is listed in the report.",
+    "assetLoaderFiles": ["src/core/AssetManager.ts", "src/core/assets/"],
+    "assetLoaderAllow": {
+      "src/core/AudioManager.ts": "Lazy facade for recorded sound cues, loaded by Babylon's audio engine on first play. No cue is registered today (every effect is synthesized by SynthSfx); a recorded cue added later must stay small and be listed in the audit."
+    },
+    "registryFiles": ["src/core/assets/assetRegistry.ts"],
+    "assetManagerFactory": ["src/core/assets/AssetStreamingManager.ts"],
+    "offscreenEngines": {
+      "src/editor/CatalogThumbnails.ts": "Renders 192x144 editor thumbnails on demand into an offscreen canvas; never on screen during play."
+    },
+    "qualityExemptEffects": {
+      "src/scenes/EditorScene.ts": "HighlightLayer is the editor's selection outline, a tool, not decoration."
+    }
+  }
+}

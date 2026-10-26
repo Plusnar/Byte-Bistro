@@ -1,3 +1,4 @@
+import { compareText, formatDate, formatNumber, t } from "../i18n";
 import { CatalogThumbnails } from "./CatalogThumbnails";
 import { mapRequirements } from "./validation";
 import { confirmDialog, textDialog } from "../ui/confirmDialog";
@@ -5,7 +6,8 @@ import { packLabel } from "./packLabels";
 import "../styles/editor.css";
 import type { EditorTool, SelectionColors, WallMode } from "../scenes/EditorScene";
 import type { MapData, MapMeta, MapPlacedObject, MapSlotSummary } from "./MapData";
-import { EDITOR_ASSET_CATALOG, type EditorAssetEntry } from "./catalog";
+import { EDITOR_ASSET_CATALOG, objectLabel, type EditorAssetEntry } from "./catalog";
+import { ASSET_LIBRARY_BY_ID } from "../data/assetLibrary";
 import { sanitizeMapData } from "./MapStore";
 import { DIFFICULTY_IDS, DIFFICULTY_PROFILES, isDifficultyId } from "../data/difficulty";
 import { ROBOT_CLIPS, type RobotConfig } from "../data/robotConfig";
@@ -26,8 +28,7 @@ export interface EditorUIHandlers {
   onSelectAll(): void;
   onClearSelection(): void;
   onPlay(): void;
-  onPlacementOptions(snap: boolean, surface: boolean, height: number): void;
-  onAllowOverlap(allow: boolean): void;
+  onPlacementOptions(snap: boolean, height: number): void;
   onSetWallMode(mode: WallMode): void;
   onToggleGrid(): void;
   onToggleTopView(): void;
@@ -60,8 +61,11 @@ export interface EditorViewState {
   readonly gizmo: "position" | "rotation" | "scale";
   readonly wallMode: WallMode;
   readonly gridVisible: boolean;
+  /** "Livre": objects and walls go anywhere, at any angle, off the grid (L). */
+  readonly freePlacement: boolean;
   readonly topView: boolean;
-  readonly allowOverlap: boolean;
+  /** Height the next placement is raised by (9 / 0, or the field). */
+  readonly placementHeight: number;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly hint: string;
@@ -129,37 +133,39 @@ interface CatalogTab {
 const isStructure = (entry: EditorAssetEntry): boolean =>
   entry.category === "room" || isFloorAsset(entry.assetId) || isWallAsset(entry.assetId, entry.category);
 
+// Labels are read through getters (or functions), never captured at import: the editor's
+// code is loaded once, and the language may change between two visits to it.
 const CATALOG_TABS: readonly CatalogTab[] = [
-  { id: "all", label: "Tudo", icon: "all", matches: () => true },
-  { id: "structure", label: "Estrutura", icon: "structure", matches: isStructure },
-  { id: "kitchen", label: "Cozinha", icon: "kitchen", matches: (e) => e.role === "station" || e.role === "dispenser" },
-  { id: "furniture", label: "Móveis", icon: "furniture", matches: (e) => e.role === "decor" && e.category === "storage" },
-  { id: "equipment", label: "Equipamentos", icon: "equipment", matches: (e) => e.role === "decor" && ["machine", "screen", "pipe", "cable", "supply"].includes(e.category) },
-  { id: "decor", label: "Decoração", icon: "decor", matches: (e) => e.role === "decor" && e.category === "decor" && !isStructure(e) },
-  { id: "robot", label: "Robôs", icon: "robot", matches: (e) => e.role === "robot" },
-  { id: "spawn", label: "Pontos de início", icon: "spawn", matches: (e) => e.role === "spawn" },
+  { id: "all", get label() { return t("editor.tabAll"); }, icon: "all", matches: () => true },
+  { id: "structure", get label() { return t("editor.tabStructure"); }, icon: "structure", matches: isStructure },
+  { id: "kitchen", get label() { return t("editor.tabKitchen"); }, icon: "kitchen", matches: (e) => e.role === "station" || e.role === "dispenser" },
+  { id: "furniture", get label() { return t("editor.tabFurniture"); }, icon: "furniture", matches: (e) => e.role === "decor" && e.category === "storage" },
+  { id: "equipment", get label() { return t("editor.tabEquipment"); }, icon: "equipment", matches: (e) => e.role === "decor" && ["machine", "screen", "pipe", "cable", "supply"].includes(e.category) },
+  { id: "decor", get label() { return t("editor.tabDecor"); }, icon: "decor", matches: (e) => e.role === "decor" && e.category === "decor" && !isStructure(e) },
+  { id: "robot", get label() { return t("editor.tabRobot"); }, icon: "robot", matches: (e) => e.role === "robot" },
+  { id: "spawn", get label() { return t("editor.tabSpawn"); }, icon: "spawn", matches: (e) => e.role === "spawn" },
 ];
 
-const STRUCTURE_FILTERS = [
-  { id: "", label: "Tudo" },
-  { id: "walls", label: "Paredes" },
-  { id: "floors", label: "Pisos" },
-  { id: "other", label: "Outros" },
-] as const;
-
-const TOOLS: readonly { tool: EditorTool; label: string; key: string; icon: string; title: string }[] = [
-  { tool: "select", label: "Selecionar", key: "H", icon: "select", title: "Selecionar, mover e girar objetos" },
-  { tool: "eyedropper", label: "Conta-gotas", key: "I", icon: "eyedropper", title: "Copiar um objeto da cena, com as cores" },
-  { tool: "design", label: "Cores", key: "R", icon: "design", title: "Mudar as cores de um objeto" },
-  { tool: "erase", label: "Marreta", key: "K", icon: "erase", title: "Apagar objetos (arraste para apagar uma área)" },
-  { tool: "wall", label: "Parede", key: "", icon: "wall", title: "Arraste para desenhar paredes" },
-  { tool: "floor", label: "Piso", key: "", icon: "floor", title: "Arraste para cobrir uma área com piso" },
+const structureFilters = (): readonly { id: string; label: string }[] => [
+  { id: "", label: t("editor.filterAll") },
+  { id: "walls", label: t("editor.filterWalls") },
+  { id: "floors", label: t("editor.filterFloors") },
+  { id: "other", label: t("editor.filterOther") },
 ];
 
-const WALL_MODES: readonly { mode: WallMode; label: string; icon: string }[] = [
-  { mode: "up", label: "Paredes em pé", icon: "wallsUp" },
-  { mode: "cutaway", label: "Paredes em corte", icon: "wallsCut" },
-  { mode: "down", label: "Paredes abaixadas", icon: "wallsDown" },
+const tools = (): readonly { tool: EditorTool; label: string; key: string; icon: string; title: string }[] => [
+  { tool: "select", label: t("editor.toolSelect"), key: "H", icon: "select", title: t("editor.toolSelectTitle") },
+  { tool: "eyedropper", label: t("editor.toolEyedropper"), key: "I", icon: "eyedropper", title: t("editor.toolEyedropperTitle") },
+  { tool: "design", label: t("editor.toolDesign"), key: "R", icon: "design", title: t("editor.toolDesignTitle") },
+  { tool: "erase", label: t("editor.toolErase"), key: "K", icon: "erase", title: t("editor.toolEraseTitle") },
+  { tool: "wall", label: t("editor.toolWall"), key: "", icon: "wall", title: t("editor.toolWallTitle") },
+  { tool: "floor", label: t("editor.toolFloor"), key: "", icon: "floor", title: t("editor.toolFloorTitle") },
+];
+
+const wallModes = (): readonly { mode: WallMode; label: string; icon: string }[] => [
+  { mode: "up", label: t("editor.wallsUp"), icon: "wallsUp" },
+  { mode: "cutaway", label: t("editor.wallsCutaway"), icon: "wallsCut" },
+  { mode: "down", label: t("editor.wallsDown"), icon: "wallsDown" },
 ];
 
 const PALETTE = [
@@ -167,25 +173,29 @@ const PALETTE = [
   "#f6d84a", "#6fb35a", "#3f8f9f", "#3d6fd6", "#8e5bd6", "#2b2f36",
 ];
 
-const SHORTCUTS: readonly (readonly [string, string])[] = [
-  ["W A S D / setas", "Mover a câmera"],
-  ["Q / E", "Girar a câmera"],
-  ["Roda / Z X", "Aproximar e afastar"],
-  ["Botão direito", "Orbitar · botão do meio: arrastar a vista"],
-  ["T", "Vista de cima"],
-  ["F", "Enquadrar a seleção · Home: câmera inicial"],
-  ["V", "Paredes em pé / em corte / abaixadas"],
-  ["G", "Mostrar a grade"],
-  ["H I R K", "Selecionar · Conta-gotas · Cores · Marreta"],
-  [", .", "Girar 45° (com Shift: 15°)"],
-  ["Alt", "Colocar e mover fora da grade"],
-  ["Ctrl+C / Ctrl+V", "Copiar e colar"],
-  ["Ctrl+D", "Duplicar"],
-  ["Ctrl+Z / Ctrl+Y", "Desfazer e refazer"],
-  ["Delete", "Apagar a seleção"],
-  ["Ctrl+S", "Salvar"],
-  ["Esc", "Cancelar / soltar a ferramenta"],
-  ["?", "Esta ajuda"],
+const shortcuts = (): readonly (readonly [string, string])[] => [
+  [t("editor.keyRightDrag"), t("editor.textRightDrag")],
+  [t("editor.keyLeftDrag"), t("editor.textLeftDrag")],
+  [t("editor.keyZoom"), t("editor.textZoom")],
+  [t("editor.keyMove"), t("editor.textMove")],
+  ["Q / E", t("editor.textTurn")],
+  [t("editor.keyShiftDrag"), t("editor.textShiftDrag")],
+  ["T", t("editor.textTop")],
+  ["F", t("editor.textFrame")],
+  ["V", t("editor.textWalls")],
+  ["G", t("editor.textGrid")],
+  ["H I R K", t("editor.textTools")],
+  [", .", t("editor.textRotate")],
+  ["9 / 0", t("editor.textHeight")],
+  ["L", t("editor.textFreeToggle")],
+  ["Alt", t("editor.textFreePlace")],
+  ["Ctrl+C / Ctrl+V", t("editor.textCopyPaste")],
+  ["Ctrl+D", t("editor.textDuplicate")],
+  ["Ctrl+Z / Ctrl+Y", t("editor.textUndo")],
+  ["Delete", t("editor.textDelete")],
+  ["Ctrl+S", t("editor.textSave")],
+  ["Esc", t("editor.textEscape")],
+  ["?", t("editor.textHelp")],
 ];
 
 /** First-render and step size of the catalogue strip; more cards append as it scrolls. */
@@ -236,7 +246,7 @@ export class EditorUI {
     this.slots = initialSlots;
     this.shell = createElement("section", "bm");
     this.shell.dataset.editorOpen = "true";
-    this.shell.setAttribute("aria-label", "Modo construção");
+    this.shell.setAttribute("aria-label", t("editor.aria"));
     this.shell.innerHTML = this.createMarkup();
     host.append(this.shell);
 
@@ -291,7 +301,12 @@ export class EditorUI {
     }
     this.require("[data-action='grid']").dataset.active = String(state.gridVisible);
     this.require("[data-action='top']").dataset.active = String(state.topView);
-    this.require<HTMLInputElement>("[data-option='overlap']").checked = state.allowOverlap;
+    this.require<HTMLInputElement>("[data-option='free']").checked = state.freePlacement;
+    const height = this.require<HTMLInputElement>("[data-option='height']");
+    // Not while it is being typed in: the scene rounds, which would fight the keystrokes.
+    if (document.activeElement !== height && Number(height.value) !== state.placementHeight) {
+      height.value = String(state.placementHeight);
+    }
     this.require<HTMLButtonElement>("[data-action='undo']").disabled = !state.canUndo;
     this.require<HTMLButtonElement>("[data-action='redo']").disabled = !state.canRedo;
     this.hint.textContent = state.hint;
@@ -345,7 +360,7 @@ export class EditorUI {
     const difficulty = this.require<HTMLSelectElement>("[data-meta='difficulty']");
     // Never clobber a field the designer is typing in.
     if (document.activeElement !== description) description.value = map.meta?.description ?? "";
-    if (document.activeElement !== duration) duration.value = String(map.meta?.shiftDurationSeconds ?? 240);
+    if (document.activeElement !== duration) duration.value = String(map.meta?.shiftDurationSeconds ?? 195);
     if (document.activeElement !== difficulty) difficulty.value = map.meta?.difficultyId ?? "standard";
   }
 
@@ -426,8 +441,8 @@ export class EditorUI {
     }));
     this.playButton.setAttribute("aria-disabled", String(!ready));
     this.playButton.title = ready
-      ? "Salvar e jogar esta fase"
-      : `Falta: ${requirements.filter(r => !r.satisfied).map(r => r.label).join(", ")}`;
+      ? t("editor.playTitle")
+      : t("editor.missing", { items: requirements.filter(r => !r.satisfied).map(r => r.label).join(", ") });
   }
 
   // ---------------------------------------------------------------------------------------
@@ -456,16 +471,12 @@ export class EditorUI {
       this.strip.scrollLeft += event.deltaY;
     }, { signal, passive: false });
     const options = (): void => this.handlers.onPlacementOptions(
-      this.require<HTMLInputElement>("[data-option='snap']").checked,
-      this.require<HTMLInputElement>("[data-option='surface']").checked,
+      !this.require<HTMLInputElement>("[data-option='free']").checked,
       Number(this.require<HTMLInputElement>("[data-option='height']").value) || 0,
     );
-    for (const name of ["snap", "surface", "height"]) {
+    for (const name of ["free", "height"]) {
       this.require(`[data-option='${name}']`).addEventListener("input", options, { signal });
     }
-    this.require<HTMLInputElement>("[data-option='overlap']").addEventListener("change", (event) => {
-      this.handlers.onAllowOverlap((event.target as HTMLInputElement).checked);
-    }, { signal });
   }
 
   private chooseTool(tool: EditorTool): void {
@@ -509,7 +520,7 @@ export class EditorUI {
   private populatePacks(): void {
     const select = this.require<HTMLSelectElement>("[data-catalog-pack]");
     const packs = [...new Set(EDITOR_ASSET_CATALOG.map((entry) => entry.pack ?? "Byte Bistro"))];
-    packs.sort((a, b) => packLabel(a).localeCompare(packLabel(b), "pt-BR"));
+    packs.sort((a, b) => compareText(packLabel(a), packLabel(b)));
     for (const pack of packs) {
       const option = createElement("option", undefined, packLabel(pack));
       option.value = pack;
@@ -536,7 +547,7 @@ export class EditorUI {
     }));
     const chips = this.require("[data-structure-filters]");
     chips.hidden = this.catalogTab !== "structure";
-    chips.replaceChildren(...STRUCTURE_FILTERS.map((filter) => {
+    chips.replaceChildren(...structureFilters().map((filter) => {
       const chip = createElement("button", "bm-chip", filter.label);
       chip.type = "button";
       chip.dataset.active = String(filter.id === this.structureFilter);
@@ -566,15 +577,18 @@ export class EditorUI {
         if (this.structureFilter === "other" && (wall || floor)) return false;
       }
       if (!this.search) return true;
-      return `${entry.label} ${entry.assetId} ${packLabel(entry.pack ?? "")}`.toLocaleLowerCase().includes(this.search);
+      // Both languages: a name learnt in one still finds the model in the other.
+      const english = entry.pack ? ASSET_LIBRARY_BY_ID.get(entry.assetId) : undefined;
+      const names = english ? `${english.label} ${english.labelEn ?? ""}` : "";
+      return `${entry.label} ${names} ${entry.assetId} ${packLabel(entry.pack ?? "")}`.toLocaleLowerCase().includes(this.search);
     });
-    this.require("[data-catalog-count]").textContent = `${this.catalogMatches.length} ${this.catalogMatches.length === 1 ? "objeto" : "objetos"}`;
+    this.require("[data-catalog-count]").textContent = t(this.catalogMatches.length === 1 ? "editor.countOne" : "editor.countMany", { count: formatNumber(this.catalogMatches.length) });
     this.thumbnailObserver.disconnect();
     this.strip.replaceChildren();
     this.strip.scrollLeft = 0;
     this.catalogRendered = 0;
     if (this.catalogMatches.length === 0) {
-      this.strip.append(createElement("p", "bm-empty", "Nada encontrado. Tente outra busca ou categoria."));
+      this.strip.append(createElement("p", "bm-empty", t("editor.nothingFound")));
       return;
     }
     this.appendCatalogChunk();
@@ -673,25 +687,25 @@ export class EditorUI {
 
     const heading = createElement("header", "bm-inspector-head");
     heading.append(
-      createElement("strong", undefined, single ? first.label ?? "Objeto" : `${selection.length} objetos`),
-      createElement("small", undefined, single ? this.packOf(first) : "Seleção múltipla"),
+      createElement("strong", undefined, single ? objectLabel(first) ?? t("editor.object") : t("editor.objects", { count: selection.length })),
+      createElement("small", undefined, single ? this.packOf(first) : t("editor.multiSelection")),
     );
     body.append(heading);
 
     if (state.colors) body.append(this.renderColors(state.colors));
     else if (state.tool === "design") {
       body.append(createElement("p", "bm-muted", selection.length > 1
-        ? "Selecione objetos do mesmo modelo para mudar as cores juntos."
-        : "Este objeto não tem cores editáveis."));
+        ? t("editor.colorsSameModel")
+        : t("editor.noColors")));
     }
 
     if (single) {
       const transform = createElement("section", "bm-section");
-      transform.append(createElement("h3", undefined, "Posição e tamanho"));
+      transform.append(createElement("h3", undefined, t("editor.transform")));
       const rows: [string, "position" | "rotation" | "scale", ("x" | "y" | "z")[], number][] = [
-        ["Posição (m)", "position", ["x", "y", "z"], 0.25],
-        ["Rotação (°)", "rotation", ["y"], 15],
-        ["Escala", "scale", ["x", "y", "z"], 0.1],
+        [t("editor.position"), "position", ["x", "y", "z"], 0.25],
+        [t("editor.rotation"), "rotation", ["y"], 15],
+        [t("editor.scale"), "scale", ["x", "y", "z"], 0.1],
       ];
       for (const [label, group, axes, step] of rows) {
         const row = createElement("div", "bm-field-row");
@@ -725,17 +739,17 @@ export class EditorUI {
       return button;
     };
     actions.append(
-      action("Girar", "rotate", () => this.handlers.onRotate(1)),
-      action("Duplicar", "duplicate", () => this.handlers.onDuplicateSelected()),
-      action("Conta-gotas", "eyedropper", () => this.handlers.onCopySelected()),
-      action("Excluir", "trash", () => this.handlers.onDeleteSelected(), true),
+      action(t("editor.rotate"), "rotate", () => this.handlers.onRotate(1)),
+      action(t("editor.duplicate"), "duplicate", () => this.handlers.onDuplicateSelected()),
+      action(t("editor.eyedropper"), "eyedropper", () => this.handlers.onCopySelected()),
+      action(t("editor.delete"), "trash", () => this.handlers.onDeleteSelected(), true),
     );
     body.append(actions);
   }
 
   private renderColors(colors: SelectionColors): HTMLElement {
     const section = createElement("section", "bm-section bm-colors");
-    const title = createElement("h3", undefined, colors.count > 1 ? `Cores (${colors.count} objetos)` : "Cores");
+    const title = createElement("h3", undefined, colors.count > 1 ? t("editor.colorsCount", { count: colors.count }) : t("editor.colors"));
     section.append(title);
     if (!colors.slots.some(slot => slot.name === this.activeColorSlot)) this.activeColorSlot = colors.slots[0]?.name ?? "";
     for (const slot of colors.slots) {
@@ -746,7 +760,7 @@ export class EditorUI {
       input.type = "color";
       input.dataset.colorSlot = slot.name;
       input.dataset.default = slot.defaultColor;
-      input.setAttribute("aria-label", `Cor: ${slot.label}`);
+      input.setAttribute("aria-label", t("editor.colorAria", { name: slot.label }));
       input.addEventListener("focus", () => this.setActiveSlot(slot.name));
       input.addEventListener("input", () => this.handlers.onColorPreview(slot.name, input.value));
       input.addEventListener("change", () => this.handlers.onColorCommit(slot.name, input.value));
@@ -755,14 +769,14 @@ export class EditorUI {
       label.addEventListener("click", () => this.setActiveSlot(slot.name));
       const reset = createElement("button", "bm-icon-button bm-swatch-reset");
       reset.type = "button";
-      reset.title = "Voltar à cor original";
+      reset.title = t("editor.resetColor");
       reset.innerHTML = icon("undo");
       reset.addEventListener("click", () => this.handlers.onColorCommit(slot.name, null));
       row.append(input, label, reset);
       section.append(row);
     }
     const palette = createElement("div", "bm-palette");
-    palette.setAttribute("aria-label", "Paleta rápida");
+    palette.setAttribute("aria-label", t("editor.palette"));
     for (const hex of PALETTE) {
       const chip = createElement("button", "bm-palette-chip");
       chip.type = "button";
@@ -774,7 +788,7 @@ export class EditorUI {
       palette.append(chip);
     }
     section.append(palette);
-    const reset = createElement("button", "bm-button bm-ghost", "Restaurar todas as cores");
+    const reset = createElement("button", "bm-button bm-ghost", t("editor.resetAllColors"));
     reset.type = "button";
     reset.addEventListener("click", () => this.handlers.onResetColors());
     section.append(reset);
@@ -791,14 +805,14 @@ export class EditorUI {
   private renderRobotFields(): HTMLElement {
     const section = createElement("section", "bm-section");
     section.innerHTML = `
-      <h3>Robô</h3>
-      <label class="bm-check"><input type="checkbox" data-robot="customer"> Recebe pedidos</label>
-      <label class="bm-check"><input type="checkbox" data-robot="canMove"> Anda pela sala</label>
-      <label class="bm-field">Animação parado<select data-robot="idleClip">${ROBOT_CLIPS
+      <h3>${t("editor.robot")}</h3>
+      <label class="bm-check"><input type="checkbox" data-robot="customer"> ${t("editor.robotCustomer")}</label>
+      <label class="bm-check"><input type="checkbox" data-robot="canMove"> ${t("editor.robotCanMove")}</label>
+      <label class="bm-field">${t("editor.robotIdle")}<select data-robot="idleClip">${ROBOT_CLIPS
         .map((clip) => `<option value="${clip.id}">${clip.label}</option>`).join("")}</select></label>
-      <label class="bm-field">Raio de perambulação (m)<input type="number" data-robot="wanderRadius" min="0" max="12" step="0.5"></label>
-      <label class="bm-field">Velocidade (m/s)<input type="number" data-robot="moveSpeed" min="0.2" max="4" step="0.05"></label>
-      <label class="bm-field">Nome<input type="text" data-robot="displayName" maxlength="40" placeholder="Automático"></label>`;
+      <label class="bm-field">${t("editor.robotWander")}<input type="number" data-robot="wanderRadius" min="0" max="12" step="0.5"></label>
+      <label class="bm-field">${t("editor.robotSpeed")}<input type="number" data-robot="moveSpeed" min="0.2" max="4" step="0.05"></label>
+      <label class="bm-field">${t("editor.robotName")}<input type="text" data-robot="displayName" maxlength="40" placeholder="${t("editor.robotNameAuto")}"></label>`;
     for (const field of section.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-robot]")) {
       const key = field.dataset.robot as keyof RobotConfig;
       field.addEventListener("change", () => {
@@ -841,7 +855,7 @@ export class EditorUI {
 
   private packOf(object: MapPlacedObject): string {
     const entry = EDITOR_ASSET_CATALOG.find((candidate) => candidate.assetId === object.assetId);
-    return entry?.pack ? packLabel(entry.pack) : object.role === "decor" ? "Byte Bistro" : "Objeto de jogo";
+    return entry?.pack ? packLabel(entry.pack) : object.role === "decor" ? "Byte Bistro" : t("editor.gamePiece");
   }
 
   // ---------------------------------------------------------------------------------------
@@ -876,7 +890,7 @@ export class EditorUI {
     const difficulty = this.require<HTMLSelectElement>("[data-meta='difficulty']").value;
     return {
       description: description.trim(),
-      shiftDurationSeconds: Number.isFinite(duration) ? duration : 240,
+      shiftDurationSeconds: Number.isFinite(duration) ? duration : 195,
       difficultyId: isDifficultyId(difficulty) ? difficulty : "standard",
     };
   }
@@ -903,14 +917,15 @@ export class EditorUI {
   private async newMap(): Promise<void> {
     if (!(await this.confirmDiscard())) return;
     const name = await textDialog({
-      title: "Novo mapa",
-      message: "Nome do mapa",
-      value: "Novo mapa",
+      title: t("editor.newMapTitle"),
+      message: t("editor.newMapPrompt"),
+      value: t("editor.newMapDefault"),
       maxLength: 40,
-      confirmLabel: "Criar",
+      confirmLabel: t("editor.create"),
+      cancelLabel: t("common.cancel"),
     });
     if (name === null) return;
-    this.handlers.onNewMap(name || "Novo mapa");
+    this.handlers.onNewMap(name || t("editor.newMapDefault"));
   }
 
   /**
@@ -919,7 +934,7 @@ export class EditorUI {
    */
   private exportCurrent(): void {
     const map = this.handlers.getCurrentMap();
-    if (!map) { this.notify("Nada para exportar", "warning"); return; }
+    if (!map) { this.notify(t("editor.nothingToExport"), "warning"); return; }
     const name = (this.nameInput.value.trim() || map.name || "mapa")
       .toLowerCase()
       .normalize("NFD")
@@ -935,7 +950,7 @@ export class EditorUI {
     link.click();
     // Revoking immediately can cancel the download in some browsers.
     window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    this.notify(`Exportado como ${name}.bytebistro.json`, "success");
+    this.notify(t("editor.exported", { file: `${name}.bytebistro.json` }), "success");
   }
 
   /** Loads a previously exported map file back into the editor. */
@@ -951,19 +966,19 @@ export class EditorUI {
         try {
           parsed = JSON.parse(text);
         } catch {
-          this.notify("Arquivo inválido", "error");
+          this.notify(t("editor.invalidFile"), "error");
           return;
         }
         // The same sanitiser the slot store uses, so a hand-edited file cannot smuggle
         // anything unexpected into the editor.
         const map = sanitizeMapData(parsed);
-        if (!map) { this.notify("Mapa inválido", "error"); return; }
+        if (!map) { this.notify(t("editor.invalidMap"), "error"); return; }
         this.handlers.onImportMap(map);
         this.nameInput.value = map.name;
         this.setMeta(map);
         this.currentSlotId = "";
         this.renderSlots();
-        this.notify(`Importado: ${map.name} · Ctrl+Z desfaz`, "success");
+        this.notify(t("editor.imported", { name: map.name }), "success");
       });
     }, { once: true });
     input.click();
@@ -976,9 +991,10 @@ export class EditorUI {
   private async confirmDiscard(): Promise<boolean> {
     if (!this.handlers.hasUnsavedChanges()) return true;
     return confirmDialog({
-      title: "Descartar alterações?",
-      message: "O mapa atual tem alterações que não foram salvas. Elas serão perdidas.",
-      confirmLabel: "Descartar",
+      title: t("editor.discardTitle"),
+      message: t("editor.discardMessage"),
+      confirmLabel: t("editor.discard"),
+      cancelLabel: t("common.cancel"),
       danger: true,
     });
   }
@@ -986,7 +1002,7 @@ export class EditorUI {
   private renderSlots(): void {
     this.slotList.replaceChildren();
     if (this.slots.length === 0) {
-      this.slotList.append(createElement("p", "bm-muted", "Nenhum mapa salvo ainda."));
+      this.slotList.append(createElement("p", "bm-muted", t("editor.noSlots")));
       return;
     }
     for (const slot of this.slots) {
@@ -995,14 +1011,14 @@ export class EditorUI {
       const text = createElement("div", "bm-slot-text");
       text.append(
         createElement("strong", undefined, slot.name),
-        createElement("small", undefined, `${slot.objectCount} objetos · ${new Date(slot.updatedAt).toLocaleDateString("pt-BR")}`),
+        createElement("small", undefined, t("editor.slotMeta", { count: slot.objectCount, date: formatDate(slot.updatedAt) })),
       );
-      const load = createElement("button", "bm-button bm-small", "Abrir");
+      const load = createElement("button", "bm-button bm-small", t("editor.open"));
       load.type = "button";
       load.addEventListener("click", () => { this.togglePanel(null); void this.loadSlot(slot.slotId); });
       const remove = createElement("button", "bm-icon-button bm-danger");
       remove.type = "button";
-      remove.title = "Excluir mapa";
+      remove.title = t("editor.deleteMap");
       remove.innerHTML = icon("trash");
       remove.addEventListener("click", () => void this.deleteSlot(slot.slotId));
       item.append(text, load, remove);
@@ -1017,16 +1033,17 @@ export class EditorUI {
       this.currentSlotId = slotId;
       this.renderSlots();
     } else {
-      this.notify("Não foi possível abrir esse mapa", "error");
+      this.notify(t("editor.openFailed"), "error");
     }
   }
 
   private async deleteSlot(slotId: string): Promise<void> {
-    const name = this.slots.find((slot) => slot.slotId === slotId)?.name ?? "sem nome";
+    const name = this.slots.find((slot) => slot.slotId === slotId)?.name ?? t("editor.unnamed");
     const confirmed = await confirmDialog({
-      title: "Excluir mapa?",
-      message: `O mapa "${name}" será apagado permanentemente. Essa ação não pode ser desfeita.`,
-      confirmLabel: "Excluir",
+      title: t("level.confirmDeleteTitle"),
+      message: t("level.confirmDeleteMessage", { title: name }),
+      confirmLabel: t("common.delete"),
+      cancelLabel: t("common.cancel"),
       danger: true,
     });
     if (!confirmed) return;
@@ -1044,52 +1061,52 @@ export class EditorUI {
   }
 
   private createMarkup(): string {
-    const tools = TOOLS.map((tool) => `
+    const toolButtons = tools().map((tool) => `
       <button type="button" class="bm-tool" data-tool="${tool.tool}" title="${tool.title}${tool.key ? ` (${tool.key})` : ""}">
         ${icon(tool.icon)}<span>${tool.label}</span>${tool.key ? `<kbd>${tool.key}</kbd>` : ""}
       </button>`).join("");
-    const wallModes = WALL_MODES.map((mode) => `
+    const wallModeButtons = wallModes().map((mode) => `
       <button type="button" class="bm-icon-button" data-wall-mode="${mode.mode}" title="${mode.label} (V)" aria-label="${mode.label}">${icon(mode.icon)}</button>`).join("");
-    const shortcuts = SHORTCUTS.map(([keys, text]) => `<dt><kbd>${keys}</kbd></dt><dd>${text}</dd>`).join("");
+    const shortcutRows = shortcuts().map(([keys, text]) => `<dt><kbd>${keys}</kbd></dt><dd>${text}</dd>`).join("");
     return `
       <header class="bm-topbar" data-editor-chrome>
         <div class="bm-cluster">
           <div class="bm-popover-anchor">
-            <button type="button" class="bm-button" data-action="file" data-panel-toggle="file" aria-haspopup="true" aria-expanded="false">${icon("menu")}<span>Arquivo</span></button>
+            <button type="button" class="bm-button" data-action="file" data-panel-toggle="file" aria-haspopup="true" aria-expanded="false">${icon("menu")}<span>${t("editor.file")}</span></button>
             <div class="bm-popover bm-file" data-panel="file" hidden>
-              <button type="button" class="bm-menu-item" data-action="save">Salvar <kbd>Ctrl+S</kbd></button>
-              <button type="button" class="bm-menu-item" data-action="save-as">Salvar uma cópia</button>
-              <button type="button" class="bm-menu-item" data-action="new">Novo mapa…</button>
-              <div class="bm-menu-heading">Mapas salvos</div>
+              <button type="button" class="bm-menu-item" data-action="save">${t("editor.save")} <kbd>Ctrl+S</kbd></button>
+              <button type="button" class="bm-menu-item" data-action="save-as">${t("editor.saveCopy")}</button>
+              <button type="button" class="bm-menu-item" data-action="new">${t("editor.newMapMenu")}</button>
+              <div class="bm-menu-heading">${t("editor.savedMaps")}</div>
               <div class="bm-slots" data-slots></div>
-              <div class="bm-menu-heading">Arquivo</div>
-              <button type="button" class="bm-menu-item" data-action="import">Importar JSON…</button>
-              <button type="button" class="bm-menu-item" data-action="export">Exportar JSON</button>
-              <button type="button" class="bm-menu-item bm-danger" data-action="exit">Sair do modo construção</button>
+              <div class="bm-menu-heading">${t("editor.file")}</div>
+              <button type="button" class="bm-menu-item" data-action="import">${t("editor.importJson")}</button>
+              <button type="button" class="bm-menu-item" data-action="export">${t("editor.exportJson")}</button>
+              <button type="button" class="bm-menu-item bm-danger" data-action="exit">${t("editor.exit")}</button>
             </div>
           </div>
           <div class="bm-segment">
-            <button type="button" class="bm-icon-button" data-action="undo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer">${icon("undo")}</button>
-            <button type="button" class="bm-icon-button" data-action="redo" title="Refazer (Ctrl+Y)" aria-label="Refazer">${icon("redo")}</button>
+            <button type="button" class="bm-icon-button" data-action="undo" title="${t("editor.undo")} (Ctrl+Z)" aria-label="${t("editor.undo")}">${icon("undo")}</button>
+            <button type="button" class="bm-icon-button" data-action="redo" title="${t("editor.redo")} (Ctrl+Y)" aria-label="${t("editor.redo")}">${icon("redo")}</button>
           </div>
-          <input class="bm-name" data-map-name type="text" maxlength="40" aria-label="Nome do mapa" placeholder="Nome do mapa">
+          <input class="bm-name" data-map-name type="text" maxlength="40" aria-label="${t("editor.mapName")}" placeholder="${t("editor.mapName")}">
         </div>
         <div class="bm-cluster">
-          <div class="bm-segment" role="group" aria-label="Paredes">${wallModes}</div>
+          <div class="bm-segment" role="group" aria-label="${t("editor.walls")}">${wallModeButtons}</div>
           <div class="bm-segment">
-            <button type="button" class="bm-icon-button" data-action="top" title="Vista de cima (T)" aria-label="Vista de cima">${icon("top")}</button>
-            <button type="button" class="bm-icon-button" data-action="grid" title="Grade (G)" aria-label="Grade">${icon("grid")}</button>
-            <button type="button" class="bm-icon-button" data-action="help" data-panel-toggle="help" title="Atalhos (?)" aria-label="Atalhos">${icon("help")}</button>
+            <button type="button" class="bm-icon-button" data-action="top" title="${t("editor.topView")} (T)" aria-label="${t("editor.topView")}">${icon("top")}</button>
+            <button type="button" class="bm-icon-button" data-action="grid" title="${t("editor.grid")} (G)" aria-label="${t("editor.grid")}">${icon("grid")}</button>
+            <button type="button" class="bm-icon-button" data-action="help" data-panel-toggle="help" title="${t("editor.shortcuts")} (?)" aria-label="${t("editor.shortcuts")}">${icon("help")}</button>
           </div>
           <div class="bm-popover-anchor">
-            <button type="button" class="bm-button bm-requirements" data-action="requirements" data-panel-toggle="requirements" aria-expanded="false" title="O que falta para jogar">${icon("check")}<span data-requirements-count>0/0</span></button>
+            <button type="button" class="bm-button bm-requirements" data-action="requirements" data-panel-toggle="requirements" aria-expanded="false" title="${t("editor.requirementsTitle")}">${icon("check")}<span data-requirements-count>0/0</span></button>
             <div class="bm-popover bm-popover-right" data-panel="requirements" hidden>
-              <div class="bm-menu-heading">Obrigatórios para jogar</div>
+              <div class="bm-menu-heading">${t("editor.requiredToPlay")}</div>
               <ul class="bm-requirements-list" data-requirements></ul>
             </div>
           </div>
-          <button type="button" class="bm-icon-button" data-action="settings" data-panel-toggle="settings" title="Configurações do mapa" aria-label="Configurações do mapa">${icon("settings")}</button>
-          <button type="button" class="bm-button bm-primary" data-action="play">${icon("play")}<span>Jogar</span></button>
+          <button type="button" class="bm-icon-button" data-action="settings" data-panel-toggle="settings" title="${t("editor.settings")}" aria-label="${t("editor.settings")}">${icon("settings")}</button>
+          <button type="button" class="bm-button bm-primary" data-action="play">${icon("play")}<span>${t("editor.play")}</span></button>
         </div>
       </header>
 
@@ -1100,19 +1117,19 @@ export class EditorUI {
       </aside>
 
       <aside class="bm-panel bm-drawer" data-panel="settings" data-editor-chrome hidden>
-        <header class="bm-drawer-head"><strong>Configurações do mapa</strong>
-          <button type="button" class="bm-icon-button" data-action="close-settings" aria-label="Fechar">${icon("close")}</button></header>
-        <label class="bm-field">Descrição<textarea data-meta="description" rows="3" maxlength="240" placeholder="Do que se trata esta fase?"></textarea></label>
-        <label class="bm-field">Tempo do turno (s)<input type="number" data-meta="duration" min="60" max="900" step="10" value="240"></label>
-        <label class="bm-field">Dificuldade<select data-meta="difficulty">${DIFFICULTY_IDS
+        <header class="bm-drawer-head"><strong>${t("editor.settings")}</strong>
+          <button type="button" class="bm-icon-button" data-action="close-settings" aria-label="${t("common.close")}">${icon("close")}</button></header>
+        <label class="bm-field">${t("editor.description")}<textarea data-meta="description" rows="3" maxlength="240" placeholder="${t("editor.descriptionPlaceholder")}"></textarea></label>
+        <label class="bm-field">${t("editor.shiftTime")}<input type="number" data-meta="duration" min="60" max="900" step="5" value="195"></label>
+        <label class="bm-field">${t("editor.difficulty")}<select data-meta="difficulty">${DIFFICULTY_IDS
           .map((id) => `<option value="${id}">${DIFFICULTY_PROFILES[id].label}</option>`).join("")}</select></label>
-        <p class="bm-muted">Esses dados são salvos com o mapa e usados quando a fase é jogada.</p>
+        <p class="bm-muted">${t("editor.settingsNote")}</p>
       </aside>
 
       <section class="bm-panel bm-help" data-panel="help" data-editor-chrome hidden>
-        <header class="bm-drawer-head"><strong>Atalhos do modo construção</strong>
-          <button type="button" class="bm-icon-button" data-action="close-help" aria-label="Fechar">${icon("close")}</button></header>
-        <dl class="bm-shortcuts">${shortcuts}</dl>
+        <header class="bm-drawer-head"><strong>${t("editor.helpTitle")}</strong>
+          <button type="button" class="bm-icon-button" data-action="close-help" aria-label="${t("common.close")}">${icon("close")}</button></header>
+        <dl class="bm-shortcuts">${shortcutRows}</dl>
       </section>
 
       <div class="bm-hint-bar">
@@ -1121,23 +1138,21 @@ export class EditorUI {
       </div>
 
       <footer class="bm-dock" data-editor-chrome>
-        <nav class="bm-tools" aria-label="Ferramentas">${tools}</nav>
+        <nav class="bm-tools" aria-label="${t("editor.tools")}">${toolButtons}</nav>
         <div class="bm-catalog">
           <div class="bm-catalog-bar">
             <div class="bm-tabs" role="tablist" data-catalog-tabs></div>
             <div class="bm-filters">
-              <input type="search" class="bm-search" data-catalog-search placeholder="Buscar…" aria-label="Buscar no catálogo">
-              <select class="bm-select" data-catalog-pack aria-label="Pacote"><option value="">Todos os pacotes</option></select>
+              <input type="search" class="bm-search" data-catalog-search placeholder="${t("editor.search")}" aria-label="${t("editor.searchAria")}">
+              <select class="bm-select" data-catalog-pack aria-label="${t("editor.pack")}"><option value="">${t("editor.allPacks")}</option></select>
               <span class="bm-count" data-catalog-count></span>
             </div>
           </div>
           <div class="bm-catalog-sub">
             <div class="bm-chips" data-structure-filters hidden></div>
             <div class="bm-options">
-              <label class="bm-check"><input type="checkbox" data-option="snap" checked> Grade</label>
-              <label class="bm-check"><input type="checkbox" data-option="surface"> Apoiar sobre objetos</label>
-              <label class="bm-check"><input type="checkbox" data-option="overlap"> Permitir sobreposição</label>
-              <label class="bm-check">Altura <input type="number" class="bm-number" data-option="height" step="0.25" value="0" aria-label="Altura ao inserir (m)"></label>
+              <label class="bm-check bm-switch" title="${t("editor.freeTitle")}"><input type="checkbox" role="switch" data-option="free"> ${t("editor.free")} <kbd>L</kbd></label>
+              <label class="bm-check">${t("editor.height")} <input type="number" class="bm-number" data-option="height" step="0.25" min="0" value="0" aria-label="${t("editor.heightAria")}"></label>
             </div>
           </div>
           <div class="bm-strip" data-catalog-strip></div>

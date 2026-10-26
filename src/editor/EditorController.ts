@@ -1,11 +1,12 @@
-import type { Engine } from "@babylonjs/core";
+import { t } from "../i18n";
+import type { AbstractEngine } from "@babylonjs/core";
 import type { MapData, MapMeta } from "./MapData";
 import { EditorScene } from "../scenes/EditorScene";
 import { EditorUI } from "./EditorUI";
 import type { ManagedScene } from "../core/SceneManager";
 
 export interface EditorControllerOptions {
-  readonly engine: Engine;
+  readonly engine: AbstractEngine;
   readonly host: HTMLElement;
   readonly initialMap: MapData;
   readonly initialSlotId: string;
@@ -62,8 +63,7 @@ export class EditorController implements ManagedScene {
         onSelectAll: () => scene.selectAll(),
         onClearSelection: () => scene.clearSelection(),
         onPlay: () => scene.playCurrentMap(),
-        onPlacementOptions: (snap, surface, height) => scene.setPlacementOptions(snap, surface, height),
-        onAllowOverlap: (allow) => scene.setAllowOverlap(allow),
+        onPlacementOptions: (snap, height) => scene.setPlacementOptions(snap, height),
         onSetWallMode: (mode) => scene.setWallMode(mode),
         onToggleGrid: () => scene.setGridVisible(!scene.isGridVisible()),
         onToggleTopView: () => scene.toggleTopView(),
@@ -101,8 +101,9 @@ export class EditorController implements ManagedScene {
         gizmo: scene.getGizmoMode(),
         wallMode: scene.getWallMode(),
         gridVisible: scene.isGridVisible(),
+        freePlacement: scene.isFreePlacement(),
         topView: scene.isTopView(),
-        allowOverlap: scene.isOverlapAllowed(),
+        placementHeight: scene.getPlacementHeight(),
         canUndo: scene.canUndo(),
         canRedo: scene.canRedo(),
         hint: scene.getHint(),
@@ -123,7 +124,7 @@ export class EditorController implements ManagedScene {
 
   private save(name: string, meta: MapMeta, slotId?: string): string | null {
     if (this.busy) {
-      this.ui.notify("Aguarde o mapa terminar de carregar para salvar.", "warning");
+      this.ui.notify(t("editor.waitLoading"), "warning");
       return null;
     }
     const result = this.editorScene.saveCurrentMap(name, meta, slotId || undefined);
@@ -132,9 +133,9 @@ export class EditorController implements ManagedScene {
       this.ui.setSlots(this.editorScene.listSlots());
       this.ui.setMeta(this.editorScene.getCurrentMap());
       this.ui.setMapName(this.editorScene.getCurrentMap().name);
-      this.ui.notify("Mapa salvo", "success");
+      this.ui.notify(t("editor.saved"), "success");
     } else {
-      this.ui.notify("Não foi possível salvar (armazenamento do navegador cheio ou bloqueado)", "error");
+      this.ui.notify(t("editor.saveFailed"), "error");
     }
     return result;
   }
@@ -151,23 +152,23 @@ export class EditorController implements ManagedScene {
     if (!data || this.destroyed) return false;
     this.ui.setMap(data, slotId);
     this.ui.setSlots(this.editorScene.listSlots());
-    this.ui.notify(`Mapa "${data.name}" aberto`, "success");
+    this.ui.notify(t("editor.opened", { name: data.name }), "success");
     return true;
   }
 
   private copySelected(): void {
     const label = this.editorScene.startCopying();
-    if (label) this.ui.notify(`Conta-gotas: clique para colocar cópias de "${label}" · Esc para parar`, "info");
-    else this.ui.notify("Selecione um objeto para copiar", "warning");
+    if (label) this.ui.notify(t("editor.eyedropperStart", { name: label }), "info");
+    else this.ui.notify(t("editor.selectToCopy"), "warning");
   }
 
   private deleteSlot(slotId: string): boolean {
     const ok = this.editorScene.deleteSlot(slotId);
     if (ok) {
       this.ui.setSlots(this.editorScene.listSlots());
-      this.ui.notify("Mapa excluído", "warning");
+      this.ui.notify(t("editor.deleted"), "warning");
     } else {
-      this.ui.notify("Não foi possível excluir o mapa", "error");
+      this.ui.notify(t("editor.deleteFailed"), "error");
     }
     return ok;
   }
@@ -184,6 +185,6 @@ export class EditorController implements ManagedScene {
     if (this.destroyed) return;
     this.ui.setMap(data, "");
     this.ui.setSlots(this.editorScene.listSlots());
-    this.ui.notify(`Mapa "${name}" criado`, "success");
+    this.ui.notify(t("editor.created", { name }), "success");
   }
 }

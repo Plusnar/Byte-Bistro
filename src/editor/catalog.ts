@@ -1,4 +1,6 @@
-import { ASSET_LIBRARY } from "../data/assetLibrary";
+import { getLanguage, t, translate } from "../i18n";
+import { portugueseAssetName } from "../i18n/assetNames";
+import { ASSET_LIBRARY, libraryLabel } from "../data/assetLibrary";
 import { isSolidByDefault } from "../physics/collisionPolicy";
 import { SCENARIO_ASSETS } from "../data/scenarioAssets";
 import {
@@ -17,6 +19,7 @@ import {
 } from "../data/kitchen";
 import type { KitchenStationKind } from "../types/game";
 import { ROBOT_ASSET_ID, ROBOT_PRESETS, type RobotConfig } from "../data/robotConfig";
+import { getIngredient } from "../data/ingredients";
 
 const createUid = (() => {
   let sequence = 0;
@@ -64,18 +67,31 @@ const STATION_ASSET_OVERRIDE: Readonly<Record<string, { stationId: string; label
   "scenario-cash-register": { stationId: "serving_terminal", label: "Feed CORE", color: "#40F2FF" },
 };
 
-const STATION_LABELS: Readonly<Record<string, { label: string; color: string }>> = {
-  ingredient_dispenser: { label: "Ingredients", color: "#44DFFF" },
-  bit_crusher: { label: "Bit Crusher", color: "#FF65C3" },
-  data_mixer: { label: "Data Mixer", color: "#A986FF" },
-  compiler_oven: { label: "Compiler Oven", color: "#FF8B4D" },
-  cache_freezer: { label: "Cache Freezer", color: "#55E7FF" },
-  plating_station: { label: "Plating Station", color: "#7DFFAD" },
-  serving_terminal: { label: "Feed CORE", color: "#40F2FF" },
+const STATION_COLORS: Readonly<Record<string, string>> = {
+  ingredient_dispenser: "#44DFFF",
+  bit_crusher: "#FF65C3",
+  data_mixer: "#A986FF",
+  compiler_oven: "#FF8B4D",
+  cache_freezer: "#55E7FF",
+  plating_station: "#7DFFAD",
+  serving_terminal: "#40F2FF",
+};
+
+const stationAnchorLabel = (id: string): string =>
+  id === "serving_terminal" ? t("editor.feedCore") : translate(`stations.${id}`);
+
+const ingredientName = (ingredientId: string): string =>
+  getIngredient(ingredientId)?.displayName ?? ingredientId.replace(/_/g, " ");
+
+/** A model named after its id ("scenario-machine-bed"): English as is, Portuguese by glossary. */
+const assetIdLabel = (assetId: string): string => {
+  const english = humanizeAsset(assetId);
+  return getLanguage() === "en" ? english : portugueseAssetName(english);
 };
 
 export interface EditorAssetEntry {
   readonly assetId: string;
+  /** In the current language: entries read it from the catalogues each time. */
   readonly label: string;
   readonly category: PlacedObjectCategory;
   readonly role: "decor" | "station" | "dispenser" | "spawn" | "robot";
@@ -98,6 +114,8 @@ const KITCHEN_STATION_MODEL: Readonly<Record<KitchenStationKind, KitchenModelNam
   counter: "kitchencounter_straight_A",
   cutting_board: "kitchencounter_straight_B",
   stove: "stove_single",
+  oven: "stove_single",
+  mixer: "kitchencounter_straight_A",
   sink: "kitchencounter_sink",
   plate_rack: "kitchencounter_straight_B",
   dirty_return: "kitchencounter_straight_B",
@@ -108,7 +126,7 @@ const KITCHEN_STATION_MODEL: Readonly<Record<KitchenStationKind, KitchenModelNam
 
 export const kitchenStationEntry = (kind: KitchenStationKind): EditorAssetEntry => ({
   assetId: kitchenAssetId(KITCHEN_STATION_MODEL[kind]),
-  label: `Cozinha // ${STATION_KIND_LABEL[kind]}`,
+  get label() { return t("editor.kitchenPrefix", { name: STATION_KIND_LABEL[kind] }); },
   category: "station",
   role: "station",
   stationId: kind,
@@ -116,10 +134,10 @@ export const kitchenStationEntry = (kind: KitchenStationKind): EditorAssetEntry 
   scale: TILE_SCALE,
 });
 
-export const kitchenCrateEntry = (ingredientId: string, label: string): EditorAssetEntry => ({
+export const kitchenCrateEntry = (ingredientId: string): EditorAssetEntry => ({
   // Crates now use the bespoke bulk art, which is an already-resolved asset id.
   assetId: CRATE_MODEL_BY_INGREDIENT[ingredientId] ?? kitchenAssetId("crate"),
-  label: `Caixa // ${label}`,
+  get label() { return t("editor.cratePrefix", { name: ingredientName(ingredientId) }); },
   category: "dispenser",
   role: "dispenser",
   ingredientId,
@@ -129,20 +147,20 @@ export const kitchenCrateEntry = (ingredientId: string, label: string): EditorAs
 
 export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
   const entries: EditorAssetEntry[] = [
-    { assetId: "build-player-spawn-1", label: "Início do Jogador 1", category: "spawn", role: "spawn", playerIndex: 1, color: "#55F3EC" },
-    { assetId: "build-player-spawn-2", label: "Início do Jogador 2", category: "spawn", role: "spawn", playerIndex: 2, color: "#FF65C3" },
-    { assetId: "build-floor", label: "Piso modular 2 x 2", category: "room", role: "decor", color: "#64758a" },
-    { assetId: "build-wall", label: "Parede 2 x 3", category: "room", role: "decor", color: "#a9bccc" },
-    { assetId: "build-block", label: "Bloco / bancada", category: "storage", role: "decor", color: "#d5a26c" },
-    { assetId: "scenario-room-wide", label: "Ambiente completo", category: "room", role: "decor" },
+    { assetId: "build-player-spawn-1", get label() { return t("editor.spawn1"); }, category: "spawn", role: "spawn", playerIndex: 1, color: "#55F3EC" },
+    { assetId: "build-player-spawn-2", get label() { return t("editor.spawn2"); }, category: "spawn", role: "spawn", playerIndex: 2, color: "#FF65C3" },
+    { assetId: "build-floor", get label() { return t("editor.modularFloor"); }, category: "room", role: "decor", color: "#64758a" },
+    { assetId: "build-wall", get label() { return t("editor.modularWall"); }, category: "room", role: "decor", color: "#a9bccc" },
+    { assetId: "build-block", get label() { return t("editor.blockCounter"); }, category: "storage", role: "decor", color: "#d5a26c" },
+    { assetId: "scenario-room-wide", get label() { return t("editor.fullRoom"); }, category: "room", role: "decor" },
     ...(Object.keys(KITCHEN_STATION_MODEL) as KitchenStationKind[])
       .filter((kind) => kind !== "crate")
       .map(kitchenStationEntry),
-    ...KITCHEN_DISPENSER_ANCHORS.map((anchor) => kitchenCrateEntry(anchor.ingredientId, anchor.label)),
+    ...KITCHEN_DISPENSER_ANCHORS.map((anchor) => kitchenCrateEntry(anchor.ingredientId)),
     // Robots are one model with four starting configs; the inspector tunes them per instance.
     ...ROBOT_PRESETS.map((preset): EditorAssetEntry => ({
       assetId: ROBOT_ASSET_ID,
-      label: preset.label,
+      get label() { return preset.label; },
       category: "robot",
       role: "robot",
       color: "#9FE8FF",
@@ -154,7 +172,7 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
   for (const anchor of KITCHEN_DISPENSER_ANCHORS) {
     entries.push({
       assetId: "scenario-hopper",
-      label: `Dispenser // ${anchor.label}`,
+      get label() { return t("editor.dispenserPrefix", { name: ingredientName(anchor.ingredientId) }); },
       category: "dispenser",
       role: "dispenser",
       ingredientId: anchor.ingredientId,
@@ -165,8 +183,9 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
 
   for (const anchor of KITCHEN_STATION_ANCHORS) {
     if (anchor.id === "ingredient_dispenser") continue;
-    const info = STATION_LABELS[anchor.id];
-    if (!info) continue;
+    const color = STATION_COLORS[anchor.id];
+    if (!color) continue;
+    const stationId = anchor.id;
     const override = STATION_ASSET_OVERRIDE[anchor.id === "serving_terminal" ? "scenario-conveyor-long" : ""];
     const assetId = (() => {
       if (anchor.id === "bit_crusher") return "scenario-machine-fortified";
@@ -180,21 +199,21 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
     if (!assetId) continue;
     entries.push({
       assetId,
-      label: info.label,
+      get label() { return stationAnchorLabel(stationId); },
       category: "station",
       role: "station",
       stationId: anchor.id,
-      color: info.color,
+      color,
     });
     seen.add(assetId);
     if (anchor.id === "serving_terminal") {
       entries.push({
         assetId: "scenario-cash-register",
-        label: "CORE Register",
+        get label() { return t("editor.coreRegister"); },
         category: "machine",
         role: "station",
         stationId: "serving_terminal",
-        color: info.color,
+        color,
       });
       seen.add("scenario-cash-register");
     }
@@ -206,9 +225,10 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
     seen.add(placement.assetId);
     const category = detectCategory(placement.assetId);
     if (category === "room") continue;
+    const assetId = placement.assetId;
     entries.push({
-      assetId: placement.assetId,
-      label: humanizeAsset(placement.assetId),
+      assetId,
+      get label() { return assetIdLabel(assetId); },
       category,
       role: "decor",
     });
@@ -218,10 +238,11 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
     if (seen.has(placement.assetId)) continue;
     if (placement.assetId === "scenario-hopper") continue;
     seen.add(placement.assetId);
+    const assetId = placement.assetId;
     entries.push({
-      assetId: placement.assetId,
-      label: humanizeAsset(placement.assetId),
-      category: detectCategory(placement.assetId),
+      assetId,
+      get label() { return assetIdLabel(assetId); },
+      category: detectCategory(assetId),
       role: "decor",
     });
   }
@@ -229,7 +250,7 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
   for (const [ingredientId, visual] of Object.entries(INGREDIENT_SCENARIO_VISUALS)) {
     entries.push({
       assetId: visual.assetId,
-      label: `Ingredient // ${ingredientId.replace(/_/g, " ")}`,
+      get label() { return t("editor.ingredientPrefix", { name: ingredientName(ingredientId) }); },
       category: "decor",
       role: "decor",
     });
@@ -237,12 +258,15 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
 
   const registered = new Set(entries.map(entry => entry.assetId));
   for (const model of SCENARIO_ASSETS) {
-    if (!registered.has(model.id)) entries.push({ assetId: model.id, label: humanizeAsset(model.id), category: detectCategory(model.id), role: "decor" });
+    if (!registered.has(model.id)) {
+      const assetId = model.id;
+      entries.push({ assetId, get label() { return assetIdLabel(assetId); }, category: detectCategory(assetId), role: "decor" });
+    }
   }
   for (const model of ASSET_LIBRARY) {
     entries.push({
       assetId: model.id,
-      label: model.label,
+      get label() { return libraryLabel(model); },
       category: model.category,
       role: "decor",
       pack: model.pack,
@@ -253,6 +277,20 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
 })();
 
 export const generateObjectId = (): string => createUid("obj");
+
+/**
+ * What to call a placed object, in the current language: its catalogue entry's name when it
+ * has one (a map saved in another language still reads in this one), else the stored label.
+ */
+export const objectLabel = (object: MapPlacedObject): string | undefined => {
+  const entry = EDITOR_ASSET_CATALOG.find((candidate) =>
+    candidate.assetId === object.assetId &&
+    (candidate.stationId ?? undefined) === (object.stationId ?? undefined) &&
+    (candidate.ingredientId ?? undefined) === (object.ingredientId ?? undefined) &&
+    (candidate.playerIndex ?? undefined) === (object.playerIndex ?? undefined) &&
+    candidate.role === object.role);
+  return object.role === "robot" ? object.label : entry?.label ?? object.label;
+};
 
 export const createPlacedObject = (asset: EditorAssetEntry, position: { x: number; y: number; z: number }): MapPlacedObject => ({
   id: generateObjectId(),

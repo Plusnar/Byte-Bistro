@@ -1,11 +1,19 @@
 import type { IngredientData, IngredientInstance } from "../types/game";
 import { clamp, createUid } from "../utils/math";
+import { translate } from "../i18n";
+
+type IngredientFields = Omit<IngredientData, "displayName" | "shortName">;
+
+/** Names come from the catalogues (`ingredients.<id>`), read each time, so they follow the language. */
+const ingredient = (data: IngredientFields): IngredientData => ({
+  ...data,
+  get displayName() { return translate(`ingredients.${data.id}.name`); },
+  get shortName() { return translate(`ingredients.${data.id}.short`); },
+});
 
 export const INGREDIENTS: Record<string, IngredientData> = {
-  ram_module: {
+  ram_module: ingredient({
     id: "ram_module",
-    displayName: "RAM Module",
-    shortName: "RAM",
     category: "component",
     baseQuality: 0.92,
     baseCorruption: 0,
@@ -13,11 +21,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#32d9ff",
     emissiveColor: "#087eaa",
     shape: "box",
-  },
-  binary_sugar: {
+  }),
+  binary_sugar: ingredient({
     id: "binary_sugar",
-    displayName: "Binary Sugar",
-    shortName: "Sugar",
     category: "sweetener",
     baseQuality: 0.9,
     baseCorruption: 0,
@@ -25,11 +31,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#f7fbff",
     emissiveColor: "#8de8ff",
     shape: "sphere",
-  },
-  cache_cream: {
+  }),
+  cache_cream: ingredient({
     id: "cache_cream",
-    displayName: "Cache Cream",
-    shortName: "Cream",
     category: "cream",
     baseQuality: 0.94,
     baseCorruption: 0,
@@ -37,11 +41,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#e6d7ff",
     emissiveColor: "#9f7aea",
     shape: "cylinder",
-  },
-  cache_fragment: {
+  }),
+  cache_fragment: ingredient({
     id: "cache_fragment",
-    displayName: "Cache Fragment",
-    shortName: "Cache",
     category: "component",
     baseQuality: 0.9,
     baseCorruption: 0.02,
@@ -49,11 +51,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#ffcf56",
     emissiveColor: "#d58213",
     shape: "box",
-  },
-  cooling_fluid: {
+  }),
+  cooling_fluid: ingredient({
     id: "cooling_fluid",
-    displayName: "Cooling Fluid",
-    shortName: "Coolant",
     category: "coolant",
     baseQuality: 0.96,
     baseCorruption: 0,
@@ -61,11 +61,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#63f5e8",
     emissiveColor: "#00a99d",
     shape: "cylinder",
-  },
-  data_cream: {
+  }),
+  data_cream: ingredient({
     id: "data_cream",
-    displayName: "Data Cream",
-    shortName: "Data Cream",
     category: "cream",
     baseQuality: 0.93,
     baseCorruption: 0,
@@ -73,11 +71,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#ffb8e8",
     emissiveColor: "#c83a9b",
     shape: "cylinder",
-  },
-  ram_powder: {
+  }),
+  ram_powder: ingredient({
     id: "ram_powder",
-    displayName: "RAM Powder",
-    shortName: "RAM Powder",
     category: "prepared",
     baseQuality: 0.92,
     baseCorruption: 0,
@@ -85,11 +81,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#74e8ff",
     emissiveColor: "#159ec0",
     shape: "sphere",
-  },
-  ram_dough: {
+  }),
+  ram_dough: ingredient({
     id: "ram_dough",
-    displayName: "RAM Dough",
-    shortName: "RAM Dough",
     category: "mixture",
     baseQuality: 0.91,
     baseCorruption: 0,
@@ -97,11 +91,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#8fc7ff",
     emissiveColor: "#426db8",
     shape: "sphere",
-  },
-  ram_cake_base: {
+  }),
+  ram_cake_base: ingredient({
     id: "ram_cake_base",
-    displayName: "RAM Cake Base",
-    shortName: "Cake Base",
     category: "prepared",
     baseQuality: 0.9,
     baseCorruption: 0,
@@ -109,11 +101,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#4a94dd",
     emissiveColor: "#184f8f",
     shape: "cylinder",
-  },
-  ram_cake: {
+  }),
+  ram_cake: ingredient({
     id: "ram_cake",
-    displayName: "RAM Cake",
-    shortName: "RAM Cake",
     category: "dish",
     baseQuality: 0.94,
     baseCorruption: 0,
@@ -121,11 +111,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#6edcff",
     emissiveColor: "#2b80bb",
     shape: "cylinder",
-  },
-  cookie_dough: {
+  }),
+  cookie_dough: ingredient({
     id: "cookie_dough",
-    displayName: "Cookie Dough",
-    shortName: "Cookie Dough",
     category: "mixture",
     baseQuality: 0.9,
     baseCorruption: 0.01,
@@ -133,11 +121,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#eac271",
     emissiveColor: "#9d681e",
     shape: "sphere",
-  },
-  cache_cookies: {
+  }),
+  cache_cookies: ingredient({
     id: "cache_cookies",
-    displayName: "Cache Cookies",
-    shortName: "Cookies",
     category: "dish",
     baseQuality: 0.92,
     baseCorruption: 0,
@@ -145,11 +131,9 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#f2b84b",
     emissiveColor: "#a86310",
     shape: "disc",
-  },
-  gelato_mix: {
+  }),
+  gelato_mix: ingredient({
     id: "gelato_mix",
-    displayName: "Gelato Mix",
-    shortName: "Gelato Mix",
     category: "mixture",
     baseQuality: 0.95,
     baseCorruption: 0,
@@ -157,11 +141,39 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#9ff6ef",
     emissiveColor: "#31b6b2",
     shape: "sphere",
-  },
-  cooling_gelato: {
+  }),
+  ram_cake_baked: ingredient({
+    id: "ram_cake_baked",
+    category: "dish",
+    baseQuality: 0.95,
+    baseCorruption: 0,
+    baseTemperature: 64,
+    color: "#8ec8ff",
+    emissiveColor: "#3573c4",
+    shape: "cylinder",
+  }),
+  cookie_tray: ingredient({
+    id: "cookie_tray",
+    category: "dish",
+    baseQuality: 0.93,
+    baseCorruption: 0,
+    baseTemperature: 70,
+    color: "#ffc062",
+    emissiveColor: "#b2701c",
+    shape: "disc",
+  }),
+  gelato_parfait: ingredient({
+    id: "gelato_parfait",
+    category: "dish",
+    baseQuality: 0.96,
+    baseCorruption: 0,
+    baseTemperature: -6,
+    color: "#a6fff5",
+    emissiveColor: "#1fc8bb",
+    shape: "sphere",
+  }),
+  cooling_gelato: ingredient({
     id: "cooling_gelato",
-    displayName: "Cooling Gelato",
-    shortName: "Gelato",
     category: "dish",
     baseQuality: 0.96,
     baseCorruption: 0,
@@ -169,7 +181,7 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     color: "#71fff0",
     emissiveColor: "#11bfb0",
     shape: "sphere",
-  },
+  }),
 };
 
 export interface CreateIngredientOptions {

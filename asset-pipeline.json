@@ -1,0 +1,70 @@
+{
+  "$comment": "Inputs of `npm run assets:optimize`. Originals are never modified; optimized copies go to `optimized/<source path>` and the game picks them up through src/core/assets/assetRegistry.ts. See docs/PERFORMANCE_ARCHITECTURE.md.",
+  "outputDir": "optimized",
+  "minSavingsRatio": 0.05,
+  "profiles": {
+    "character": {
+      "$comment": "Skinned cooks and robots. Bones, hair chains and node names are read by code (hairPhysics, armPose), so the hierarchy is untouched and positions stay float: only textures shrink. The cooks are ~100 px tall in the kitchen and at most ~half the screen in the menu.",
+      "maxTextureSize": 1024,
+      "textureFormat": "webp",
+      "textureQuality": 90,
+      "meshopt": false,
+      "flattenAndJoin": false
+    },
+    "animation": {
+      "$comment": "Clip packs: only their animations are used (retargeted by bone name). No meshopt: its quantization splits the pack's one shared skin into one skin per mesh (6 skeletons in Babylon), which the validation rejects. Measured 2026-10-15.",
+      "maxTextureSize": 1024,
+      "textureFormat": "webp",
+      "textureQuality": 90,
+      "meshopt": false,
+      "flattenAndJoin": false
+    },
+    "staticProp": {
+      "$comment": "Props that never animate internally and are never looked up by node name: parts sharing a material are joined into one mesh (fewer draw calls), geometry is meshopt-compressed.",
+      "maxTextureSize": 1024,
+      "textureFormat": "webp",
+      "textureQuality": 90,
+      "meshopt": true,
+      "flattenAndJoin": true
+    },
+    "prop": {
+      "$comment": "Moving props whose node structure is kept (disasters).",
+      "maxTextureSize": 1024,
+      "textureFormat": "webp",
+      "textureQuality": 90,
+      "meshopt": true,
+      "flattenAndJoin": false
+    },
+    "staticScene": {
+      "$comment": "Backdrops and dioramas. Node names are read (the level map places its stars on named landmarks), so no flatten/join.",
+      "maxTextureSize": 2048,
+      "textureFormat": "webp",
+      "textureQuality": 90,
+      "meshopt": true,
+      "flattenAndJoin": false
+    }
+  },
+  "inputs": [
+    { "path": "public/asset-library/Char/Characters/William .glb", "profile": "character" },
+    { "path": "public/asset-library/Char/Characters/Sandy.glb", "profile": "character" },
+    { "path": "public/asset-library/Char/Characters/Milena.glb", "profile": "character" },
+    { "path": "public/asset-library/Char/Characters/Jean.glb", "profile": "character" },
+    { "path": "Anim/Mannequin Character/characters/Mannequin_Medium.glb", "profile": "character" },
+    { "path": "Anim/Animations/gltf/Rig_Medium/Rig_Medium_General.glb", "profile": "animation" },
+    { "path": "Anim/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb", "profile": "animation" },
+    { "path": "Anim/Animations/gltf/Rig_Medium/Rig_Medium_Simulation.glb", "profile": "animation" },
+    { "glob": "src/assets/ingredients/*.glb", "profile": "staticProp" },
+    { "glob": "src/assets/scenario/*.glb", "profile": "staticProp" },
+    { "glob": "src/assets/disasters/*.glb", "profile": "prop" },
+    { "path": "src/assets/selection-street/Selection Street.glb", "profile": "staticScene" },
+    { "path": "Scenario/sao_bento_do_sul.glb", "profile": "staticScene" },
+    { "path": "public/assets/environment/cidade_fundo.glb", "profile": "staticScene" }
+  ],
+  "images": {
+    "$comment": "Standalone images (CSS backgrounds, UI art): re-encoded to WebP and kept only when the result measures at least minPsnrDb against the original. Referenced from CSS by their optimized path, so Vite hashes them.",
+    "minPsnrDb": 38,
+    "inputs": [
+      { "path": "public/assets/ui/cosmic/space-backdrop.png", "format": "webp", "quality": 86, "maxSize": 2048 }
+    ]
+  }
+}

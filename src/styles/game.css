@@ -288,6 +288,78 @@
     color: var(--ui-lime);
   }
 
+  /* The coin meter and its three star targets, under the timer. */
+  .star-meter {
+    display: flex;
+    min-width: 128px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 11px;
+    border-left: 1px solid var(--ui-line);
+  }
+
+  .star-meter[hidden] { display: none; }
+
+  .star-meter-track {
+    position: relative;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.14);
+    overflow: hidden;
+  }
+
+  .star-meter-fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #7fe7ff, #ffd98a);
+    transition: width 220ms ease-out;
+  }
+
+  .star-meter-stars {
+    display: flex;
+    justify-content: space-between;
+    gap: 3px;
+  }
+
+  /*
+   * Spans, not <i>: `.rank-module i` already draws the big decorative star behind the
+   * grade, and three more of those is not what these are.
+   */
+  .star-meter-stars span,
+  .result-stars span {
+    display: block;
+    width: 13px;
+    height: 13px;
+    background: rgba(255, 255, 255, 0.2);
+    /* A five-pointed star, so no image or font is needed for it. */
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  }
+
+  .star-meter-stars span[data-filled="true"],
+  .result-stars span[data-filled="true"] { background: #ffd05c; }
+
+  .star-meter small {
+    color: #9fb6d8;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  .result-stars {
+    display: flex;
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .result-stars span { width: 20px; height: 20px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .star-meter-fill { transition: none; }
+  }
+
+  /* A streak about to lapse: the chip drains with its own window. */
+  .combo-chip.is-fading strong { opacity: calc(0.45 + var(--combo-window, 1) * 0.55); }
+
   .shift-cluster {
     position: absolute;
     top: 22px;
@@ -2367,6 +2439,7 @@
   }
 
   .player-status {
+    position: relative;
     min-width: 0;
     padding: 8px 11px;
     border: 1px solid rgba(var(--ui-cyan-rgb), 0.3);
@@ -2374,6 +2447,56 @@
     background: rgba(3, 15, 23, 0.84);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px);
+  }
+
+  /* The "Hey!" bubble, popped over its own cook's card by showPlayerCallout. */
+  .player-callout {
+    position: absolute;
+    bottom: calc(100% + 9px);
+    left: 11px;
+    margin: 0;
+    padding: 5px 11px;
+    border-radius: 13px;
+    background: linear-gradient(#fff3d2, #ffd98a);
+    color: #2a1c3f;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38);
+  }
+
+  .player-status.player-two .player-callout {
+    left: auto;
+    right: 11px;
+  }
+
+  /* The tail, pointing down at the card it belongs to. */
+  .player-callout::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 16px;
+    border: 7px solid transparent;
+    border-top-color: #ffd98a;
+    border-bottom: 0;
+  }
+
+  .player-status.player-two .player-callout::after {
+    left: auto;
+    right: 16px;
+  }
+
+  .player-callout.is-new {
+    animation: callout-pop 220ms ease-out;
+  }
+
+  @keyframes callout-pop {
+    from { transform: translateY(6px) scale(0.86); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .player-callout.is-new { animation: none; }
   }
 
   .player-status.player-two {

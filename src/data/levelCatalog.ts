@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { MapData, MapPlacedObject, MapSlotSummary } from "../editor/MapData";
 import type { OfficialLevel } from "./levelLoader";
 import { summarizeStations } from "../editor/catalog";
@@ -22,7 +23,7 @@ export interface LevelEntry {
   readonly shiftDurationSeconds: number;
   /** Only set for saved maps; the slot to load. */
   readonly slotId?: string;
-  /** Only set for official levels; the map is bundled, not stored. */
+  /** Set for official levels and for scenarios that play one; the map is bundled, not stored. */
   readonly map?: MapData;
   /** Short line under the title for saved maps ("12 objetos · 6 estações"). */
   readonly summary?: string;
@@ -42,7 +43,7 @@ const scenarioEntry = (scenario: ScenarioDefinition): LevelEntry => ({
 
 const contentsSummary = (objects: readonly MapPlacedObject[]): string => {
   const { stations, dispensers } = summarizeStations(objects);
-  return `${objects.length} objetos · ${stations} estações · ${dispensers} caixas`;
+  return t("level.summary", { objects: objects.length, stations, dispensers });
 };
 
 const officialEntry = (level: OfficialLevel): LevelEntry => {
@@ -72,7 +73,7 @@ const savedEntry = (slot: MapSlotSummary): LevelEntry => {
     difficultyLabel: getDifficulty(slot.difficultyId).label,
     shiftDurationSeconds: slot.shiftDurationSeconds,
     slotId: slot.slotId,
-    summary: `${slot.objectCount} objetos · ${slot.stations} estações · ${slot.dispensers} caixas`,
+    summary: t("level.summary", { objects: slot.objectCount, stations: slot.stations, dispensers: slot.dispensers }),
   };
 };
 
@@ -88,16 +89,32 @@ export const buildLevelCatalog = (
   scenarios: readonly ScenarioDefinition[],
   slots: readonly MapSlotSummary[],
   official: readonly OfficialLevel[] = [],
-): LevelEntry[] => [
-  ...scenarios.map(scenarioEntry),
-  ...official.map(officialEntry),
-  ...[...slots].sort((a, b) => b.updatedAt - a.updatedAt).map(savedEntry),
-];
+): LevelEntry[] => {
+  // A scenario that plays a shipped level is that level: one entry, under the scenario's
+  // name and key (so its best rank carries over), with the level's map.
+  const played = new Set<string>();
+  const scenarioEntries = scenarios.map((scenario): LevelEntry => {
+    const level = official.find((candidate) => candidate.id === scenario.levelId);
+    if (!level) return scenarioEntry(scenario);
+    played.add(level.id);
+    return {
+      ...scenarioEntry(scenario),
+      map: level.map,
+      summary: contentsSummary(level.map.objects),
+      shiftDurationSeconds: level.map.meta?.shiftDurationSeconds ?? scenario.shiftDurationSeconds,
+    };
+  });
+  return [
+    ...scenarioEntries,
+    ...official.filter((level) => !played.has(level.id)).map(officialEntry),
+    ...[...slots].sort((a, b) => b.updatedAt - a.updatedAt).map(savedEntry),
+  ];
+};
 
 /** Formats a shift duration the way the picker shows it. */
 export const formatShiftDuration = (seconds: number): string => {
   const safe = Math.max(0, Math.round(seconds));
   const minutes = Math.floor(safe / 60);
   const rest = safe % 60;
-  return rest === 0 ? `${minutes} min` : `${minutes}:${rest.toString().padStart(2, "0")}`;
+  return rest === 0 ? t("common.minutes", { minutes }) : `${minutes}:${rest.toString().padStart(2, "0")}`;
 };

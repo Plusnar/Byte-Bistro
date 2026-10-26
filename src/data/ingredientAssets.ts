@@ -1,4 +1,5 @@
 import { publicUrl } from "../utils/assetUrl";
+import { bundledModelUrl } from "../core/assets/assetRegistry";
 
 /**
  * Bespoke art for the six base ingredients: a bulk model for the crate, a single-unit model
@@ -28,21 +29,21 @@ export const ingredientCrateModelId = (id: string): string => `ingredient-crate:
 export const ingredientIconUrl = (id: string): string => publicUrl(`images/ingredients/${id}.png`);
 
 const itemUrl: Readonly<Record<IngredientAssetId, string>> = {
-  ram_module: new URL("../assets/ingredients/ram_module_item.glb", import.meta.url).href,
-  binary_sugar: new URL("../assets/ingredients/binary_sugar_item.glb", import.meta.url).href,
-  cache_cream: new URL("../assets/ingredients/cache_cream_item.glb", import.meta.url).href,
-  cache_fragment: new URL("../assets/ingredients/cache_fragment_item.glb", import.meta.url).href,
-  cooling_fluid: new URL("../assets/ingredients/cooling_fluid_item.glb", import.meta.url).href,
-  data_cream: new URL("../assets/ingredients/data_cream_item.glb", import.meta.url).href,
+  ram_module: bundledModelUrl("src/assets/ingredients/ram_module_item.glb"),
+  binary_sugar: bundledModelUrl("src/assets/ingredients/binary_sugar_item.glb"),
+  cache_cream: bundledModelUrl("src/assets/ingredients/cache_cream_item.glb"),
+  cache_fragment: bundledModelUrl("src/assets/ingredients/cache_fragment_item.glb"),
+  cooling_fluid: bundledModelUrl("src/assets/ingredients/cooling_fluid_item.glb"),
+  data_cream: bundledModelUrl("src/assets/ingredients/data_cream_item.glb"),
 };
 
 const crateUrl: Readonly<Record<IngredientAssetId, string>> = {
-  ram_module: new URL("../assets/ingredients/ram_module.glb", import.meta.url).href,
-  binary_sugar: new URL("../assets/ingredients/binary_sugar.glb", import.meta.url).href,
-  cache_cream: new URL("../assets/ingredients/cache_cream.glb", import.meta.url).href,
-  cache_fragment: new URL("../assets/ingredients/cache_fragment.glb", import.meta.url).href,
-  cooling_fluid: new URL("../assets/ingredients/cooling_fluid.glb", import.meta.url).href,
-  data_cream: new URL("../assets/ingredients/data_cream.glb", import.meta.url).href,
+  ram_module: bundledModelUrl("src/assets/ingredients/ram_module.glb"),
+  binary_sugar: bundledModelUrl("src/assets/ingredients/binary_sugar.glb"),
+  cache_cream: bundledModelUrl("src/assets/ingredients/cache_cream.glb"),
+  cache_fragment: bundledModelUrl("src/assets/ingredients/cache_fragment.glb"),
+  cooling_fluid: bundledModelUrl("src/assets/ingredients/cooling_fluid.glb"),
+  data_cream: bundledModelUrl("src/assets/ingredients/data_cream.glb"),
 };
 
 export const INGREDIENT_ASSETS: readonly { id: string; url: string; required: boolean }[] =

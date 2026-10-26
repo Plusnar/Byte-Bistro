@@ -1,5 +1,10 @@
+import { t } from "../i18n";
 import { INGREDIENT_ASSETS } from "../data/ingredientAssets";
 import { libraryModelsFor } from "../data/assetLibrary";
+import { scenarioAssetsFor } from "../data/scenarioAssets";
+import { qualityManager } from "../core/perf/QualityManager";
+import { canNeverGlow } from "../core/perf/effectBudget";
+import { installActiveMeshCandidates } from "../core/render/activeMeshCandidates";
 import { WEDDING_BANNER, WEDDING_HALL_ASSET_IDS } from "./weddingHall";
 import { nextFrame, runSliced } from "../core/assets/MainThreadQueue";
 import {
@@ -7,11 +12,12 @@ import {
   GlowLayer,
   Scene,
   Vector3,
-  type Engine,
+  type AbstractEngine,
   type Mesh,
 } from "@babylonjs/core";
 import { GAME_CONFIG, isDevelopmentMode } from "../config";
-import { AssetManager } from "../core/AssetManager";
+import type { AssetManager } from "../core/AssetManager";
+import { assetStreaming } from "../core/assets/AssetStreamingManager";
 import { AudioManager } from "../core/AudioManager";
 import { EventBus } from "../core/EventBus";
 import { createInitialRuntimeState } from "../core/GameState";
@@ -25,18 +31,34 @@ import {
   CHARACTER_ANIMATION_ASSETS,
   CHARACTERS,
   RECIPES,
-  SCENARIO_ASSETS,
   createIngredient,
   getCharacter,
 } from "../data";
 import {
   KITCHEN_ASSETS,
+  COUNTER_HEIGHT,
   KITCHEN_TILE,
   STATION_KIND_LABEL,
   getFoodDefinition,
+  type CookwareKind,
 } from "../data/kitchen";
 import type { KitchenStationPlacement } from "../data/kitchenLayout";
 import { Player } from "../entities";
+import type { ArmPose } from "../entities/armPose";
+import { SprayJet } from "../entities/SprayJet";
+import { SynthSfx, type LoopHandle } from "../core/SynthSfx";
+import { DisasterOverlay } from "../ui/DisasterOverlay";
+import { ChaosMode } from "../systems/ChaosMode";
+import { PunishmentSystem } from "../systems/PunishmentSystem";
+import { DISASTER_ASSETS } from "../systems/disasters/assets";
+import type {
+  DisasterCook,
+  DisasterHost,
+  DisasterKind,
+  LooseItem,
+  Stealable,
+} from "../systems/disasters/types";
+import { getIngredient } from "../data/ingredients";
 import { impactStunStrength } from "../entities/stun";
 import { KitchenItemViews } from "../entities/KitchenItemViews";
 import {
@@ -56,6 +78,7 @@ import {
   isCookwareBurnt,
   isCookwareCooked,
   findMatchingRecipe,
+  plateQuality,
   type KitchenItem,
   type PlateItem,
 } from "../gameplay/kitchen/KitchenItems";
@@ -71,6 +94,17 @@ import {
   WorkstationView,
   type WorkstationViewState,
 } from "../stations/WorkstationView";
+import { WaypointMarker } from "../stations/WaypointMarker";
+import { CHARGE_SECONDS, chargeFraction, landingPoint, throwLaunch } from "../gameplay/throwArc";
+import { starThresholdsFor } from "../data/levelGoals";
+import {
+  expireStreak,
+  failOrder as tipFailOrder,
+  serve as serveTip,
+  streakWindowRemaining,
+  NO_STREAK,
+  type StreakState,
+} from "../systems/TipSystem";
 import {
   AIStateSystem,
   DialogueSystem,
@@ -81,17 +115,17 @@ import {
   ScoreSystem,
   ShiftSystem,
 } from "../systems";
+import { selectServeTarget } from "../systems/OrderQueue";
 import {
-  maxConcurrentOrders,
-  nextSpawnRecipeId,
-  selectServeTarget,
-  sortByUrgency,
-  spawnIntervalSeconds,
-} from "../systems/OrderQueue";
+  OrderDirector,
+  shiftProgress,
+  type OrderDirectorEvent,
+  type OrderDirectorResult,
+} from "../gameplay/orders/OrderDirector";
 import { BALANCE } from "../data/balance";
 import { recipeOrderDurationMs } from "../data/recipeTiming";
 import { STANDARD_DIFFICULTY, type DifficultyTuning } from "../data/difficulty";
-import type { GameEvents } from "../types/events";
+import type { GameEvents, PlayerIndex, StationWorkKind } from "../types/events";
 import type {
   AIState,
   AIStateKey,
@@ -101,6 +135,7 @@ import type {
   RecipeData,
   RuntimeGameState,
   ShiftResult,
+  StarThresholds,
 } from "../types/game";
 import type { GameUI, OrderTicketInfo, StationProgressInfo } from "../ui/GameUI";
 import type { MapData } from "../editor/MapData";
@@ -109,7 +144,6 @@ import { WEDDING_SCENARIO, type ScenarioDefinition } from "../data/scenarios";
 import { CoopCameraController } from "./CoopCameraController";
 import { WeddingGuests, MANNEQUIN } from "../systems/WeddingGuests";
 
-type PlayerIndex = 0 | 1;
 
 const PLAYER_COLORS: readonly [string, string] = ["#74F4FF", "#FFD166"];
 const PLAYER_HIGHLIGHT_COLORS: readonly [Color3, Color3] = [
@@ -117,13 +151,23 @@ const PLAYER_HIGHLIGHT_COLORS: readonly [Color3, Color3] = [
   Color3.FromHexString(PLAYER_COLORS[1]),
 ];
 
-const THROW_GRAVITY = 18;
-const THROW_RESTITUTION = 0.42;
-const THROW_FRICTION = 0.86;
-const THROW_ANGULAR_DAMPING = 0.94;
-const THROW_IMPACT_RADIUS = 1.05;
-const THROW_LAUNCH_SPEED = 9.5;
-const THROW_VERTICAL_KICK = 3.2;
+const {
+  gravity: THROW_GRAVITY,
+  restitution: THROW_RESTITUTION,
+  friction: THROW_FRICTION,
+  angularDamping: THROW_ANGULAR_DAMPING,
+  impactRadius: THROW_IMPACT_RADIUS,
+} = BALANCE.throw;
+/** Stations whose vessel cooks: the stove and the oven both show a heat bar. */
+const HEATED_STATION_KINDS: ReadonlySet<string> = new Set(["stove", "oven"]);
+/** How long a fire has to burn unanswered before it counts as a meltdown. */
+const MELTDOWN_SECONDS = 12;
+/** Shortest gap between two call-outs from the same cook. */
+const EMOTE_COOLDOWN_MS = 900;
+/** How close a dashing cook has to be to shoulder the other one aside. */
+const DASH_SHOVE_REACH = 0.95;
+/** A shove is a nudge, not a thrown pan: see `stunSlideSpeed`. */
+const DASH_SHOVE_STRENGTH = 0.3;
 /** How far ahead of the player the "tile in front" probe sits. */
 const REACH_PROBE = 0.85;
 /** Max distance from the probe to a station centre for it to be targetable. */
@@ -133,10 +177,9 @@ const EXTINGUISHER_REACH = 2.6;
 const NOTIFY_THROTTLE_MS = 900;
 /** How often the task guide and order cards are rebuilt. */
 const HUD_REFRESH_SECONDS = 1 / 12;
-/** Drift below this is not worth re-allocating the order queue for. */
-const CLOCK_RESTAMP_TOLERANCE_MS = 250;
 /** Kept low so the bloom does not wash out speech bubbles and HUD billboards. */
 const GLOW_BASE_INTENSITY = 0.34;
+const COOK_ASSET_IDS: ReadonlySet<string> = new Set(CHARACTERS.map((character) => character.modelAssetId));
 
 interface FloorItem {
   readonly item: KitchenItem;
@@ -154,13 +197,6 @@ type KitchenTarget =
   | { readonly kind: "station"; readonly station: Workstation; readonly view: WorkstationView }
   | { readonly kind: "floor"; readonly entry: FloorItem };
 
-/** A single order's countdown. `remaining` is the authority; `expiresAt` is derived from it. */
-interface OrderClock {
-  remaining: number;
-  duration: number;
-  /** Latches the one-shot `order:expiring` warning. */
-  warned: boolean;
-}
 
 interface CoopPlayerState {
   readonly index: PlayerIndex;
@@ -176,6 +212,19 @@ interface CoopPlayerState {
   focusedOrderId: string | null;
   work: WorkOutcome;
   workStation: Workstation | null;
+  /**
+   * Tenth of the current job already done, latched so `station:progress` fires on real
+   * steps instead of allocating an event object every frame of a two-second chop.
+   */
+  workProgressStep: number;
+  /** Last frame's dash state, so the burst can be sounded once as it starts. */
+  wasDashing: boolean;
+  /** Seconds the throw has been charging, or null when not aiming. */
+  aimSeconds: number | null;
+  /** Where this player's throw would land. Created the first time they aim. */
+  aimMarker: WaypointMarker | null;
+  /** When this cook last called out, so the key cannot be spammed. */
+  lastEmoteAt: number;
   lastNotifyAt: number;
 }
 
@@ -192,6 +241,16 @@ export interface KitchenSceneOptions {
 
 const NO_WORK: WorkOutcome = { kind: "none" };
 
+/** What a cook's arms do for the work they are at, or for what they hold. */
+const armPoseFor = (work: WorkOutcome["kind"], holding: boolean): ArmPose => {
+  switch (work) {
+    case "chopping": return "chop";
+    case "washing": return "wash";
+    case "extinguishing": return "spray";
+    default: return holding ? "carry" : "none";
+  }
+};
+
 export class KitchenScene implements ManagedScene {
   readonly scene: Scene;
 
@@ -201,6 +260,14 @@ export class KitchenScene implements ManagedScene {
   private readonly wedding: WeddingGuests;
   private readonly players: readonly [CoopPlayerState, CoopPlayerState];
   private readonly eventBus = new EventBus<GameEvents>();
+  /**
+   * The kitchen's event bus, for systems that want to react to a shift without this scene
+   * having to call them. Read-only on purpose: the scene stays the only thing that emits.
+   */
+  get events(): Pick<EventBus<GameEvents>, "on"> {
+    return this.eventBus;
+  }
+
   private readonly recipes = new RecipeSystem();
   private readonly quality = new QualitySystem();
   private readonly orders: OrderSystem;
@@ -212,12 +279,29 @@ export class KitchenScene implements ManagedScene {
   private readonly stationViews = new Map<Workstation, WorkstationView>();
   private readonly workstationResources: WorkstationResources;
   private readonly itemViews: KitchenItemViews;
+  /** Each cook's extinguisher jet, made the first time they spray. */
+  private readonly sprayJets = new Map<number, SprayJet>();
+  /** Synthesised effects for the fire alarm and the disasters. */
+  private readonly sfx: SynthSfx;
+  /** Seconds to each cook's next knife stroke or scrub while they work a station. */
+  private readonly workBeats = new Map<number, number>();
+  /** Food frying on a stove; null while every stove is quiet. */
+  private sizzle: LoopHandle | null = null;
+  private readonly disasterOverlay: DisasterOverlay;
+  private readonly chaos: ChaosMode;
+  private readonly punishment: PunishmentSystem;
+  /** Camera tremble from crashes and strikes: metres, and seconds left of it. */
+  private shakeAmount = 0;
+  private shakeAmountPeak = 0;
+  private shakeLeft = 0;
+  private shakeTotal = 0;
   private readonly floorItems: FloorItem[] = [];
   private readonly spokenDialogueIds = new Set<string>();
   private readonly activeCriticals = new Set<AIStateKey>();
   private readonly assets: AssetManager;
   private readonly audio: AudioManager;
   private readonly glow: GlowLayer;
+  private readonly stopQuality: () => void;
   private readonly fogBaseDensity: number;
   private readonly probe = new Vector3();
   private ai: AIStateSystem;
@@ -237,14 +321,21 @@ export class KitchenScene implements ManagedScene {
    * shifts. Food freshness is measured on it, so a pause cannot spoil the ingredients.
    */
   private kitchenClockMs = 0;
-  /** Per-order countdowns, keyed by order id. The authority over `expiresAt`. */
-  private readonly orderClocks = new Map<string, OrderClock>();
+  /** Owns the per-order countdowns and the spawn cadence; see `OrderDirector`. */
+  private readonly director: OrderDirector;
   /** Difficulty profile for this shift; injected, never read from a global. */
   private readonly tuning: DifficultyTuning;
   /** This scenario's menu. Orders, the cookbook and the plating checks all read it. */
   private readonly recipeList: readonly RecipeData[];
   private readonly scenario: ScenarioDefinition;
-  private spawnTimer = 0;
+  /** The serving run: how many in a row, and when the last one landed. */
+  private streak: StreakState = NO_STREAK;
+  /** Seconds the kitchen has been alight without anyone reaching for the extinguisher. */
+  private meltdownClock = 0;
+  /** Coins this level wants for one, two and three stars. */
+  private readonly starThresholds: StarThresholds;
+  /** Scratch vector for the aiming markers; reused so aiming allocates nothing per frame. */
+  private readonly aimPosition = new Vector3();
   private hudAccumulator = HUD_REFRESH_SECONDS;
   private lastQueueGuide: QueueGuideResult | null = null;
   private driftAccumulator = 0;
@@ -253,7 +344,7 @@ export class KitchenScene implements ManagedScene {
   private cameraSplitAmount = 0;
 
   constructor(
-    engine: Engine,
+    engine: AbstractEngine,
     private readonly ui: GameUI,
     private readonly options: KitchenSceneOptions,
   ) {
@@ -267,15 +358,31 @@ export class KitchenScene implements ManagedScene {
     this.orders = new OrderSystem(this.recipeList, Math.random, (recipe) =>
       recipeOrderDurationMs(recipe, this.tuning),
     );
+    this.director = new OrderDirector({
+      recipes: this.recipeList,
+      orders: this.orders,
+      tuning: this.tuning,
+    });
+    // What this level asks for, derived from its own menu and length rather than written
+    // down per level; a map's `starCoins` overrides it. See src/data/levelGoals.ts.
+    this.starThresholds = options.map?.meta?.starCoins
+      ?? starThresholdsFor({
+        shiftDurationSeconds: options.shiftDuration,
+        recipes: this.recipeList,
+        tuning: this.tuning,
+      });
     this.scene = new Scene(engine);
     this.scene.fogMode = Scene.FOGMODE_EXP2;
     this.fogBaseDensity = options.map?.environment.fogDensity ?? 0.008;
     this.scene.fogDensity = this.fogBaseDensity;
     this.scene.fogColor = Color3.FromHexString(options.map?.environment.fog ?? "#06101A");
     this.scene.skipPointerMovePicking = true;
+    // Invisible colliders (kept by static batching) stay out of the per-frame mesh pass.
+    installActiveMeshCandidates(this.scene);
 
     const kitchenAssetIds = new Set(KITCHEN_ASSETS.map((asset) => asset.id));
-    this.assets = new AssetManager(this.scene, [
+    const placedAssetIds = options.map?.objects.map((object) => object.assetId) ?? WEDDING_HALL_ASSET_IDS;
+    this.assets = assetStreaming.createSceneAssets(this.scene, [
       { id: MANNEQUIN.modelAssetId, url: MANNEQUIN.modelUrl, required: true },
       // Lazy: only the two cooks the players picked are ever loaded into the kitchen. This
       // used to preload all six before every shift.
@@ -290,13 +397,13 @@ export class KitchenScene implements ManagedScene {
       // Ambient robot clips: fetched only when a placed robot asks for one of them, so a
       // level without such robots never downloads the pack. Lazy keeps preloadAll off it.
       { ...CHARACTER_ANIMATION_ASSETS.simulation, required: false, lazy: true },
-      ...SCENARIO_ASSETS,
+      ...scenarioAssetsFor(placedAssetIds),
       ...INGREDIENT_ASSETS,
       ...KITCHEN_ASSETS,
+      ...DISASTER_ASSETS,
       // Custom maps may reuse kitchen models as decor; register those only once. The main
       // level is decorated with the wedding hall's own models.
-      ...libraryModelsFor(options.map?.objects.map((object) => object.assetId) ?? WEDDING_HALL_ASSET_IDS)
-        .filter((asset) => !kitchenAssetIds.has(asset.id)),
+      ...libraryModelsFor(placedAssetIds).filter((asset) => !kitchenAssetIds.has(asset.id)),
     ]);
 
     this.environment = new KitchenEnvironment(this.scene, this.assets, {
@@ -340,6 +447,11 @@ export class KitchenScene implements ManagedScene {
       focusedOrderId: null,
       work: NO_WORK,
       workStation: null,
+      workProgressStep: -1,
+      wasDashing: false,
+      aimSeconds: null,
+      aimMarker: null,
+      lastEmoteAt: 0,
       lastNotifyAt: 0,
     });
     this.players = [
@@ -373,6 +485,12 @@ export class KitchenScene implements ManagedScene {
     };
     excludeBackdrop();
     void this.environment.backdrop.ready.then(() => { if (!this.disposed) excludeBackdrop(); });
+    // The glow is decoration: the profile decides its blur, and `low` drops it entirely
+    // (emissive surfaces still read bright without it).
+    this.stopQuality = qualityManager.subscribe((settings) => {
+      this.glow.isEnabled = settings.glow.enabled;
+      this.glow.blurKernelSize = settings.glow.blurKernelSize;
+    });
 
     this.audio = new AudioManager(this.scene);
     this.audio.setMasterVolume(options.persistentState.settings.masterVolume);
@@ -383,6 +501,17 @@ export class KitchenScene implements ManagedScene {
     );
     this.workstationResources = new WorkstationResources(this.scene, PLAYER_HIGHLIGHT_COLORS);
     this.itemViews = new KitchenItemViews(this.scene, this.assets, this.recipeList);
+
+    this.sfx = new SynthSfx(0.6 * options.persistentState.settings.masterVolume);
+    this.disasterOverlay = new DisasterOverlay(this.ui.disasterLayer);
+    const bounds = this.environment.bounds;
+    this.chaos = new ChaosMode(
+      this.scene,
+      this.disasterOverlay,
+      this.sfx,
+      new Vector3((bounds.minX + bounds.maxX) / 2, 4.5, (bounds.minZ + bounds.maxZ) / 2),
+    );
+    this.punishment = new PunishmentSystem(this.disasterHost());
 
     this.ai = new AIStateSystem(createInitialRuntimeState(options.shiftDuration).aiState);
     this.runtime = createInitialRuntimeState(options.shiftDuration);
@@ -413,6 +542,15 @@ export class KitchenScene implements ManagedScene {
       // Station models instantiate synchronously from the preloaded containers — sliced
       // across frames, because this runs while the players are still in the menu.
       await this.createStationViews();
+      if (this.disposed) return;
+      // Counters, crates, boards and stoves are glTF art that cannot glow; the decor above
+      // already left the glow pass for the same reason. ~450 draw calls a frame on the
+      // official level, each painting black.
+      for (const view of this.stationViews.values()) {
+        for (const mesh of view.root.getChildMeshes(false)) {
+          if (canNeverGlow(mesh)) this.glow.addExcludedMesh(mesh as Mesh);
+        }
+      }
       performance.mark("bb:stations-built");
       this.prepared = true;
     })();
@@ -426,6 +564,11 @@ export class KitchenScene implements ManagedScene {
   /** True once `prepareInBackground` has finished. */
   get isPrepared(): boolean {
     return this.prepared;
+  }
+
+  /** A shift is being played right now: started, not over, not paused. */
+  get isShiftRunning(): boolean {
+    return this.started && !this.runtime.shiftEnded && !this.runtime.paused;
   }
 
   /** Every file a shift with these cooks needs, for the match loading bar. */
@@ -502,7 +645,13 @@ export class KitchenScene implements ManagedScene {
           if (!character) throw new Error(`Unknown character: ${characterId}`);
           await this.players[index as PlayerIndex].player.selectCharacter(character.id);
         }),
-      ]).then(() => { this.selectedKey = key; });
+      ]).then(() => {
+        this.selectedKey = key;
+        // Cooks browsed past in the menu were parsed into this scene; with nobody wearing
+        // them any more, their meshes and textures leave the GPU (the bytes stay cached).
+        const picked = new Set(characterIds.map((id) => getCharacter(id)?.modelAssetId));
+        this.assets.releaseUnused((assetId) => COOK_ASSET_IDS.has(assetId) && !picked.has(assetId));
+      });
       const selection = { key, promise };
       this.selection = selection;
       // A failed attempt must not be cached: Start retries by asking again.
@@ -572,6 +721,8 @@ export class KitchenScene implements ManagedScene {
       // Re-stamping the deadlines against wall time while paused is what stops a pause from
       // burning order time.
       this.syncOrderClocks();
+      // Nothing fries or chops while the kitchen is stopped.
+      this.stopKitchenSounds();
       this.updateCamera(delta);
       this.syncKitchenVisuals(0);
       this.ui.update(this.runtime);
@@ -602,9 +753,18 @@ export class KitchenScene implements ManagedScene {
       slot.player.update(delta, slot.input, this.environment.bounds);
       this.updateTarget(slot);
       this.handleGameplayInput(slot, delta);
+      this.playWorkSounds(slot, delta);
     }
     this.kitchen.update(delta);
+    this.updateSizzle();
+    this.punishment.update(delta);
+    const burning = this.kitchen.stations.reduce((count, station) => count + (station.onFire ? 1 : 0), 0);
+    this.updateMeltdowns(burning, delta);
+    const chaos = this.chaos.update(delta, burning);
+    this.glow.intensity = GLOW_BASE_INTENSITY + chaos.glow;
+    this.updateShake(delta, chaos.shake);
     this.handleKitchenEvents(this.kitchen.takeEvents());
+    this.resolveDashes();
     this.updateFloorItems(delta);
     this.updateAI(delta);
     this.gameEvents.update(Date.now());
@@ -612,6 +772,13 @@ export class KitchenScene implements ManagedScene {
     // The task guide and the order cards are O(orders x components x world items) and none
     // of what they show changes meaningfully between frames, so they run at ~12Hz instead
     // of 60. The time bars move slowly enough that the stepping is invisible.
+    // A run that nobody fed for long enough lapses on its own; see TipSystem.
+    const lapsed = expireStreak(this.streak, this.kitchenClockMs);
+    if (lapsed !== this.streak) {
+      this.streak = lapsed;
+      this.runtime = { ...this.runtime, combo: 0 };
+    }
+
     this.hudAccumulator += delta;
     if (this.hudAccumulator >= HUD_REFRESH_SECONDS) {
       this.hudAccumulator = 0;
@@ -628,18 +795,28 @@ export class KitchenScene implements ManagedScene {
 
   dispose(): void {
     this.disposed = true;
+    this.punishment.reset();
+    this.stopKitchenSounds();
+    this.chaos.dispose();
+    this.disasterOverlay.dispose();
+    this.sfx.dispose();
     this.wedding.dispose();
     for (const slot of this.players) {
       slot.input.dispose();
       slot.held = null;
+      slot.aimMarker?.dispose();
+      slot.aimMarker = null;
       slot.player.dispose();
     }
     this.floorItems.length = 0;
     this.itemViews.dispose();
     for (const view of this.stationViews.values()) view.dispose();
     this.stationViews.clear();
+    for (const jet of this.sprayJets.values()) jet.dispose();
+    this.sprayJets.clear();
     this.workstationResources.dispose();
     this.camera.dispose();
+    this.stopQuality();
     this.glow.dispose();
     this.audio.dispose();
     this.assets.dispose();
@@ -661,6 +838,8 @@ export class KitchenScene implements ManagedScene {
       slot.held = null;
       slot.work = NO_WORK;
       slot.workStation = null;
+      slot.aimSeconds = null;
+      this.hideAim(slot);
       slot.keyPromptView?.setKeyPrompt(null);
       slot.keyPromptView = null;
       this.setTarget(slot, null);
@@ -675,7 +854,7 @@ export class KitchenScene implements ManagedScene {
       this.options.shiftDuration,
     );
     this.ai = new AIStateSystem(this.runtime.aiState);
-    this.orderClocks.clear();
+    this.director.reset();
     this.driftAccumulator = 0;
     this.cameraFocusRemaining = 0;
     for (const slot of this.players) slot.focusedOrderId = null;
@@ -685,6 +864,12 @@ export class KitchenScene implements ManagedScene {
     this.activeCriticals.clear();
     for (const slot of this.players) slot.input.enabled = true;
     this.wedding.reset();
+    this.punishment.reset();
+    this.chaos.reset();
+    this.disasterOverlay.reset();
+    this.shakeAmount = 0;
+    this.shakeLeft = 0;
+    for (const slot of this.players) slot.input.invertMovement = false;
     // The cheapest recipe opens the shift as a tutorial ticket; the scheduler takes over.
     // Taken from this scenario's own menu: an id outside it would make OrderSystem throw
     // inside startShift for any scenario that does not serve gelato.
@@ -694,10 +879,10 @@ export class KitchenScene implements ManagedScene {
         undefined,
       );
     this.createOrder(opener?.id);
-    this.spawnTimer = spawnIntervalSeconds(0, this.tuning);
     this.speak("shift:start");
+    this.sfx.play("start");
     this.eventBus.emit("shift:started", { duration: this.options.shiftDuration });
-    this.notify("CASAMENTO CHATGPT + GEMINI // Corte, cozinhe, monte e entregue os pratos", "info", 6000);
+    this.notify(t("kitchen.shiftIntro"), "info", 6000);
     this.ui.update(this.runtime);
   }
 
@@ -767,29 +952,90 @@ export class KitchenScene implements ManagedScene {
   private handleGameplayInput(slot: CoopPlayerState, deltaSeconds: number): void {
     if (slot.player.isDowned()) {
       slot.work = NO_WORK;
+      // Knocked over mid-aim: the marker has to go with the throw it was promising.
+      slot.aimSeconds = null;
+      this.hideAim(slot);
       return;
     }
     if (slot.input.consumePressed("interact")) this.handleGrab(slot);
+    if (slot.input.consumePressed("emote")) this.emote(slot);
 
     const actionPressed = slot.input.consumePressed("carry");
-    if (actionPressed && slot.held?.kind === "food") {
-      this.throwHeldItem(slot);
-      slot.work = NO_WORK;
-      return;
-    }
+    // Holding food, the carry key aims instead of working: `KitchenModel.canWork` refuses
+    // every station to a cook with full hands, so there is nothing for it to clash with.
+    if (actionPressed && slot.held?.kind === "food") slot.aimSeconds = 0;
     if (actionPressed && slot.held && slot.held.kind !== "extinguisher") {
-      this.notifyPlayer(slot, "Só ingredientes podem ser arremessados", "info");
+      this.notifyPlayer(slot, t("kitchen.onlyIngredientsThrow"), "info");
+    }
+    if (slot.aimSeconds !== null) {
+      if (slot.held?.kind === "food" && slot.input.isDown("carry")) {
+        slot.aimSeconds = Math.min(CHARGE_SECONDS, slot.aimSeconds + deltaSeconds);
+        this.showAim(slot, chargeFraction(slot.aimSeconds));
+        slot.work = NO_WORK;
+        return;
+      }
+      // Let go, or lost the item to a shove: either way the aim is over.
+      const charge = chargeFraction(slot.aimSeconds);
+      slot.aimSeconds = null;
+      this.hideAim(slot);
+      if (slot.held?.kind === "food") {
+        this.throwHeldItem(slot, charge);
+        slot.work = NO_WORK;
+        return;
+      }
     }
 
+    const previous = slot.work.kind;
     slot.work = NO_WORK;
     slot.workStation = null;
-    if (!slot.input.isDown("carry")) return;
+    if (!slot.input.isDown("carry")) {
+      slot.workProgressStep = -1;
+      return;
+    }
     const station = slot.held?.kind === "extinguisher"
       ? this.findSprayTarget(slot)
       : slot.target?.kind === "station" ? slot.target.station : null;
-    if (!station) return;
+    if (!station) {
+      slot.workProgressStep = -1;
+      return;
+    }
     slot.work = this.kitchen.work(station, slot.held, deltaSeconds);
     if (slot.work.kind !== "none") slot.workStation = station;
+    this.reportWork(slot, station, previous);
+  }
+
+  /**
+   * Publishes a cook's hands-on job on the bus. Progress is reported in tenths rather than
+   * every frame, so a two-second chop costs a handful of events instead of a hundred and
+   * twenty.
+   */
+  private reportWork(
+    slot: CoopPlayerState,
+    station: Workstation,
+    previousKind: WorkOutcome["kind"],
+  ): void {
+    if (slot.work.kind === "none") {
+      slot.workProgressStep = -1;
+      return;
+    }
+    const work: StationWorkKind = slot.work.kind;
+    if (previousKind !== slot.work.kind) {
+      slot.workProgressStep = -1;
+      this.eventBus.emit("station:started", {
+        stationKind: station.spec.kind,
+        work,
+        playerIndex: slot.index,
+      });
+    }
+    const step = Math.floor(slot.work.progress * 10);
+    if (step === slot.workProgressStep) return;
+    slot.workProgressStep = step;
+    this.eventBus.emit("station:progress", {
+      stationKind: station.spec.kind,
+      work,
+      progress: slot.work.progress,
+      playerIndex: slot.index,
+    });
   }
 
   private handleGrab(slot: CoopPlayerState): void {
@@ -809,9 +1055,15 @@ export class KitchenScene implements ManagedScene {
       }
       const pickedUp = !slot.held && outcome.held;
       // Something left the hands: into a machine, onto a counter, or swapped.
-      if (slot.held && slot.held !== outcome.held) slot.player.playThrowGesture();
+      if (slot.held && slot.held !== outcome.held) {
+        this.eventBus.emit("ingredient:dropped", { item: slot.held, playerIndex: slot.index });
+        slot.player.playThrowGesture();
+      }
+      if (pickedUp && outcome.held) {
+        this.eventBus.emit("ingredient:picked", { item: outcome.held, playerIndex: slot.index });
+      }
       slot.held = outcome.held;
-      this.audio.play(pickedUp ? "ingredient:pickup" : "station:insert");
+      this.sfx.play(pickedUp ? "pickup" : target.station.spec.kind === "trash" ? "trash" : "place");
       if (outcome.message) this.notifyPlayer(slot, outcome.message, "info");
       slot.player.setExpression(slot.held ? "O_O" : "^_^");
       return;
@@ -822,16 +1074,17 @@ export class KitchenScene implements ManagedScene {
       if (!slot.held) {
         this.removeFloorItem(entry);
         slot.held = entry.item;
-        this.audio.play("ingredient:pickup");
+        this.eventBus.emit("ingredient:picked", { item: entry.item, playerIndex: slot.index });
+        this.sfx.play("pickup");
         return;
       }
       const combined = combineItems(slot.held, entry.item);
       if (combined) {
         slot.held = combined.held;
         if (!combined.target) this.removeFloorItem(entry);
-        this.audio.play("station:insert");
+        this.sfx.play("place");
       } else {
-        this.notifyPlayer(slot, "Mãos ocupadas", "info");
+        this.notifyPlayer(slot, t("kitchen.handsFull"), "info");
       }
       return;
     }
@@ -871,28 +1124,35 @@ export class KitchenScene implements ManagedScene {
     for (const event of events) {
       switch (event.type) {
         case "chopped":
-          this.audio.play("station:complete");
+          this.sfx.play("ding", 0.7);
           break;
         case "washed":
-          this.audio.play("station:insert");
+          this.sfx.play("ding", 0.5);
           break;
         case "cook":
           if (event.event === "cooked") {
-            this.audio.play("station:complete");
-            this.notify("Comida pronta no fogão! Tire antes de queimar", "success", 2200);
+            this.sfx.play("ding");
+            this.notify(t("kitchen.foodReady"), "success", 2200);
           } else if (event.event === "burnt") {
-            this.notify("QUEIMOU! Jogue fora no lixo", "error", 2600);
+            this.sfx.play("burnt");
+            this.notify(t("kitchen.burnt"), "error", 2600);
           }
           break;
         case "fire":
-          this.notify("FOGO NA COZINHA! Use o extintor (segure a ação)", "error", 3500);
+          this.sfx.play("ignite");
+          this.notify(t("kitchen.fire"), "error", 3500);
           break;
         case "extinguished":
-          this.notify("Fogo apagado", "success", 1800);
+          this.sfx.play("puff");
+          this.notify(t("kitchen.fireOut"), "success", 1800);
           break;
         case "dirtyReturned":
           break;
       }
+      this.eventBus.emit("station:completed", {
+        stationKind: event.station.spec.kind,
+        outcome: event.type === "cook" ? event.event : event.type,
+      });
     }
   }
 
@@ -927,10 +1187,32 @@ export class KitchenScene implements ManagedScene {
     if (index >= 0) this.floorItems.splice(index, 1);
   }
 
-  private throwHeldItem(slot: CoopPlayerState): void {
+  /** Shows where `slot` would land their throw at the charge they have built up. */
+  private showAim(slot: CoopPlayerState, charge: number): void {
+    const marker = slot.aimMarker ?? new WaypointMarker(this.scene, {
+      label: "aim",
+      color: PLAYER_COLORS[slot.index],
+      playerIndex: slot.index,
+      beam: false,
+    });
+    slot.aimMarker = marker;
+    const yaw = slot.player.facingYaw;
+    const anchor = slot.player.carryAnchor.getAbsolutePosition();
+    const landing = landingPoint(anchor, Math.sin(yaw), Math.cos(yaw), throwLaunch(charge));
+    this.aimPosition.set(landing.x, 0.02, landing.z);
+    marker.setPosition(this.aimPosition);
+    marker.setVisible(true);
+  }
+
+  private hideAim(slot: CoopPlayerState): void {
+    slot.aimMarker?.setVisible(false);
+  }
+
+  private throwHeldItem(slot: CoopPlayerState, charge = 0): void {
     const item = slot.held;
     if (!item) return;
     slot.player.playThrowGesture();
+    this.sfx.play("toss");
     const yaw = slot.player.facingYaw;
     const forwardX = Math.sin(yaw);
     const forwardZ = Math.cos(yaw);
@@ -943,8 +1225,11 @@ export class KitchenScene implements ManagedScene {
       slot.index,
       true,
     );
-    const launchSpeed = THROW_LAUNCH_SPEED + Math.random() * 1.2;
-    entry.velocity.set(forwardX * launchSpeed, THROW_VERTICAL_KICK, forwardZ * launchSpeed);
+    // No random scatter on an aimed throw: the marker promised a spot, so it has to be
+    // the spot. See src/gameplay/throwArc.ts.
+    const launch = throwLaunch(charge);
+    const launchSpeed = launch.speed;
+    entry.velocity.set(forwardX * launchSpeed, launch.verticalKick, forwardZ * launchSpeed);
     entry.angularVelocity.set(
       (Math.random() - 0.5) * 12,
       (Math.random() - 0.5) * 8,
@@ -995,7 +1280,7 @@ export class KitchenScene implements ManagedScene {
         if (position.y <= top + 0.05) {
           if (entry.previous.y >= top - 0.05 && this.kitchen.land(station, entry.item)) {
             this.floorItems.splice(index, 1);
-            this.audio.play("station:insert");
+            this.sfx.play(station.spec.kind === "trash" ? "trash" : "place");
             continue;
           }
           // Hit the side of the station: bounce back the way it came.
@@ -1013,7 +1298,10 @@ export class KitchenScene implements ManagedScene {
       if (entry.item.kind === "food") {
         const target = this.findPlayerImpactTarget(position, entry.thrownBy, velocity.length());
         if (target) {
-          this.applyPlayerHit(entry, target);
+          // Empty-handed, the other cook catches it: an aimed throw across the kitchen is
+          // how a pair passes ingredients, and only a cook who cannot catch gets knocked over.
+          if (!target.held && !target.player.isDowned()) this.catchItem(entry, target);
+          else this.applyPlayerHit(entry, target);
           continue;
         }
       }
@@ -1093,7 +1381,7 @@ export class KitchenScene implements ManagedScene {
   ): CoopPlayerState | null {
     if (projectileSpeed <= 1.2) return null;
     let best: CoopPlayerState | null = null;
-    let bestDistance = THROW_IMPACT_RADIUS;
+    let bestDistance: number = THROW_IMPACT_RADIUS;
     for (const slot of this.players) {
       if (slot.index === thrownBy || slot.player.isDowned()) continue;
       const dx = slot.player.position.x - position.x;
@@ -1106,6 +1394,292 @@ export class KitchenScene implements ManagedScene {
       }
     }
     return best;
+  }
+
+  /**
+   * Sets off a disaster at once, skipping the wait for a failed order. For testing
+   * from the console in development: `__bbGame.kitchenScene.punish("tesla")`.
+   */
+  punish(kind?: DisasterKind): void {
+    this.punishment.punish(kind);
+  }
+
+  private updateShake(deltaSeconds: number, chaosShake: number): void {
+    let amount = 0;
+    if (this.shakeLeft > 0) {
+      this.shakeLeft = Math.max(0, this.shakeLeft - deltaSeconds);
+      amount = this.shakeTotal > 0 ? this.shakeAmountPeak * (this.shakeLeft / this.shakeTotal) : 0;
+    }
+    this.shakeAmount = Math.max(amount, chaosShake);
+  }
+
+  private shake(amount: number, seconds: number): void {
+    // A stronger jolt replaces a weaker one; a weaker one never cuts a stronger short.
+    const current = this.shakeTotal > 0 ? this.shakeAmountPeak * (this.shakeLeft / this.shakeTotal) : 0;
+    if (amount < current) return;
+    this.shakeAmountPeak = amount;
+    this.shakeLeft = seconds;
+    this.shakeTotal = seconds;
+  }
+
+  /** What the disasters may touch in this kitchen. */
+  private disasterHost(): DisasterHost {
+    const cooks: DisasterCook[] = this.players.map((slot) => ({
+      index: slot.index,
+      label: slot.label,
+      player: slot.player,
+      input: slot.input,
+    }));
+    const slotOf = (cook: DisasterCook): CoopPlayerState => this.players[cook.index];
+    return {
+      scene: this.scene,
+      assets: this.assets,
+      sfx: this.sfx,
+      overlay: this.disasterOverlay,
+      cooks,
+      bounds: this.environment.bounds,
+      robots: this.wedding,
+      juiceTexture: this.workstationResources.fireTexture,
+      hitCook: (cook, fromX, fromZ, strength) => this.knockCook(slotOf(cook), fromX, fromZ, strength),
+      dropHeld: (cook) => this.scatterHeld(slotOf(cook), 0, 0),
+      notify: (message, tone) => this.notify(message, tone, 2_400),
+      shake: (amount, seconds) => this.shake(amount, seconds),
+      stationViews: () => [...this.stationViews.values()].map((view) => ({
+        root: view.root,
+        x: view.placement.x,
+        z: view.placement.z,
+        kind: view.placement.kind,
+      })),
+      scatterFloorItems: (x, z, radius, power) => this.scatterFloorItems(x, z, radius, power),
+      freeSpot: () => this.freeSpot(),
+      spawnPoint: (cook) => this.environment.playerSpawns[cook.index === 0 ? 0 : 1].clone(),
+      stealables: () => this.stealables(),
+      dropLoose: (item, x, z) => {
+        const entry = this.addFloorItem(item as unknown as KitchenItem, x, 0.25, z, null, true);
+        entry.velocity.set((Math.random() - 0.5) * 1.2, 1.6, (Math.random() - 0.5) * 1.2);
+      },
+    };
+  }
+
+  /**
+   * Food a rat may run off with: lying on the floor, or on a counter no cook is
+   * working at or standing at. A board mid-chop, or the counter in front of a cook,
+   * is left alone.
+   */
+  private stealables(): Stealable[] {
+    const busy = new Set<Workstation>();
+    for (const slot of this.players) {
+      if (slot.work.kind !== "none" && slot.workStation) busy.add(slot.workStation);
+      if (slot.target?.kind === "station") busy.add(slot.target.station);
+    }
+    const label = (ingredientId: string): string => getIngredient(ingredientId)?.displayName ?? ingredientId;
+    const list: Stealable[] = [];
+    for (const station of this.kitchen.stations) {
+      const item = station.item;
+      if (item?.kind !== "food" || station.onFire || busy.has(station)) continue;
+      list.push({
+        id: item.uid,
+        x: station.spec.x,
+        z: station.spec.z,
+        y: COUNTER_HEIGHT,
+        label: label(item.ingredientId),
+        take: () => {
+          if (station.item !== item) return null;
+          station.item = null;
+          return item as unknown as LooseItem;
+        },
+      });
+    }
+    for (const entry of this.floorItems) {
+      const item = entry.item;
+      if (item.kind !== "food" || entry.airborne) continue;
+      list.push({
+        id: item.uid,
+        x: entry.position.x,
+        z: entry.position.z,
+        y: 0,
+        label: label(item.ingredientId),
+        take: () => {
+          if (!this.floorItems.includes(entry)) return null;
+          this.removeFloorItem(entry);
+          return item as unknown as LooseItem;
+        },
+      });
+    }
+    return list;
+  }
+
+  /** The rhythm of work: a knife stroke, a scrub or a puff of the extinguisher. */
+  private playWorkSounds(slot: CoopPlayerState, delta: number): void {
+    const kind = slot.work.kind;
+    if (kind === "none") {
+      this.workBeats.delete(slot.index);
+      return;
+    }
+    const left = (this.workBeats.get(slot.index) ?? 0) - delta;
+    if (left > 0) {
+      this.workBeats.set(slot.index, left);
+      return;
+    }
+    if (kind === "chopping") this.sfx.play("chop", 0.9);
+    else if (kind === "washing") this.sfx.play("scrub", 0.8);
+    else this.sfx.play("spray", 0.7);
+    this.workBeats.set(slot.index, kind === "chopping" ? 0.26 : kind === "washing" ? 0.42 : 0.3);
+  }
+
+  /** Frying on any stove with food in its pan or pot, louder the more are going. */
+  private updateSizzle(): void {
+    const frying = this.kitchen.stations.filter((station) =>
+      station.spec.kind === "stove" && isCookware(station.item) && station.item.contents.length > 0 &&
+      !isCookwareBurnt(station.item)).length;
+    if (frying === 0) {
+      this.sizzle?.stop(0.5);
+      this.sizzle = null;
+      return;
+    }
+    this.sizzle ??= this.sfx.loop("sizzle", 0);
+    this.sizzle.setLevel(Math.min(1, 0.55 + 0.2 * frying));
+  }
+
+  private stopKitchenSounds(): void {
+    this.sizzle?.stop(0.3);
+    this.sizzle = null;
+    this.workBeats.clear();
+  }
+
+  /** Knocks a cook over away from (fromX, fromZ), scattering what they carry. */
+  private knockCook(slot: CoopPlayerState, fromX: number, fromZ: number, strength: number): void {
+    if (slot.player.isDowned()) return;
+    this.sfx.play("bonk");
+    const dx = slot.player.position.x - fromX;
+    const dz = slot.player.position.z - fromZ;
+    const length = Math.hypot(dx, dz);
+    const hx = length > 0.01 ? dx / length : 1;
+    const hz = length > 0.01 ? dz / length : 0;
+    slot.player.stun(hx, hz, strength);
+    this.scatterHeld(slot, hx, hz);
+  }
+
+  /** Drops what a cook holds, tossed a little along (hx, hz). */
+  private scatterHeld(slot: CoopPlayerState, hx: number, hz: number): void {
+    const carried = slot.held;
+    if (!carried) return;
+    const anchor = slot.player.carryAnchor.getAbsolutePosition();
+    const scattered = this.addFloorItem(carried, anchor.x, anchor.y, anchor.z, slot.index, true);
+    scattered.velocity.set(hx * 2.2, 1.8, hz * 2.2);
+    scattered.angularVelocity.set((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 12);
+    slot.held = null;
+  }
+
+  private scatterFloorItems(x: number, z: number, radius: number, power: number): void {
+    for (const entry of this.floorItems) {
+      const dx = entry.position.x - x;
+      const dz = entry.position.z - z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > radius) continue;
+      const push = power * (1 - distance / radius) + 1;
+      const nx = distance > 0.01 ? dx / distance : Math.random() - 0.5;
+      const nz = distance > 0.01 ? dz / distance : Math.random() - 0.5;
+      entry.velocity.set(nx * push, 3 + Math.random() * 3, nz * push);
+      entry.angularVelocity.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 14);
+      entry.airborne = true;
+    }
+  }
+
+  /** A clear spot on the kitchen floor, away from every counter. */
+  private freeSpot(): Vector3 {
+    const bounds = this.environment.bounds;
+    const clearance = KITCHEN_TILE * 0.9;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const x = bounds.minX + 0.5 + Math.random() * Math.max(0, bounds.maxX - bounds.minX - 1);
+      const z = bounds.minZ + 0.5 + Math.random() * Math.max(0, bounds.maxZ - bounds.minZ - 1);
+      const blocked = this.kitchen.stations.some(
+        (station) => Math.abs(station.spec.x - x) < clearance && Math.abs(station.spec.z - z) < clearance,
+      );
+      if (!blocked) return new Vector3(x, 0, z);
+    }
+    return this.environment.playerSpawns[0].clone();
+  }
+
+  /**
+   * Sounds each dash as it starts and shoves whoever is in the way.
+   *
+   * The shove is deliberately weaker than a thrown pan: it knocks the other cook over and
+   * spills what they carry, which is the Overcooked way of asking someone to move, but it
+   * slides them a fraction of the distance a real hit would.
+   */
+  private resolveDashes(): void {
+    for (const slot of this.players) {
+      const dashing = slot.player.isDashing;
+      if (dashing && !slot.wasDashing) this.sfx.play("toss", 0.5);
+      slot.wasDashing = dashing;
+      if (!dashing) continue;
+
+      const other = this.players[slot.index === 0 ? 1 : 0];
+      if (other.player.isDowned()) continue;
+      const dx = other.player.position.x - slot.player.position.x;
+      const dz = other.player.position.z - slot.player.position.z;
+      if (dx * dx + dz * dz > DASH_SHOVE_REACH * DASH_SHOVE_REACH) continue;
+      // Only a dash that is actually heading into them counts, so brushing past while
+      // dashing away does not knock anybody down.
+      if (dx * slot.player.dashDirection.x + dz * slot.player.dashDirection.z <= 0) continue;
+
+      other.player.stun(slot.player.dashDirection.x, slot.player.dashDirection.z, DASH_SHOVE_STRENGTH);
+      this.scatterHeldOf(other, slot.player.dashDirection.x, slot.player.dashDirection.z);
+      this.sfx.play("bonk", 0.7);
+      this.notify(t("kitchen.shoved", { name: other.label }), "warning", 1_800);
+    }
+  }
+
+  /** Spills what `slot` is carrying onto the floor beside them, heading (hx, hz). */
+  private scatterHeldOf(slot: CoopPlayerState, hx: number, hz: number): void {
+    const carried = slot.held;
+    if (!carried) return;
+    const anchor = slot.player.carryAnchor.getAbsolutePosition();
+    const scattered = this.addFloorItem(carried, anchor.x, anchor.y, anchor.z, slot.index, true);
+    scattered.velocity.set(hx * 2.2, 1.8, hz * 2.2);
+    scattered.angularVelocity.set(
+      (Math.random() - 0.5) * 12,
+      (Math.random() - 0.5) * 6,
+      (Math.random() - 0.5) * 12,
+    );
+    slot.held = null;
+    this.eventBus.emit("ingredient:dropped", { item: carried, playerIndex: slot.index });
+  }
+
+  /**
+   * "Hey!": a cook calls across the kitchen.
+   *
+   * What the call says depends on what they are doing, so a ping is worth reading rather
+   * than just noise — carrying something names it, working an order points at that ticket,
+   * and an empty-handed cook is asking for work.
+   */
+  private emote(slot: CoopPlayerState): void {
+    const now = performance.now();
+    if (now - slot.lastEmoteAt < EMOTE_COOLDOWN_MS) return;
+    slot.lastEmoteAt = now;
+
+    const text = slot.held
+      ? t("kitchen.heyCarrying", { item: describeItem(slot.held, this.recipeList) })
+      : slot.focusedOrderId
+        ? t("kitchen.heyOnIt")
+        : t("kitchen.hey");
+    this.ui.showPlayerCallout(slot.index, text);
+    // The ticket they are on lights up, so the partner can see what was meant.
+    if (slot.focusedOrderId) this.ui.flashOrder(slot.focusedOrderId);
+    slot.player.playThrowGesture();
+    slot.player.setExpression("O_O");
+    this.sfx.play("hey");
+  }
+
+  /** The other cook takes a thrown ingredient out of the air. */
+  private catchItem(entry: FloorItem, target: CoopPlayerState): void {
+    this.removeFloorItem(entry);
+    target.held = entry.item;
+    target.player.setExpression("O_O");
+    this.sfx.play("pickup");
+    this.eventBus.emit("ingredient:picked", { item: entry.item, playerIndex: target.index });
+    this.notify(t("kitchen.caught", { name: target.label }), "success", 1_800);
   }
 
   private applyPlayerHit(entry: FloorItem, target: CoopPlayerState): void {
@@ -1123,21 +1697,10 @@ export class KitchenScene implements ManagedScene {
     entry.velocity.set(-hx * 1.2, 1.5, -hz * 1.2);
     entry.thrownBy = target.index;
 
-    const carried = target.held;
-    if (carried) {
-      const anchor = target.player.carryAnchor.getAbsolutePosition();
-      const scattered = this.addFloorItem(carried, anchor.x, anchor.y, anchor.z, target.index, true);
-      // Drops near the victim rather than flying across the kitchen.
-      scattered.velocity.set(hx * 2.2, 1.8, hz * 2.2);
-      scattered.angularVelocity.set(
-        (Math.random() - 0.5) * 12,
-        (Math.random() - 0.5) * 6,
-        (Math.random() - 0.5) * 12,
-      );
-      target.held = null;
-    }
-    this.audio.play("station:complete");
-    this.notify(`${target.label} FOI ATINGIDO!`, "warning", 2_000);
+    // Drops near the victim rather than flying across the kitchen.
+    this.scatterHeldOf(target, hx, hz);
+    this.sfx.play("bonk");
+    this.notify(t("kitchen.hit", { name: target.label }), "warning", 2_000);
   }
 
   // -------------------------------------------------------------------------
@@ -1152,6 +1715,8 @@ export class KitchenScene implements ManagedScene {
     }
     for (const slot of this.players) {
       if (slot.held) this.itemViews.place(slot.held, slot.player.carryAnchor);
+      slot.player.setArmPose(armPoseFor(slot.work.kind, slot.held !== null));
+      this.updateSprayJet(slot);
     }
     for (const entry of this.floorItems) {
       const root = this.itemViews.place(entry.item, null);
@@ -1161,20 +1726,47 @@ export class KitchenScene implements ManagedScene {
     this.itemViews.endFrame();
   }
 
+  /** Points the cook's extinguisher jet at the fire they are putting out, or stops it. */
+  private updateSprayJet(slot: CoopPlayerState): void {
+    const station = slot.work.kind === "extinguishing" ? slot.workStation : null;
+    let jet = this.sprayJets.get(slot.index);
+    if (!station) {
+      jet?.stop();
+      return;
+    }
+    if (!jet) {
+      jet = new SprayJet(this.scene, this.workstationResources.fireTexture, `spray-jet-${slot.index}`);
+      this.sprayJets.set(slot.index, jet);
+    }
+    // The nozzle on top of the canister, which the cook holds at the carry anchor.
+    const yaw = slot.player.facingYaw;
+    const anchor = slot.player.carryAnchor.getAbsolutePosition();
+    const nozzle = new Vector3(anchor.x + Math.sin(yaw) * 0.22, anchor.y + 0.56, anchor.z + Math.cos(yaw) * 0.22);
+    jet.aim(nozzle, new Vector3(station.spec.x, COUNTER_HEIGHT + 0.25, station.spec.z));
+  }
+
   private stationViewState(station: Workstation): WorkstationViewState {
     const item = station.item;
     let progress: number | null = null;
     let tone: WorkstationViewState["tone"] = "work";
     let warning = false;
-    const chopping = this.players.some(
+    const choppers = this.players.filter(
       (slot) => slot.workStation === station && slot.work.kind === "chopping",
+    );
+    const chopping = choppers.length > 0;
+    const knifeInHand = choppers.some((slot) => slot.player.holdsKnife);
+    const washing = this.players.some(
+      (slot) => slot.workStation === station && slot.work.kind === "washing",
     );
 
     if (station.spec.kind === "cutting_board" && item?.kind === "food" && item.chopProgress > 0) {
       progress = item.chopProgress;
     } else if (station.spec.kind === "sink" && station.washProgress > 0) {
       progress = station.washProgress;
-    } else if (station.spec.kind === "stove" && isCookware(item) && item.contents.length > 0) {
+    } else if (station.spec.kind === "mixer" && station.mixProgress > 0) {
+      progress = station.mixProgress;
+    } else if (HEATED_STATION_KINDS.has(station.spec.kind) && isCookware(item) &&
+      item.contents.length > 0) {
       const cooking = getCookwareProgress(item);
       if (cooking.cook < 1) {
         progress = cooking.cook;
@@ -1193,6 +1785,8 @@ export class KitchenScene implements ManagedScene {
       cleanPlates: station.cleanPlates,
       dirtyPlates: station.dirtyPlates,
       chopping,
+      knifeInHand,
+      washing,
     };
   }
 
@@ -1204,7 +1798,11 @@ export class KitchenScene implements ManagedScene {
       (oldest, food) => Math.min(oldest, food.createdAt),
       this.kitchenClockMs,
     );
-    const dish = createIngredient(recipe.finalItemId, { createdAt, presentation: 0.9 });
+    const dish = createIngredient(recipe.finalItemId, {
+      createdAt,
+      ...plateQuality(plate),
+    });
+    this.eventBus.emit("dish:created", { recipe, playerIndex: slot.index });
     this.serveDish(slot, dish, recipe);
   }
 
@@ -1217,7 +1815,7 @@ export class KitchenScene implements ManagedScene {
       requests.push({
         orderId: order.id,
         recipe,
-        secondsRemaining: this.orderClocks.get(order.id)?.remaining ?? 0,
+        secondsRemaining: this.director.clockFor(order.id)?.remaining ?? 0,
       });
     }
     if (requests.length === 0) {
@@ -1311,6 +1909,9 @@ export class KitchenScene implements ManagedScene {
       this.buildOrderTickets(),
       this.wedding.guests.filter((g) => g.active).length,
     );
+    this.ui.setUpcomingOrders(this.director.upcoming(this.runtime.activeOrders));
+    this.ui.setStarMeter(this.runtime.score, this.starThresholds);
+    this.ui.setComboWindow(streakWindowRemaining(this.streak, this.kitchenClockMs));
     for (const slot of this.players) {
       const action = this.describeAction(slot);
       const downed = slot.player.isDowned();
@@ -1338,7 +1939,7 @@ export class KitchenScene implements ManagedScene {
     return this.runtime.activeOrders
       .filter((order) => order.status === "active")
       .map((order) => {
-        const clock = this.orderClocks.get(order.id);
+        const clock = this.director.clockFor(order.id);
         const recipe = order.requestedRecipeId
           ? this.recipes.getRecipe(order.requestedRecipeId)
           : undefined;
@@ -1355,7 +1956,7 @@ export class KitchenScene implements ManagedScene {
         return {
           orderId: order.id,
           recipeId: order.requestedRecipeId ?? null,
-          title: recipe?.displayName ?? "PEDIDO ESPECIAL",
+          title: recipe?.displayName ?? t("kitchen.specialOrder"),
           guestName: guestByOrder.get(order.id) ?? null,
           secondsRemaining: clock?.remaining ?? 0,
           totalSeconds: clock?.duration ?? 0,
@@ -1381,23 +1982,23 @@ export class KitchenScene implements ManagedScene {
     if (!held) return null;
 
     if (held.kind === "plate") {
-      if (held.dirty) return "Levar à pia";
-      if (held.contents.length === 0) return "Montar o prato";
-      return findMatchingRecipe(held.contents, this.recipeList) ? "Entregar o prato" : "Montar o prato";
+      if (held.dirty) return t("kitchen.nextToSink");
+      if (held.contents.length === 0) return t("kitchen.nextPlate");
+      return findMatchingRecipe(held.contents, this.recipeList) ? t("kitchen.nextDeliver") : t("kitchen.nextPlate");
     }
     if (isCookware(held)) {
-      if (isCookwareBurnt(held)) return "Queimou — jogar no lixo";
-      if (held.contents.length === 0) return "Levar ao fogão";
-      return isCookwareCooked(held) ? "Despejar no prato" : "Levar ao fogão";
+      if (isCookwareBurnt(held)) return t("kitchen.nextBurnt");
+      if (held.contents.length === 0) return t("kitchen.nextToStove");
+      return isCookwareCooked(held) ? t("kitchen.nextPour") : t("kitchen.nextToStove");
     }
     if (held.kind !== "food") return null;
 
     const definition = getFoodDefinition(held.ingredientId);
     if (!definition) return null;
-    if (held.state === "burnt") return "Queimou — jogar no lixo";
-    if (definition.chop && held.state === "raw") return "Cortar na tábua";
-    if (definition.cook && held.state !== "cooked") return "Cozinhar no fogão";
-    return "Montar no prato";
+    if (held.state === "burnt") return t("kitchen.nextBurnt");
+    if (definition.chop && held.state === "raw") return t("kitchen.nextChop");
+    if (definition.cook && held.state !== "cooked") return t("kitchen.nextCook");
+    return t("kitchen.nextOnPlate");
   }
 
   /**
@@ -1430,10 +2031,10 @@ export class KitchenScene implements ManagedScene {
     const held = slot.held;
     const target = slot.target;
     if (held?.kind === "extinguisher" && this.kitchen.anyFire) {
-      return { prompt: "Segure para apagar o fogo", action: "carry" };
+      return { prompt: t("kitchen.holdExtinguish"), action: "carry" };
     }
     if (target?.kind === "floor") {
-      return { prompt: held ? "Combinar" : `Pegar ${describeItem(target.entry.item, this.recipeList)}`, action: "interact" };
+      return { prompt: held ? t("kitchen.combine") : t("kitchen.pickUp", { item: describeItem(target.entry.item, this.recipeList) }), action: "interact" };
     }
     if (target?.kind !== "station") {
       // Nothing in reach: no prompt, because there is nowhere to put anything down.
@@ -1441,29 +2042,34 @@ export class KitchenScene implements ManagedScene {
     }
     const station = target.station;
     const label = STATION_KIND_LABEL[station.spec.kind];
-    if (station.onFire) return { prompt: "Em chamas! Use o extintor", action: "carry" };
+    if (station.onFire) return { prompt: t("kitchen.onFire"), action: "carry" };
     if (this.kitchen.canWork(station, held)) {
-      return { prompt: station.spec.kind === "sink" ? "Segure para lavar" : "Segure para cortar", action: "carry" };
+      const holdPrompt = station.spec.kind === "sink"
+        ? t("kitchen.holdWash")
+        : station.spec.kind === "mixer"
+          ? t("kitchen.holdToMix")
+          : t("kitchen.holdChop");
+      return { prompt: holdPrompt, action: "carry" };
     }
     switch (station.spec.kind) {
       case "crate":
-        return { prompt: held ? label : `Pegar ${describeItem({ kind: "food", uid: "", ingredientId: station.spec.ingredientId ?? "", state: "raw", chopProgress: 0, createdAt: 0 }, this.recipeList)}`, action: "interact" };
+        return { prompt: held ? label : t("kitchen.pickUp", { item: describeItem({ kind: "food", uid: "", ingredientId: station.spec.ingredientId ?? "", state: "raw", chopProgress: 0, createdAt: 0 }, this.recipeList) }), action: "interact" };
       case "delivery":
-        return { prompt: held?.kind === "plate" ? "Entregar prato" : label, action: "interact" };
+        return { prompt: held?.kind === "plate" ? t("kitchen.deliverPlate") : label, action: "interact" };
       case "trash":
-        return { prompt: held ? "Jogar fora" : label, action: "interact" };
+        return { prompt: held ? t("kitchen.throwAway") : label, action: "interact" };
       case "plate_rack":
-        return { prompt: held ? "Devolver prato" : `Pegar prato (${station.cleanPlates})`, action: "interact" };
+        return { prompt: held ? t("kitchen.returnPlate") : t("kitchen.takePlate", { count: station.cleanPlates }), action: "interact" };
       case "sink":
-        return { prompt: held ? "Colocar na pia" : "Pegar prato limpo", action: "interact" };
+        return { prompt: held ? t("kitchen.putInSink") : t("kitchen.takeCleanPlate"), action: "interact" };
       case "dirty_return":
-        return { prompt: `Pratos sujos (${station.dirtyPlates})`, action: "interact" };
+        return { prompt: t("kitchen.dirtyPlates", { count: station.dirtyPlates }), action: "interact" };
       default:
-        if (!held && station.item) return { prompt: `Pegar ${describeItem(station.item, this.recipeList)}`, action: "interact" };
+        if (!held && station.item) return { prompt: t("kitchen.pickUp", { item: describeItem(station.item, this.recipeList) }), action: "interact" };
         if (held && station.item) {
-          return { prompt: held.kind === "extinguisher" ? label : "Combinar", action: "interact" };
+          return { prompt: held.kind === "extinguisher" ? label : t("kitchen.combine"), action: "interact" };
         }
-        if (held) return { prompt: `Colocar: ${label}`, action: "interact" };
+        if (held) return { prompt: t("kitchen.putOn", { station: label }), action: "interact" };
         return { prompt: label, action: "interact" };
     }
   }
@@ -1477,16 +2083,16 @@ export class KitchenScene implements ManagedScene {
       if (state.progress === null && !station.onFire) continue;
       const label = STATION_KIND_LABEL[station.spec.kind].toUpperCase();
       if (station.onFire) {
-        return { label, progress: 1 - station.fireHealth, status: "FOGO", detail: "Use o extintor", tone: "danger" };
+        return { label, progress: 1 - station.fireHealth, status: t("kitchen.statusFire"), detail: t("kitchen.useExtinguisher"), tone: "danger" };
       }
       const progress = state.progress ?? 0;
       if (state.tone === "burn") {
-        return { label, progress, status: "PRONTO", detail: "Tire do fogo antes de queimar!", tone: "warning" };
+        return { label, progress, status: t("kitchen.statusReady"), detail: t("kitchen.takeOffHeat"), tone: "warning" };
       }
       return {
         label,
         progress,
-        status: state.tone === "cook" ? "COZINHANDO" : "TRABALHANDO",
+        status: state.tone === "cook" ? t("kitchen.statusCooking") : t("kitchen.statusWorking"),
         detail: `${Math.round(progress * 100)}%`,
         tone: "active",
       };
@@ -1498,7 +2104,7 @@ export class KitchenScene implements ManagedScene {
     const now = performance.now();
     if (now - slot.lastNotifyAt < NOTIFY_THROTTLE_MS) return;
     slot.lastNotifyAt = now;
-    this.notify(`${slot.label} // ${message}`, tone, 1_600);
+    this.notify(t("kitchen.playerNotice", { player: slot.label, message }), tone, 1_600);
   }
 
   // -------------------------------------------------------------------------
@@ -1549,9 +2155,7 @@ export class KitchenScene implements ManagedScene {
 
   /** Seconds left on the most urgent ticket, for guests deciding whether to complain. */
   private orderUrgencySeconds(): ReadonlyMap<string, number> {
-    const map = new Map<string, number>();
-    for (const [id, clock] of this.orderClocks) map.set(id, clock.remaining);
-    return map;
+    return this.director.urgencySeconds();
   }
 
   /**
@@ -1568,53 +2172,87 @@ export class KitchenScene implements ManagedScene {
       this.eventBus.emit("order:failed", order);
       this.wedding.resolveOrder(order.id, false);
     }
-    this.orderClocks.clear();
-  }
-
-  private updateOrders(deltaSeconds: number): void {
-    // Expired ids are collected first: failOrder mutates activeOrders.
-    const expired: string[] = [];
-    for (const order of this.runtime.activeOrders) {
-      if (order.status !== "active") continue;
-      const clock = this.orderClocks.get(order.id);
-      if (!clock) continue;
-      clock.remaining = Math.max(0, clock.remaining - deltaSeconds);
-      if (clock.remaining <= 0) {
-        expired.push(order.id);
-        continue;
-      }
-      if (!clock.warned && clock.remaining <= BALANCE.order.expiringWarningSeconds) {
-        clock.warned = true;
-        this.eventBus.emit("order:expiring", { order, secondsRemaining: clock.remaining });
-        this.speak("order:expiring");
-      }
-    }
-    this.syncOrderClocks();
-    for (const id of expired) this.failOrder(id);
-    this.updateOrderSpawning(deltaSeconds);
+    this.director.reset();
   }
 
   /**
-   * Spawns tickets on a cadence instead of one-in-one-out, which is what lets orders pile
-   * up. The timer holds at the cap rather than banking, so clearing a backlog does not
-   * immediately dump a fresh batch on the players.
+   * Counts meltdowns: a fire that nobody put out in time.
+   *
+   * The field has always been in `ShiftResult` and on the results screen, and has always
+   * read zero because nothing ever wrote it. A blaze left burning is the thing in this
+   * kitchen that most deserves the name, so that is what it counts now — once per fire
+   * that goes unanswered, not once per frame it burns.
    */
-  private updateOrderSpawning(deltaSeconds: number): void {
-    const progress = this.runtime.shiftDuration > 0
-      ? 1 - this.runtime.shiftTimeRemaining / this.runtime.shiftDuration
-      : 0;
-    const active = this.runtime.activeOrders.filter((order) => order.status === "active");
-    if (active.length >= maxConcurrentOrders(progress, this.tuning)) {
-      this.spawnTimer = Math.max(this.spawnTimer, 2);
+  private updateMeltdowns(burning: number, deltaSeconds: number): void {
+    if (burning <= 0) {
+      this.meltdownClock = 0;
       return;
     }
-    this.spawnTimer -= deltaSeconds;
-    if (this.spawnTimer > 0) return;
-    // A ticket spawned in the last stretch could not be finished, and an unavoidable
-    // timeout would drag the shift's completion score down through no fault of the players.
-    if (this.runtime.shiftTimeRemaining <= BALANCE.order.noSpawnTailSeconds) return;
-    this.createOrder();
-    this.spawnTimer = spawnIntervalSeconds(progress, this.tuning);
+    this.meltdownClock += deltaSeconds;
+    if (this.meltdownClock < MELTDOWN_SECONDS) return;
+    this.meltdownClock = 0;
+    this.runtime = { ...this.runtime, meltdowns: this.runtime.meltdowns + 1 };
+  }
+
+  /** Runs one frame of the order clock and cadence, then reacts to what it reports. */
+  private updateOrders(deltaSeconds: number): void {
+    this.applyOrders(
+      this.director.tick({
+        deltaSeconds,
+        orders: this.runtime.activeOrders,
+        shiftTimeRemaining: this.runtime.shiftTimeRemaining,
+        shiftDuration: this.runtime.shiftDuration,
+        now: Date.now(),
+      }),
+    );
+  }
+
+  /**
+   * Writes the director's new queue into the runtime and turns its events into everything
+   * that needs the world: sound, notifications, score and the guests.
+   */
+  private applyOrders(result: OrderDirectorResult): void {
+    if (result.changed) {
+      this.runtime = { ...this.runtime, activeOrders: result.orders };
+    }
+    for (const event of result.events) this.handleOrderEvent(event);
+    if (result.changed) this.emitOrdersChanged();
+  }
+
+  private handleOrderEvent(event: OrderDirectorEvent): void {
+    switch (event.kind) {
+      case "created":
+        this.eventBus.emit("order:created", event.order);
+        break;
+      case "expiring":
+        this.eventBus.emit("order:expiring", {
+          order: event.order,
+          secondsRemaining: event.secondsRemaining,
+        });
+        this.speak("order:expiring");
+        this.sfx.play("tick");
+        break;
+      case "failed": {
+        this.wedding.resolveOrder(event.order.id, false);
+        const lost = tipFailOrder();
+        this.streak = lost.streak;
+        this.runtime = {
+          ...this.runtime,
+          failedOrders: this.runtime.failedOrders + 1,
+          score: Math.max(0, this.runtime.score - lost.penalty),
+          combo: 0,
+        };
+        this.eventBus.emit("order:failed", event.order);
+        this.notify(t("kitchen.lost"), "error");
+        this.speak("order:failed");
+        this.sfx.play("fail");
+        // The punishment mode: every plate that goes unserved glitches the kitchen.
+        this.punishment.punish();
+        break;
+      }
+      case "removed":
+        break;
+    }
   }
 
   private updateCamera(deltaSeconds: number): void {
@@ -1624,10 +2262,19 @@ export class KitchenScene implements ManagedScene {
     if (this.cameraFocusRemaining > 0) {
       this.cameraFocusRemaining = Math.max(0, this.cameraFocusRemaining - deltaSeconds);
     }
+    // A cook up in the saucer is not followed into the sky: the camera keeps to the
+    // one still in the kitchen.
+    const [one, two] = this.players;
+    const anchor = (slot: CoopPlayerState, other: CoopPlayerState): Vector3 => {
+      if (!slot.player.isAbducted) return slot.player.position;
+      const fallback = other.player.isAbducted ? slot.player.position : other.player.position;
+      return new Vector3(fallback.x, 0, fallback.z);
+    };
+    this.camera.shake = this.shakeAmount;
     const snapshot = this.camera.update(
       deltaSeconds,
-      this.players[0].player.position,
-      this.players[1].player.position,
+      anchor(one, two),
+      anchor(two, one),
       this.cameraFocusTarget,
       focus,
     );
@@ -1702,15 +2349,20 @@ export class KitchenScene implements ManagedScene {
 
     // Soonest-expiry matching always pays the smallest speed bonus of the candidates, so a
     // genuine last-second save is topped up rather than punished.
-    const clock = target ? this.orderClocks.get(target.id) : undefined;
-    const rescued = matched && clock !== undefined && clock.duration > 0 &&
-      clock.remaining / clock.duration <= BALANCE.order.rescueThreshold;
+    const remainingFraction = target ? this.director.fractionRemaining(target.id) : null;
+    const rescued = matched && remainingFraction !== null &&
+      remainingFraction <= BALANCE.order.rescueThreshold;
     const rescueBonus = rescued ? BALANCE.order.rescueBonus : 0;
 
-    const combo = matched ? this.runtime.combo + 1 : 0;
-    const comboBonus = combo >= 2 ? 40 * 2 ** Math.min(2, combo - 2) : 0;
-    const wrongDishPenalty = matched ? 0 : 50;
-    const awarded = baseAward + comboBonus + rescueBonus - wrongDishPenalty;
+    // The dish is paid for above; serving it promptly and in a row is paid for here.
+    const tip = serveTip(this.streak, {
+      matchedOrder: matched,
+      remainingFraction,
+      nowMs: this.kitchenClockMs,
+    });
+    this.streak = tip.streak;
+    const combo = tip.streak.streak;
+    const awarded = baseAward + tip.total + rescueBonus;
     this.runtime = {
       ...this.runtime,
       score: Math.max(0, this.runtime.score + awarded),
@@ -1740,12 +2392,18 @@ export class KitchenScene implements ManagedScene {
       });
     }
 
-    this.audio.play("station:complete");
+    this.sfx.play(matched ? "serve" : "wrong");
+    if (combo >= 2) this.sfx.play("combo");
     this.cameraFocusRemaining = 2.2;
     slot.player.setExpression(breakdown.total >= 0.65 ? "^_^" : ">_<");
     this.speakForQuality(breakdown.label);
+    // The tip is its own number on screen: the plate's own worth and what the pair earned
+    // for the way they served it are different things, and only one of them is a skill.
+    if (tip.total > 0) this.ui.showTip(slot.index, tip.total, combo);
     this.notify(
-      `${slot.label} // ${recipe.displayName} // ${awarded >= 0 ? "+" : ""}${awarded} PONTOS${combo >= 2 ? ` // COMBO X${combo}` : ""}${rescued ? " // RESGATE!" : ""}`,
+      t("kitchen.served", { player: slot.label, dish: recipe.displayName, points: `${awarded >= 0 ? "+" : ""}${awarded}` }) +
+        (combo >= 2 ? t("kitchen.servedCombo", { combo }) : "") +
+        (rescued ? t("kitchen.servedRescue") : ""),
       matched ? "success" : "warning",
       4_200,
     );
@@ -1757,96 +2415,48 @@ export class KitchenScene implements ManagedScene {
         completedOrders: this.runtime.completedOrders + 1,
       };
       this.eventBus.emit("order:completed", { order: completedOrder, reward: awarded });
-      this.notify("PEDIDO ENTREGUE", "success");
+      this.notify(t("kitchen.delivered"), "success");
       if (rescued) this.speak("order:rescued");
       // Spawning is the scheduler's job now, so the queue is not refilled here.
       this.removeOrder(completedOrder.id);
     } else {
-      this.notify(`PRATO ERRADO // ninguém pediu ${recipe.shortName}`, "warning");
+      this.notify(t("kitchen.wrongDish", { dish: recipe.shortName }), "warning");
     }
   }
 
   private createOrder(recipeId?: string): void {
-    const now = Date.now();
-    const chosen = recipeId
-      ?? nextSpawnRecipeId(this.runtime.activeOrders, this.recipeList, Math.random);
-    const order = this.orders.createRecipeOrder(chosen, now);
-
-    // Never hand out a deadline the shift cannot honour.
-    const recipeSeconds = (order.expiresAt - order.createdAt) / 1_000;
-    const duration = Math.max(
-      1,
-      Math.min(recipeSeconds, this.runtime.shiftTimeRemaining - 2),
+    this.applyOrders(
+      this.director.create(
+        this.runtime.activeOrders,
+        { now: Date.now(), shiftTimeRemaining: this.runtime.shiftTimeRemaining },
+        recipeId,
+      ),
     );
-    const clamped: Order = { ...order, expiresAt: now + duration * 1_000 };
-
-    this.orderClocks.set(clamped.id, { remaining: duration, duration, warned: false });
-    this.runtime = {
-      ...this.runtime,
-      activeOrders: sortByUrgency([...this.runtime.activeOrders, clamped]),
-    };
-    this.eventBus.emit("order:created", clamped);
-    this.emitOrdersChanged();
   }
 
   /** Drops an order from the queue and forgets its clock. */
   private removeOrder(orderId: string): void {
-    this.orderClocks.delete(orderId);
-    this.runtime = {
-      ...this.runtime,
-      activeOrders: this.runtime.activeOrders.filter((order) => order.id !== orderId),
-    };
-    this.emitOrdersChanged();
-  }
-
-  private failOrder(orderId: string): void {
-    const active = this.runtime.activeOrders.find((order) => order.id === orderId);
-    if (!active || active.status !== "active") return;
-    const failed = this.orders.fail(active);
-    this.wedding.resolveOrder(orderId, false);
-    this.runtime = {
-      ...this.runtime,
-      failedOrders: this.runtime.failedOrders + 1,
-      score: Math.max(0, this.runtime.score - 30),
-      combo: 0,
-    };
-    this.eventBus.emit("order:failed", failed);
-    this.notify("PEDIDO PERDIDO // PENALIDADE", "error");
-    this.speak("order:failed");
-    this.removeOrder(orderId);
+    this.applyOrders(this.director.remove(this.runtime.activeOrders, orderId));
   }
 
   private emitOrdersChanged(): void {
-    const progress = this.runtime.shiftDuration > 0
-      ? 1 - this.runtime.shiftTimeRemaining / this.runtime.shiftDuration
-      : 0;
     this.eventBus.emit("orders:changed", {
       active: this.runtime.activeOrders,
-      maxConcurrent: maxConcurrentOrders(progress, this.tuning),
+      maxConcurrent: this.director.maxConcurrent(
+        shiftProgress(this.runtime.shiftTimeRemaining, this.runtime.shiftDuration),
+      ),
     });
   }
 
   /**
-   * Rewrites each order's wall-clock stamps from its delta-accumulated countdown. The
-   * countdown is the authority, so pausing the game does not burn order time, while
-   * ScoreSystem still gets honest createdAt/expiresAt to derive its speed bonus from.
+   * Re-stamps the deadlines against wall time without advancing any countdown, which is
+   * what stops a pause from burning order time while still giving ScoreSystem honest
+   * createdAt/expiresAt to derive its speed bonus from.
    */
   private syncOrderClocks(): void {
     if (this.runtime.activeOrders.length === 0) return;
-    const now = Date.now();
-    let changed = false;
-    const next = this.runtime.activeOrders.map((order) => {
-      const clock = this.orderClocks.get(order.id);
-      if (!clock || order.status !== "active" || clock.duration <= 0) return order;
-      const elapsedMs = Math.max(0, clock.duration - clock.remaining) * 1_000;
-      const expiresAt = now + clock.remaining * 1_000;
-      // Only re-stamp on a real drift. Rewriting every frame would re-allocate the whole
-      // queue 60 times a second for sub-millisecond differences.
-      if (Math.abs(expiresAt - order.expiresAt) < CLOCK_RESTAMP_TOLERANCE_MS) return order;
-      changed = true;
-      return { ...order, createdAt: now - elapsedMs, expiresAt };
-    });
-    if (changed) this.runtime = { ...this.runtime, activeOrders: next };
+    const next = this.director.syncClocks(this.runtime.activeOrders, Date.now());
+    if (next !== this.runtime.activeOrders) this.runtime = { ...this.runtime, activeOrders: next };
   }
 
   private finishShift(): void {
@@ -1862,8 +2472,10 @@ export class KitchenScene implements ManagedScene {
         carrying: slot.held ? describeItem(slot.held, this.recipeList) : null,
       });
     }
-    const result = this.shifts.createResult(this.runtime);
+    const result = this.shifts.createResult(this.runtime, this.starThresholds);
     this.eventBus.emit("shift:ended", result);
+    this.stopKitchenSounds();
+    this.sfx.play(result.rank === "D" ? "lose" : "win");
     this.ui.showResults(result);
     this.options.onShiftComplete(result);
   }
@@ -1967,7 +2579,7 @@ const toStationSpec = (placement: KitchenStationPlacement, index: number): Stati
   initialItem: placement.initial === "extinguisher"
     ? createExtinguisher
     : placement.initial
-      ? () => createCookware(placement.initial as "pan" | "pot")
+      ? () => createCookware(placement.initial as CookwareKind)
       : undefined,
 });
 

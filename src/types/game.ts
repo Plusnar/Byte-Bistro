@@ -1,3 +1,4 @@
+import type { Language } from "../i18n";
 export type IngredientCategory =
   | "component"
   | "sweetener"
@@ -52,6 +53,10 @@ export type KitchenStationKind =
   | "counter"
   | "cutting_board"
   | "stove"
+  /** Bakes a tray unattended, with a tight window before it burns. */
+  | "oven"
+  /** Combines a bowlful of ingredients into one prepared ingredient. */
+  | "mixer"
   | "sink"
   | "plate_rack"
   | "dirty_return"
@@ -64,15 +69,6 @@ export type FoodState = "raw" | "chopped" | "cooked" | "burnt";
 export interface RecipeComponent {
   readonly ingredientId: string;
   readonly state: FoodState;
-}
-
-export interface Transformation {
-  id: string;
-  stationId: StationId;
-  inputs: string[];
-  output: string;
-  duration: number;
-  idealDuration?: number;
 }
 
 export interface AIState {
@@ -162,7 +158,6 @@ export interface RuntimeGameState {
   activeOrders: readonly Order[];
   completedOrders: number;
   failedOrders: number;
-  coreHunger: number;
   combo: number;
   maxCombo: number;
   meltdowns: number;
@@ -177,6 +172,8 @@ export interface GameSettings {
   masterVolume: number;
   reducedMotion: boolean;
   showDebug: boolean;
+  /** Chosen in the menu or the pause card; null until then, which follows the browser. */
+  language: Language | null;
 }
 
 export interface PersistentGameState {
@@ -187,6 +184,14 @@ export interface PersistentGameState {
   highestRank: ShiftRank | null;
   /** Best rank reached on each level, keyed by the level picker's entry key. */
   levelRanks: Record<string, ShiftRank>;
+  /**
+   * Best stars earned on each level, same keys. Stars come from coins (see
+   * `src/data/levelGoals.ts`); a save written before that existed has them seeded from
+   * `levelRanks`, so nobody loses a star to the upgrade.
+   */
+  levelStars: Record<string, number>;
+  /** Best coin total on each level, for showing how far off the next star is. */
+  levelBestScore: Record<string, number>;
   settings: GameSettings;
   chapter: number;
   upgrades: Record<string, number>;
@@ -199,14 +204,25 @@ export interface ShiftResult {
   ordersFailed: number;
   averageDishQuality: number;
   miraStability: number;
-  coreHunger: number;
   maxCombo: number;
+  /** Fires left burning long enough to count; see `KitchenScene.updateMeltdowns`. */
   meltdowns: number;
   componentsThrown: number;
   teamSynchronization: number;
   cookingScore: number;
   creditsEarned: number;
   rank: ShiftRank;
+  /** Coins taken home, and what this level asked for. */
+  coins: number;
+  stars: 0 | 1 | 2 | 3;
+  starThresholds: StarThresholds;
+}
+
+/** Coin targets for one, two and three stars. Mirrors `src/data/levelGoals.ts`. */
+export interface StarThresholds {
+  readonly one: number;
+  readonly two: number;
+  readonly three: number;
 }
 
 export type MiraExpression =

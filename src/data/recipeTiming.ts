@@ -1,7 +1,13 @@
 import type { RecipeData } from "../types/game";
 import { BALANCE } from "./balance";
 import { STANDARD_DIFFICULTY, type DifficultyTuning } from "./difficulty";
-import { CHOP_SECONDS, COOK_SECONDS, FOOD_DEFINITIONS, POT_CAPACITY } from "./kitchen";
+import {
+  CHOP_SECONDS,
+  COOKWARE_CAPACITY,
+  COOK_SECONDS,
+  FOOD_DEFINITIONS,
+  type CookwareKind,
+} from "./kitchen";
 
 /**
  * Derives each order's deadline from the real work its recipe demands instead of a flat
@@ -22,21 +28,23 @@ export interface RecipeWorkload {
 
 /**
  * Mirrors `cookDuration` in gameplay/kitchen/KitchenItems.ts. A pan holds one item at a
- * time, while a pot cooks a whole batch of POT_CAPACITY for the price of one — three
- * fragments in a pot cost 9s, not 27s.
+ * time, while a batched vessel cooks a whole load for the price of one — three fragments
+ * in a pot cost 9s, not 27s.
  */
-const cookSecondsFor = (kind: "pan" | "pot", count: number): number => {
+const cookSecondsFor = (kind: CookwareKind, count: number): number => {
   if (count <= 0) return 0;
-  if (kind === "pan") return count * COOK_SECONDS.pan;
-  const fullBatches = Math.floor(count / POT_CAPACITY);
-  const remainder = count % POT_CAPACITY;
-  return fullBatches * COOK_SECONDS.pot + (remainder * COOK_SECONDS.pot) / POT_CAPACITY;
+  const capacity = COOKWARE_CAPACITY[kind];
+  const seconds = COOK_SECONDS[kind];
+  if (capacity <= 1) return count * seconds;
+  const fullBatches = Math.floor(count / capacity);
+  const remainder = count % capacity;
+  return fullBatches * seconds + (remainder * seconds) / capacity;
 };
 
 export const recipeWorkload = (recipe: RecipeData): RecipeWorkload => {
   const order = BALANCE.order;
   let chopSeconds = 0;
-  const cookCounts: Record<"pan" | "pot", number> = { pan: 0, pot: 0 };
+  const cookCounts: Record<CookwareKind, number> = { pan: 0, pot: 0, tray: 0, bowl: 0 };
 
   for (const component of recipe.components) {
     const definition = FOOD_DEFINITIONS[component.ingredientId];
@@ -45,8 +53,8 @@ export const recipeWorkload = (recipe: RecipeData): RecipeWorkload => {
     if (definition.cook && component.state === "cooked") cookCounts[definition.cook] += 1;
   }
 
-  const cookSeconds =
-    cookSecondsFor("pan", cookCounts.pan) + cookSecondsFor("pot", cookCounts.pot);
+  const cookSeconds = (Object.keys(cookCounts) as CookwareKind[])
+    .reduce((sum, kind) => sum + cookSecondsFor(kind, cookCounts[kind]), 0);
   const fetchSeconds = recipe.components.length * order.perComponentFetchSeconds;
   const baseSeconds = order.baseSeconds;
 

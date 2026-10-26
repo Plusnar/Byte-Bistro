@@ -38,7 +38,7 @@ O jogo é ambientado em **São Bento do Sul (SC)** como forma de divulgar a cida
 
 ## Como jogar
 
-1. No menu, escolha a fase no mapa e, em seguida, os dois cozinheiros: o Jogador 1 troca com `A`/`D` e o Jogador 2 com as setas.
+1. No menu, escolha a fase no mapa e, em seguida, os dois cozinheiros. O botão **PT | EN** no topo do menu (e na pausa) troca o idioma do jogo inteiro na hora: o Jogador 1 troca com `A`/`D` e o Jogador 2 com as setas.
 
    ![Seleção dos cozinheiros](docs/images/selecao-personagens.jpg)
 
@@ -51,8 +51,10 @@ O jogo é ambientado em **São Bento do Sul (SC)** como forma de divulgar a cida
 | --- | --- | --- |
 | Mover | `W A S D` | Setas |
 | Correr | `Shift` esquerdo | `Numpad 0` |
+| Avançada (dá um encontrão em quem estiver na frente) | `Espaço` | `Numpad .` |
+| Chamar o colega | `Q` | `Numpad 1` |
 | Pegar, largar, combinar, entregar | `E` | `Enter` |
-| Segurar: cortar, lavar, extintor · Tocar com ingrediente na mão: arremessar | `F` | `Shift` direito |
+| Segurar: cortar, lavar, extintor · Com ingrediente na mão: mirar e soltar para arremessar | `F` | `Shift` direito |
 | Livro de receitas | `Tab` | — |
 | Pausar | `Esc` | — |
 
@@ -65,7 +67,9 @@ No menu, **Criar mapa** abre o editor, inspirado no modo construção do *The Si
 - **Catálogo** com mais de 1.600 objetos, separados por abas e por pacote, com busca.
 - **Desenhar paredes e pisos** clicando e arrastando.
 - **Paredes em pé, em corte ou abaixadas**, para enxergar o interior enquanto constrói.
-- Câmera orbital, **vista de cima**, grade e aviso quando um objeto não cabe no lugar.
+- Câmera e controles como no *The Sims 4*: botão direito gira e inclina, arrastar o chão (botão esquerdo ou roda) move a vista, a roda aproxima em direção ao cursor e o mouse na borda da tela desliza a câmera. `W A S D` movem, `Q`/`E` giram, `,`/`.` giram o objeto e `9`/`0` sobem e descem.
+- **Colocação livre**: qualquer objeto vai em qualquer lugar, inclusive fora do lote (vira cenário) e em cima de outros objetos, como uma luminária sobre a mesa.
+- **Vista de cima** e grade.
 
 ![Paredes e pisos desenhados arrastando](docs/images/construcao-paredes-e-pisos.jpg)
 

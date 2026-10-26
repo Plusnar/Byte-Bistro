@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { MapData } from "./MapData";
 import { isFloorAsset } from "../physics/collisionPolicy";
 import { WEDDING_SCENARIO, getScenario, type ScenarioDefinition } from "../data/scenarios";
@@ -26,12 +27,12 @@ export function mapRequirements(
   const requirements: MapRequirement[] = [];
   if (scenario.requirements.requiresSpawns) {
     requirements.push(
-      { label: "Spawn do Player 1", satisfied: map.objects.some(o => o.role === "spawn" && o.playerIndex === 1) },
-      { label: "Spawn do Player 2", satisfied: map.objects.some(o => o.role === "spawn" && o.playerIndex === 2) },
+      { label: t("editor.requirementSpawn1"), satisfied: map.objects.some(o => o.role === "spawn" && o.playerIndex === 1) },
+      { label: t("editor.requirementSpawn2"), satisfied: map.objects.some(o => o.role === "spawn" && o.playerIndex === 2) },
     );
   }
   if (scenario.requirements.requiresFloor) {
-    requirements.push({ label: "Piso ou ambiente completo", satisfied: hasFloor(map) });
+    requirements.push({ label: t("editor.requirementFloor"), satisfied: hasFloor(map) });
   }
   for (const station of scenario.requirements.stations) {
     const placed = map.objects.filter(o => o.role === "station" && o.stationId === station.id).length;
@@ -45,7 +46,7 @@ export function mapRequirements(
       o => o.role === "dispenser" && o.ingredientId === ingredient.id,
     ).length;
     requirements.push({
-      label: `Ingrediente: ${ingredient.label}`,
+      label: t("editor.requirementIngredient", { name: ingredient.label }),
       satisfied: placed >= (ingredient.count ?? 1),
     });
   }
@@ -57,7 +58,7 @@ export function mapRequirements(
   ).length;
   if (raised > 0) {
     requirements.push({
-      label: `Estações e caixas no chão (${raised} acima do piso)`,
+      label: t("editor.requirementGrounded", { count: raised }),
       satisfied: false,
     });
   }

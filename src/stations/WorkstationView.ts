@@ -12,6 +12,7 @@ import {
   type Scene,
 } from "@babylonjs/core";
 import type { AssetManager, ModelInstance } from "../core/AssetManager";
+import { trackParticleSystem } from "../core/perf/effectBudget";
 import {
   COUNTER_HEIGHT,
   CRATE_MODEL_BY_INGREDIENT,
@@ -20,6 +21,7 @@ import {
   kitchenAssetId,
   type KitchenModelName,
 } from "../data/kitchen";
+import { BOARD, KNIFE_SPOT, PLATE_STEP, STACKED_PLATE_SCALE } from "./stationDressing";
 import type { KitchenStationPlacement } from "../data/kitchenLayout";
 import { fitHolderToSize } from "../entities/modelFit";
 import type { KitchenStationKind } from "../types/game";
@@ -34,6 +36,10 @@ export interface WorkstationViewState {
   readonly cleanPlates: number;
   readonly dirtyPlates: number;
   readonly chopping: boolean;
+  /** A cook has picked the knife up to chop with, so the board shows none. */
+  readonly knifeInHand?: boolean;
+  /** A cook is scrubbing a plate in this sink. */
+  readonly washing?: boolean;
 }
 
 interface BaseModel {
@@ -61,6 +67,8 @@ const TOP_HEIGHT: Readonly<Record<KitchenStationKind, number>> = {
   counter: COUNTER_HEIGHT,
   cutting_board: COUNTER_HEIGHT + 0.09,
   stove: 0.91,
+  oven: 0.91,
+  mixer: COUNTER_HEIGHT,
   sink: COUNTER_HEIGHT,
   plate_rack: COUNTER_HEIGHT,
   dirty_return: COUNTER_HEIGHT,
@@ -200,6 +208,8 @@ export class WorkstationView {
   private readonly ownedMeshes: Mesh[] = [];
   private knife: TransformNode | null = null;
   private fire: ParticleSystem | null = null;
+  private water: ParticleSystem | null = null;
+  private foam: ParticleSystem | null = null;
   private highlightOwners = 0;
   private clock = 0;
   private shownClean = -1;
@@ -337,11 +347,14 @@ export class WorkstationView {
     }
 
     this.updateFire(state.onFire);
+    this.updateWash(state.washing ?? false);
     this.updatePlateStacks(state.cleanPlates, state.dirtyPlates);
 
     if (this.knife) {
-      // Knife lifts and drops while a player holds the chop action.
-      const lift = state.chopping ? Math.abs(Math.sin(this.clock * 16)) * 0.9 : 0;
+      const inHand = state.knifeInHand ?? false;
+      if (this.knife.isEnabled() === inHand) this.knife.setEnabled(!inHand);
+      // A cook without hands to hold it: the knife chops by itself.
+      const lift = state.chopping && !inHand ? Math.abs(Math.sin(this.clock * 16)) * 0.9 : 0;
       this.knife.rotation.x = Math.PI / 2 - lift;
     }
   }
@@ -349,6 +362,10 @@ export class WorkstationView {
   dispose(): void {
     this.fire?.dispose();
     this.fire = null;
+    this.water?.dispose();
+    this.water = null;
+    this.foam?.dispose();
+    this.foam = null;
     for (const model of this.models) model.dispose();
     for (const model of [...this.plateStacks.clean, ...this.plateStacks.dirty]) model.dispose();
     for (const mesh of this.ownedMeshes) mesh.dispose(false, false);
@@ -381,12 +398,12 @@ export class WorkstationView {
       }
       case "cutting_board": {
         this.addModel(counter);
-        this.addModel({ name: "cuttingboard", scale: [0.55, 0.6, 0.55], y: COUNTER_HEIGHT });
+        this.addModel({ name: BOARD.model, scale: [...BOARD.scale], y: BOARD.position[1] });
         const knifeHolder = new TransformNode(`${this.root.name}-knife`, this.scene);
         knifeHolder.parent = this.root;
-        knifeHolder.position.set(0.36, COUNTER_HEIGHT + 0.1, -0.15);
-        knifeHolder.rotation.x = Math.PI / 2;
-        this.addModel({ name: "knife", scale: [0.5, 0.5, 0.5] }, knifeHolder);
+        knifeHolder.position.set(...KNIFE_SPOT.position);
+        knifeHolder.rotation.x = KNIFE_SPOT.rotationX;
+        this.addModel({ name: "knife", scale: [KNIFE_SPOT.scale, KNIFE_SPOT.scale, KNIFE_SPOT.scale] }, knifeHolder);
         this.knife = knifeHolder;
         break;
       }
@@ -514,8 +531,8 @@ export class WorkstationView {
     for (let index = 0; index < visible; index += 1) {
       const holder = new TransformNode(`${this.root.name}-stack`, this.scene);
       holder.parent = this.root;
-      holder.position.set(offsetX, this.topHeight + index * 0.055, 0);
-      holder.scaling.setAll(0.58);
+      holder.position.set(offsetX, this.topHeight + index * PLATE_STEP, 0);
+      holder.scaling.setAll(STACKED_PLATE_SCALE);
       const instance = this.assets.instantiateLoaded(kitchenAssetId(model), {
         namePrefix: `${this.root.name}-stack-`,
         parent: holder,
@@ -552,10 +569,61 @@ export class WorkstationView {
       fire.minEmitPower = 0.6;
       fire.maxEmitPower = 1.2;
       fire.gravity = new Vector3(0, 0.6, 0);
-      this.fire = fire;
+      this.fire = trackParticleSystem(fire);
     }
     if (!this.fire) return;
     if (onFire && !this.fire.isStarted()) this.fire.start();
     if (!onFire && this.fire.isStarted()) this.fire.stop();
+  }
+
+  /** Splashing water and soap bubbles out of the basin while a plate is scrubbed. */
+  private updateWash(washing: boolean): void {
+    if (washing && !this.water) {
+      const basin = new Vector3(this.placement.x, this.topHeight - 0.02, this.placement.z);
+      const water = new ParticleSystem(`${this.root.name}-water`, 90, this.scene);
+      water.particleTexture = this.resources.fireTexture;
+      water.emitter = basin.clone();
+      water.minEmitBox = new Vector3(-0.16, 0, -0.12);
+      water.maxEmitBox = new Vector3(0.16, 0.02, 0.12);
+      water.color1 = new Color4(0.55, 0.85, 1, 0.9);
+      water.color2 = new Color4(0.25, 0.6, 1, 0.8);
+      water.colorDead = new Color4(0.6, 0.85, 1, 0);
+      water.minSize = 0.03;
+      water.maxSize = 0.07;
+      water.minLifeTime = 0.25;
+      water.maxLifeTime = 0.5;
+      water.emitRate = 70;
+      water.direction1 = new Vector3(-0.6, 1.6, -0.6);
+      water.direction2 = new Vector3(0.6, 2.4, 0.6);
+      water.minEmitPower = 0.5;
+      water.maxEmitPower = 0.9;
+      water.gravity = new Vector3(0, -9, 0);
+      this.water = trackParticleSystem(water);
+
+      const foam = new ParticleSystem(`${this.root.name}-foam`, 60, this.scene);
+      foam.particleTexture = this.resources.fireTexture;
+      foam.emitter = basin.clone();
+      foam.minEmitBox = new Vector3(-0.2, 0, -0.14);
+      foam.maxEmitBox = new Vector3(0.2, 0.04, 0.14);
+      foam.color1 = new Color4(1, 1, 1, 0.95);
+      foam.color2 = new Color4(0.85, 0.95, 1, 0.85);
+      foam.colorDead = new Color4(1, 1, 1, 0);
+      foam.minSize = 0.04;
+      foam.maxSize = 0.11;
+      foam.minLifeTime = 0.6;
+      foam.maxLifeTime = 1.3;
+      foam.emitRate = 26;
+      foam.direction1 = new Vector3(-0.08, 0.25, -0.08);
+      foam.direction2 = new Vector3(0.08, 0.45, 0.08);
+      foam.minEmitPower = 0.2;
+      foam.maxEmitPower = 0.4;
+      foam.gravity = new Vector3(0, 0.05, 0);
+      this.foam = trackParticleSystem(foam);
+    }
+    for (const system of [this.water, this.foam]) {
+      if (!system) continue;
+      if (washing && !system.isStarted()) system.start();
+      if (!washing && system.isStarted()) system.stop();
+    }
   }
 }

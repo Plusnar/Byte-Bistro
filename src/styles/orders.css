@@ -44,6 +44,53 @@
 
 .game-ui .order-panel.is-empty .order-tickets { display: none; }
 
+/*
+ * Tickets that have not arrived yet. Dimmed and smaller so they never compete with a live
+ * order, but readable enough that a cook can start prepping for one.
+ */
+.game-ui .order-upcoming {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 6px;
+  border-left: 1px dashed rgba(255, 255, 255, 0.28);
+  list-style: none;
+}
+
+.game-ui .order-upcoming[hidden] { display: none; }
+
+.game-ui .order-upcoming-card {
+  display: flex;
+  width: 58px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 4px;
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 9px;
+  background: rgba(8, 20, 38, 0.55);
+  opacity: 0.72;
+}
+
+.game-ui .order-upcoming-card img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  filter: grayscale(0.45);
+}
+
+.game-ui .order-upcoming-card span {
+  overflow: hidden;
+  color: #d8e6ff;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
 .game-ui .order-empty-hint {
   display: none;
   margin: 0;
@@ -313,6 +360,20 @@
   line-height: 46px;
   text-align: center;
   transform: translate(-50%, -50%);
+}
+
+/* A cook's "Hey!" pointing at the ticket they are working. */
+.game-ui .order-card.is-flagged {
+  animation: order-card-flagged 900ms ease-out 2 both;
+}
+
+@keyframes order-card-flagged {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  40% { box-shadow: 0 0 0 4px #ffd98a, 0 0 22px #ffbb4f; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .order-card.is-flagged { animation: none; box-shadow: 0 0 0 4px #ffd98a; }
 }
 
 .game-ui .order-card[data-outcome] { pointer-events: none; }

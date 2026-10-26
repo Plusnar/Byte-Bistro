@@ -1,0 +1,1569 @@
+{
+  "pipelineVersion": 1,
+  "decoder": {
+    "path": "vendor/meshopt_decoder-1.3.0.js",
+    "version": "1.3.0"
+  },
+  "files": {
+    "public/asset-library/Char/Characters/William .glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "4c3ecc980500710441e0ab25537ccf0a78168e4c202c1efaf389068acee1c668",
+      "sourceBytes": 5857448,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Char/Characters/William .glb",
+      "outputHash": "c391e36ac12879e10ff995e409f612d15027f6aa63f117193c129b9757df11f8",
+      "outputBytes": 2314144,
+      "meshopt": false,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            2048,
+            2048
+          ],
+          [
+            2048,
+            2048
+          ],
+          [
+            2048,
+            2048
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ]
+      }
+    },
+    "public/asset-library/Char/Characters/Sandy.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "22841d6457fbbb34663c78ad6c530047d55ca222e887d2cc0db634d02a9a3d85",
+      "sourceBytes": 6093376,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Char/Characters/Sandy.glb",
+      "outputHash": "a9d5f8bebf1141d4fd9ffbe5fa342475e6dc1280d0b3a77925c3000e120b1ebd",
+      "outputBytes": 2504356,
+      "meshopt": false,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            2048,
+            2048
+          ],
+          [
+            2048,
+            2048
+          ],
+          [
+            2048,
+            2048
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ]
+      }
+    },
+    "public/asset-library/Char/Characters/Milena.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "3b3fac8f3d30674483996d3e7fccfbbc605e7d9ee6feb59653086aab8f9a4101",
+      "sourceBytes": 8328396,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Char/Characters/Milena.glb",
+      "outputHash": "39ed17677f75ef427ba56e96513ec7b2518523697aa3186e6649c4fbb6788085",
+      "outputBytes": 2631272,
+      "meshopt": false,
+      "before": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": [
+          [
+            2048,
+            2048
+          ],
+          [
+            2048,
+            2048
+          ],
+          [
+            2048,
+            2048
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ]
+      }
+    },
+    "public/asset-library/Char/Characters/Jean.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "c4060fcb5ca39b39e48264986b556987e2e4cc545ecff5518aa7d365ef08c621",
+      "sourceBytes": 7615624,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Char/Characters/Jean.glb",
+      "outputHash": "646ccbd507f192ae3c53993bdc0ee678b18406c31f88f67e60d1d30d45a85fcc",
+      "outputBytes": 2304164,
+      "meshopt": false,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            2048,
+            2048
+          ],
+          [
+            2048,
+            2048
+          ],
+          [
+            2048,
+            2048
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ]
+      }
+    },
+    "Anim/Mannequin Character/characters/Mannequin_Medium.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "368a4c0733280bc810c004b81f31408f43c00e307cf914061e80f192ba25685b",
+      "sourceBytes": 420044,
+      "status": "unchanged",
+      "reason": "saves only 2.5%"
+    },
+    "Anim/Animations/gltf/Rig_Medium/Rig_Medium_General.glb": {
+      "profile": "animation",
+      "profileKey": "df76d2badf34",
+      "sourceHash": "5f725c0f745f36078c7238968cd5c04843cbc6260689eb6e7f5e2bbd7ffdd7ad",
+      "sourceBytes": 828240,
+      "status": "optimized",
+      "output": "optimized/Anim/Animations/gltf/Rig_Medium/Rig_Medium_General.glb",
+      "outputHash": "cbafd22806edc116c604c9f84e9d9d69813e7b40a760222ae1d30ab273537746",
+      "outputBytes": 760112,
+      "meshopt": false,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "Anim/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb": {
+      "profile": "animation",
+      "profileKey": "df76d2badf34",
+      "sourceHash": "11422afd50abf7e8c92ea107e2e0bc94abd38023d6d15f55ad580347efbfa29e",
+      "sourceBytes": 689624,
+      "status": "optimized",
+      "output": "optimized/Anim/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb",
+      "outputHash": "c06f989820e4adb46496216a74a91debb5d8249d1249344bcc00d65e8bcdafbb",
+      "outputBytes": 643484,
+      "meshopt": false,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "Anim/Animations/gltf/Rig_Medium/Rig_Medium_Simulation.glb": {
+      "profile": "animation",
+      "profileKey": "df76d2badf34",
+      "sourceHash": "ab6ffeed40c8281dd0ce0506534eadf7385151f1c266643a10fa2a0f0a7ba3b1",
+      "sourceBytes": 855904,
+      "status": "unchanged",
+      "reason": "saves only 4.7%"
+    },
+    "src/assets/ingredients/binary_sugar.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "fae1159f589919f0331be4ecf212c7ca8bfd61b9f3520a4d31273dbf988984b4",
+      "sourceBytes": 193328,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/binary_sugar.glb",
+      "outputHash": "eb464a5cfcc6d34b8b1c154982f25907516d75b545d2309bafd26320c6b525d3",
+      "outputBytes": 132260,
+      "meshopt": true,
+      "before": {
+        "meshes": 22,
+        "primitives": 22,
+        "textures": []
+      },
+      "after": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/binary_sugar_item.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "2bfd65a0174725e935dca36812416f48453cef6230e2055bda21d0bccc6650ea",
+      "sourceBytes": 50476,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/binary_sugar_item.glb",
+      "outputHash": "5fe3fdbda39345872a4943651dab3185b3ba3eab888adc82ae19869917c090cf",
+      "outputBytes": 35548,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/cache_cream.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "62f63f1daf50d8fa690b829b910fa4e248909c043429a5549f7229870b7bc989",
+      "sourceBytes": 212868,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/cache_cream.glb",
+      "outputHash": "8c23c5a019e63ee0fe87f93a76195c5986a10e67173a9ea57b55f1a055e06aa4",
+      "outputBytes": 142332,
+      "meshopt": true,
+      "before": {
+        "meshes": 20,
+        "primitives": 20,
+        "textures": []
+      },
+      "after": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/cache_cream_item.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "12ad4f0e2db445e3e6a03247e0343c9a24cf299a6fa0bc46b4ebf743bdbe7c0b",
+      "sourceBytes": 86220,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/cache_cream_item.glb",
+      "outputHash": "28e1bc38f96ed9d43c04797beeaaaa94b7444537b2e8d8522e87ddeae58d7a8f",
+      "outputBytes": 46540,
+      "meshopt": true,
+      "before": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/cache_fragment.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "b3e90e18f08502b37307651d7c89fc81712f4b16e202393eeead78371a0439e8",
+      "sourceBytes": 215768,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/cache_fragment.glb",
+      "outputHash": "1890f65915c6a2c850043a6fdb9ca6d0dae381b28d2ee12a7b4f3144830279c0",
+      "outputBytes": 140088,
+      "meshopt": true,
+      "before": {
+        "meshes": 25,
+        "primitives": 25,
+        "textures": []
+      },
+      "after": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/cache_fragment_item.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "08b6cf0847242225b28fd4a598f5b6b9d31cc64e7bed5c3e1b41a1baa3bd0ad2",
+      "sourceBytes": 72424,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/cache_fragment_item.glb",
+      "outputHash": "53573cddabc47bcc5d12b74bb202ff5a90ba49836e5230c5cd4658588501fc1e",
+      "outputBytes": 48004,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/cooling_fluid.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "b29dbc6708f3c689b932f2e023f81f35e4dbb33fec77198d02710e0c28543199",
+      "sourceBytes": 191288,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/cooling_fluid.glb",
+      "outputHash": "0f42a6df8b236575cc4fecc19e2e315efe75ba1be0a91520df3a84feb94ef96b",
+      "outputBytes": 144160,
+      "meshopt": true,
+      "before": {
+        "meshes": 21,
+        "primitives": 21,
+        "textures": []
+      },
+      "after": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/cooling_fluid_item.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "909866a2829194163b5c8445b6bff59430d71436f604be6ecc0de44efba61eae",
+      "sourceBytes": 78180,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/cooling_fluid_item.glb",
+      "outputHash": "3cdf66d41e907a9304c3d6832dec66723c26aa0728e919d2dfb202c9fe8e708d",
+      "outputBytes": 44856,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/data_cream.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "ed9148900978ad2cbc2a01f7adc1f1554a37e4b9e4f3941007119e0f72a6de20",
+      "sourceBytes": 226160,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/data_cream.glb",
+      "outputHash": "dcff6c5f1c22bb92ea4b2272c2e11fbf88c41535425d72b3efdf8dc4b5b41b44",
+      "outputBytes": 137408,
+      "meshopt": true,
+      "before": {
+        "meshes": 26,
+        "primitives": 26,
+        "textures": []
+      },
+      "after": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/data_cream_item.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "aa657858b62761d77bbe8876a3c9221d66b39b3b2af94fda7d715b78f3ed8a9b",
+      "sourceBytes": 75868,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/data_cream_item.glb",
+      "outputHash": "ba6df4b1e4fa281e49b2460609bfc9bb29fac06cc0a5d5bbf0d700c074d66308",
+      "outputBytes": 43188,
+      "meshopt": true,
+      "before": {
+        "meshes": 10,
+        "primitives": 10,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/ram_module.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "f042e7ef2ff2265bdeb087d0d261fa80818da5d0ebae8bc5ccb3d60c36e6fd57",
+      "sourceBytes": 195700,
+      "status": "unchanged",
+      "reason": "saves only -25.2%"
+    },
+    "src/assets/ingredients/ram_module_item.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "ac4c6a13e327981dfb014d1c61247d9adbba243ac6b53a9a034256deb2d6755c",
+      "sourceBytes": 80648,
+      "status": "unchanged",
+      "reason": "saves only -89.0%"
+    },
+    "src/assets/scenario/factory-box-large.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "b205b25c8038259458959357f08f41d59b71a48ed1a529db35aba97083bf4ce5",
+      "sourceBytes": 19332,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-box-large.glb",
+      "outputHash": "2eb89af486b82570bcd7f282d406a9b52c3d97b02e45bb25db5b27bd7c8ec4db",
+      "outputBytes": 7424,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-box-small.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "27ddefa4fdca0cb19ceeb26012d5f4a2137c745bd21e4ac82d08da6a46c931fa",
+      "sourceBytes": 19340,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-box-small.glb",
+      "outputHash": "8e005b679b9d35ad120bedd39a43fce0a34e5371e981aad695fb570ef26f7520",
+      "outputBytes": 7468,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-conveyor-long-sides.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "9f1932f055985241567c75365796edb9ea39f17bfb56e93d0f11b6ab7af470cc",
+      "sourceBytes": 33936,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-conveyor-long-sides.glb",
+      "outputHash": "174ff39796c3885aaea2a5070c73761726b27fd0d3575e4eb19605ff2fbead8b",
+      "outputBytes": 11916,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-hopper-high-square.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "4f58d037e64be19223b833a7a3b0b17403de8d9559b53be86acf5373e38ecd8e",
+      "sourceBytes": 23140,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-hopper-high-square.glb",
+      "outputHash": "37a33241233a3b2365d0848d368b9978b0ced8cb3e1e4e917150157c82ea58c5",
+      "outputBytes": 8108,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-machine-bed.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "d673feb952783d50efbb29fa23fc241ac3fd08415f04b800879665724363e54e",
+      "sourceBytes": 63988,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-machine-bed.glb",
+      "outputHash": "ca82644d9e1ced9187ee67cc72f91485ef81918970544a65b83f9b4403bc9ecd",
+      "outputBytes": 22416,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-machine-fortified.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "6e886345224d7bcdb2c31d3b24082b175d7be05869e8e019511017850033c71e",
+      "sourceBytes": 41668,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-machine-fortified.glb",
+      "outputHash": "0c140a7a2e6ac242f9e397c9a6e3f94a7770f19f9ab31964fc28250e873aaf75",
+      "outputBytes": 12568,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-machine.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "77be80d1ca05f367fe1c644e51d8e5db86baab034628e4a201db3be1c03a133e",
+      "sourceBytes": 37460,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-machine.glb",
+      "outputHash": "1cf09ede717eb9b504c2b8ad93bcb69d07acc1b1378964e08d6ae6d27e568f95",
+      "outputBytes": 12000,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-pipe-large-bend.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "c4f2be93d056ab27b544b3761688b4f38df2e5b4bdbdd5f4161beb1669bce42f",
+      "sourceBytes": 56364,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-pipe-large-bend.glb",
+      "outputHash": "2a2deca919d12f276f7d7056286c711ed74de0505e9e900d0b98a2d11e11a6c2",
+      "outputBytes": 20948,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-pipe-large-long.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "095e346f444c9343a984dc2de9841fa277e4ee1e09ec96f26ac93d4ba5bd069e",
+      "sourceBytes": 39124,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-pipe-large-long.glb",
+      "outputHash": "9cd870d885afab8d14d51e5befe8831f9ce5b5b49557fc6cc77cfd29f085b4d9",
+      "outputBytes": 13796,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-pipe-large-valve.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "588ead5112412feaee94c33f782f59ee8e40bc30022dde82f523bb896d8b2521",
+      "sourceBytes": 54456,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-pipe-large-valve.glb",
+      "outputHash": "43ea3b9aae070d1bf007c425d3d42a333c2c782aab4b9c7f79c5c50c474dd073",
+      "outputBytes": 18912,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-robot-arm-a.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "44da5c8ecb31162a9f06218d0171f10bdaa630a69d1c66125d887eeb9c066899",
+      "sourceBytes": 62140,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-robot-arm-a.glb",
+      "outputHash": "9808e0861ca076e343826628191007810c184c33c6dcf2a161cf18bd51ad6027",
+      "outputBytes": 14816,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-scanner-low.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "05130fa10b3bbf9648dbf5e5f5db42f8c7752ce94a1b0e03b90e3e9fad91e89a",
+      "sourceBytes": 34028,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-scanner-low.glb",
+      "outputHash": "c9913446adc8b80c17def5f7c953f81e022011c6bca028ae16969040c2193af5",
+      "outputBytes": 10244,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/factory-screen-wide.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "a1a207fba5f51b2beb61e032b83fca3ada6c32986c3972f1ad7b26e87a602b95",
+      "sourceBytes": 25740,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/factory-screen-wide.glb",
+      "outputHash": "d5464cbbfb2597cb597e789f2ed2c3ac538461f3c359d99d699c76620ebbd0e4",
+      "outputBytes": 9348,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-bowl.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "cdfedca671dadfed19229881ba9afd4b544d2ba60dbba1f5a24071abc59d7c58",
+      "sourceBytes": 17080,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-bowl.glb",
+      "outputHash": "a446d0e386585a237838cee01fe43b920a8c1f0493f90f5c0767b070e2875589",
+      "outputBytes": 8020,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-bread.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "f21bd08e3bf28bec12dce82278e32fbd0cbcd92c6afd54f8031a4d960ead70ab",
+      "sourceBytes": 20204,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-bread.glb",
+      "outputHash": "ab3ae01efee29710f894a1541039a7add14773f78885979cb618ce5acc2ac546",
+      "outputBytes": 8728,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-cake-birthday.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "bb55013b327e5f8de7b709c8c39907390b698f57accbd4d6ff0a4fdd54e48eb1",
+      "sourceBytes": 125916,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-cake-birthday.glb",
+      "outputHash": "f2121147823e3536ca2299c822242bfae0f4e1c7fa6964d25b94c368885943de",
+      "outputBytes": 36856,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-cake.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "42ea794e62c81966f7f1ab8e83457342c7bd9f0ec92a484a1c1658874b909f78",
+      "sourceBytes": 83468,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-cake.glb",
+      "outputHash": "c76994055ef4caea6c7a9c24b6711680816c18d5eb193de70b967391dd96adce",
+      "outputBytes": 31416,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-candy-bar.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "668dbe3f84b3c887a3512a200edb576ba34016418920998488d1614b2889f9f6",
+      "sourceBytes": 18240,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-candy-bar.glb",
+      "outputHash": "5ad4a02a640f2bd2bfdee6f30df67d2bd2afd0cdf6cb9d862a1ef75ab64ceb0e",
+      "outputBytes": 8392,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-carton-small.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "4550e379225f92aa874ba8b1970f33152990edc23715214b3b33788d13aefba2",
+      "sourceBytes": 19092,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-carton-small.glb",
+      "outputHash": "ebf88fb134d9a1d51d277031ec31e9a5c08e6e28452726e58bc3ae34c6c74001",
+      "outputBytes": 8772,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-chocolate.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "675edbdd34da023705e4d10315bee5920f2bb84290df71c546c15966b1143b85",
+      "sourceBytes": 23396,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-chocolate.glb",
+      "outputHash": "f0c6a58192c0b0b58683aad3bfaae71859f28fd6e49638463b8fea9e5de2f3d1",
+      "outputBytes": 10240,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-cookie-chocolate.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "9a5d32edc20a2009a135ec15a2e4c3018ca3d03e468fe71e85fbe3e5c0ac8abe",
+      "sourceBytes": 23088,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-cookie-chocolate.glb",
+      "outputHash": "f60aacc51e7cdc81fb2b59ef0148ad5a5a2d0ff8a0210461570d89977ec4e8b1",
+      "outputBytes": 10968,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-ice-cream-cup.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "0d3e8f24550c1c6c740aaeac7a93827cb36cfc9b97997fbb79f9a93b2aa49cc4",
+      "sourceBytes": 18548,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-ice-cream-cup.glb",
+      "outputHash": "98113f8be130d138995f2eb22daef969c6560ebab815d9bd4a5ddf00f91c5a96",
+      "outputBytes": 8976,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-shaker-salt.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "44a6178171b93ea70ba85aba4101cbb0774493be1edacdcfb6961f0464ce8f89",
+      "sourceBytes": 22532,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-shaker-salt.glb",
+      "outputHash": "7cd779f72e67c26efa52202b6860b473e23b2215b10f245634875faa5efc9d12",
+      "outputBytes": 10512,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-soda-bottle.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "76bf603f22df7fda7fd7262f719847b3a045fa51822ae0002deaf704570bacd7",
+      "sourceBytes": 22064,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-soda-bottle.glb",
+      "outputHash": "205a3c57d29b22adc5f2bb2122cfc673bf29dabafea7547606aa2390e53bc1bb",
+      "outputBytes": 10436,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/food-whipped-cream.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "218532c1bcc74b1e135ada1950ff0788e9dd0d4ce50be0882bb3f93647e8a6c2",
+      "sourceBytes": 15652,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/food-whipped-cream.glb",
+      "outputHash": "69764fcf34142218b26abe42325239c391a26b095974cfd279a2258679560451",
+      "outputBytes": 7876,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/market-cash-register.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "a5f5618234eea4da84ebb52a94820b8cc79219589eeabd22b1b21f507fb3ccb5",
+      "sourceBytes": 29060,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/market-cash-register.glb",
+      "outputHash": "3b1354e69b2edbaee66322db80f928c27a56cd4427405d32021559c0b676ad6d",
+      "outputBytes": 11600,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/market-freezers-standing.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "a1e6c946796f30ced3e6b03a2791b0757e3d85114d4450fc5c4e0166d42bf7f6",
+      "sourceBytes": 24068,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/market-freezers-standing.glb",
+      "outputHash": "0a7d3aee2005bf3b311e197eb5b6c18aacccf7c83e693bbf37f4e6a784fd3ef1",
+      "outputBytes": 9356,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/market-shelf-boxes.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "80a6a5e0a1f58a71a579cfac261e79f3fa63c9203fc3b31ee239cd2031874758",
+      "sourceBytes": 37568,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/market-shelf-boxes.glb",
+      "outputHash": "79169ad3e619315a647888f49de2ffb9ab25c870d0c0d74eca65b20f6313b980",
+      "outputBytes": 16188,
+      "meshopt": true,
+      "before": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/space-cables.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "71f03de47e11274054287ca226a29975fd674236659435deba9a29bf1847a814",
+      "sourceBytes": 76188,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/space-cables.glb",
+      "outputHash": "57aac8aa2a274c798e43017094984429ed1ddd7725b48a13fb8ab1f51e440e72",
+      "outputBytes": 23196,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/scenario/space-room-wide.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "927471ebf72ced1b935d835228c3034951019fe965c0f0f09deda22cbeceb99a",
+      "sourceBytes": 789008,
+      "status": "optimized",
+      "output": "optimized/src/assets/scenario/space-room-wide.glb",
+      "outputHash": "781f3c8345e68e0fe7692d1117f6897eae020712d401250c6e2a1fe4403ce982",
+      "outputBytes": 214252,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    },
+    "src/assets/disasters/rat.glb": {
+      "profile": "prop",
+      "profileKey": "4a040b359e47",
+      "sourceHash": "73c2eaea7bcf1c5f36e278c9a2412dd2a9c2a3b17ba3dab5199ce95159d5df2d",
+      "sourceBytes": 144236,
+      "status": "optimized",
+      "output": "optimized/src/assets/disasters/rat.glb",
+      "outputHash": "74d1c2d9710ac5a3319ee5c11893b9048c404ab82bebdd3fe342a396cad267b6",
+      "outputBytes": 71768,
+      "meshopt": true,
+      "before": {
+        "meshes": 22,
+        "primitives": 22,
+        "textures": []
+      },
+      "after": {
+        "meshes": 22,
+        "primitives": 22,
+        "textures": []
+      }
+    },
+    "src/assets/disasters/tesla.glb": {
+      "profile": "prop",
+      "profileKey": "4a040b359e47",
+      "sourceHash": "1a3b04b912f4ecfb4628e94581e8adaf5276e9987be287c2822f11cfe03a0a17",
+      "sourceBytes": 31876,
+      "status": "optimized",
+      "output": "optimized/src/assets/disasters/tesla.glb",
+      "outputHash": "672d9e4ec2c2dd2397f268f9ff1618e5d28a36ddba7a0dd1f923fc2e7347962d",
+      "outputBytes": 16500,
+      "meshopt": true,
+      "before": {
+        "meshes": 19,
+        "primitives": 19,
+        "textures": []
+      },
+      "after": {
+        "meshes": 13,
+        "primitives": 13,
+        "textures": []
+      }
+    },
+    "src/assets/disasters/tomato.glb": {
+      "profile": "prop",
+      "profileKey": "4a040b359e47",
+      "sourceHash": "58fcc9d55200c838307976610d1bcf4261eee7ea17ab02d5a7fb6d0733d0f865",
+      "sourceBytes": 19728,
+      "status": "optimized",
+      "output": "optimized/src/assets/disasters/tomato.glb",
+      "outputHash": "179574a240cc86c002fa1644cc6166f9f768a05fb1246337a7d853e20a7c8aad",
+      "outputBytes": 14052,
+      "meshopt": true,
+      "before": {
+        "meshes": 7,
+        "primitives": 7,
+        "textures": []
+      },
+      "after": {
+        "meshes": 7,
+        "primitives": 7,
+        "textures": []
+      }
+    },
+    "src/assets/disasters/ufo.glb": {
+      "profile": "prop",
+      "profileKey": "4a040b359e47",
+      "sourceHash": "b25e37e8e24684256be3ac07374cdc7e1d1c36c0d1e53916f60a577e2a69a54d",
+      "sourceBytes": 180968,
+      "status": "optimized",
+      "output": "optimized/src/assets/disasters/ufo.glb",
+      "outputHash": "ab89344e16dcf9be2e822be858f6ab43cdf110335b59b9da0150a492410edf0e",
+      "outputBytes": 79968,
+      "meshopt": true,
+      "before": {
+        "meshes": 26,
+        "primitives": 26,
+        "textures": []
+      },
+      "after": {
+        "meshes": 26,
+        "primitives": 26,
+        "textures": []
+      }
+    },
+    "src/assets/selection-street/Selection Street.glb": {
+      "profile": "staticScene",
+      "profileKey": "5801fe231243",
+      "sourceHash": "855d5275929cef23fc886dffd169b0b5c9bd835828d6b730397755a891dc4758",
+      "sourceBytes": 1688160,
+      "status": "optimized",
+      "output": "optimized/src/assets/selection-street/Selection Street.glb",
+      "outputHash": "deda7b897b385dcc2f73d103cf422be37539cdfa55880cf580f1f8e63fb634ba",
+      "outputBytes": 505816,
+      "meshopt": true,
+      "before": {
+        "meshes": 46,
+        "primitives": 46,
+        "textures": []
+      },
+      "after": {
+        "meshes": 46,
+        "primitives": 46,
+        "textures": []
+      }
+    },
+    "Scenario/sao_bento_do_sul.glb": {
+      "profile": "staticScene",
+      "profileKey": "5801fe231243",
+      "sourceHash": "27a85290949f6a3f5eaa23832f0915087be03547415c0eef8ecdd3b1ccd8f7bf",
+      "sourceBytes": 996820,
+      "status": "optimized",
+      "output": "optimized/Scenario/sao_bento_do_sul.glb",
+      "outputHash": "20af1aeadb429fe52c23dfe29f26dd59f960590f168c3e4ca449c8dc0c921ad4",
+      "outputBytes": 343216,
+      "meshopt": true,
+      "before": {
+        "meshes": 14,
+        "primitives": 36,
+        "textures": []
+      },
+      "after": {
+        "meshes": 14,
+        "primitives": 36,
+        "textures": []
+      }
+    },
+    "public/assets/environment/cidade_fundo.glb": {
+      "profile": "staticScene",
+      "profileKey": "5801fe231243",
+      "sourceHash": "bbfdec3ccd04dd208163ddddc693a73e8cb56f28d8d927210fa2661113d0111f",
+      "sourceBytes": 623128,
+      "status": "optimized",
+      "output": "optimized/public/assets/environment/cidade_fundo.glb",
+      "outputHash": "e57789bd714e80f031e7de28d3ed71c48c47009bcc94e583c98e98b81fe88bb5",
+      "outputBytes": 187960,
+      "meshopt": true,
+      "before": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    }
+  },
+  "images": {
+    "public/assets/ui/cosmic/space-backdrop.png": {
+      "profileKey": "c629e3c6208c",
+      "sourceHash": "b2d091ea50c1688bdcb2fde7bbda2dad20133d5a9ee49231dde8e8ff470a221b",
+      "sourceBytes": 1970480,
+      "status": "optimized",
+      "output": "optimized/public/assets/ui/cosmic/space-backdrop.webp",
+      "outputBytes": 117606,
+      "psnrDb": 39.6
+    }
+  }
+}

@@ -1,9 +1,12 @@
+import { t } from "../../i18n";
 import {
   CHOP_SECONDS,
   DIRTY_PLATE_RETURN_SECONDS,
   EXTINGUISH_SECONDS,
   FIRE_SPREAD_SECONDS,
   KITCHEN_TILE,
+  MIX_RECIPES,
+  MIX_SECONDS,
   STARTING_CLEAN_PLATES,
   WASH_SECONDS,
   getFoodDefinition,
@@ -17,6 +20,7 @@ import {
   emptyCookware,
   findMatchingRecipe,
   isCookware,
+  isHeatedCookware,
   tickCookware,
   type CookEvent,
   type FoodItem,
@@ -42,6 +46,8 @@ export interface Workstation {
   cleanPlates: number;
   dirtyPlates: number;
   washProgress: number;
+  /** 0..1 progress of held mixing at a mixer; rewinds when the cook walks off. */
+  mixProgress: number;
   onFire: boolean;
   /** 1 = full fire, 0 = extinguished. */
   fireHealth: number;
@@ -51,10 +57,35 @@ export interface Workstation {
 export type KitchenEvent =
   | { readonly type: "chopped"; readonly station: Workstation; readonly food: FoodItem }
   | { readonly type: "washed"; readonly station: Workstation }
+  | { readonly type: "mixed"; readonly station: Workstation; readonly output: string }
   | { readonly type: "cook"; readonly station: Workstation; readonly event: CookEvent }
   | { readonly type: "fire"; readonly station: Workstation }
   | { readonly type: "extinguished"; readonly station: Workstation }
   | { readonly type: "dirtyReturned"; readonly station: Workstation };
+
+/** Stations with something lit under them: they cook, overcook and catch fire. */
+const HEATED_STATIONS: ReadonlySet<KitchenStationKind> = new Set<KitchenStationKind>([
+  "stove",
+  "oven",
+]);
+
+/** Stations a thrown item may come to rest on or in. */
+const LANDABLE_STATIONS: ReadonlySet<KitchenStationKind> = new Set<KitchenStationKind>([
+  "counter",
+  "cutting_board",
+  "stove",
+  "oven",
+  "mixer",
+]);
+
+/** The mixer's recipe for exactly this bowlful, or null when it is not a known mixture. */
+const findMixRecipe = (contents: readonly FoodItem[]) => {
+  if (contents.length === 0) return null;
+  const key = (entries: readonly { ingredientId: string; state: string }[]): string =>
+    entries.map((entry) => `${entry.ingredientId}:${entry.state}`).sort().join("|");
+  const bowl = key(contents);
+  return MIX_RECIPES.find((recipe) => key(recipe.inputs) === bowl) ?? null;
+};
 
 export type GrabOutcome =
   | { readonly kind: "changed"; readonly held: KitchenItem | null; readonly message?: string }
@@ -68,6 +99,7 @@ export type GrabOutcome =
 export type WorkOutcome =
   | { readonly kind: "none" }
   | { readonly kind: "chopping"; readonly progress: number }
+  | { readonly kind: "mixing"; readonly progress: number }
   | { readonly kind: "washing"; readonly progress: number }
   | { readonly kind: "extinguishing"; readonly progress: number };
 
@@ -93,6 +125,7 @@ export class KitchenModel {
       cleanPlates: 0,
       dirtyPlates: 0,
       washProgress: 0,
+      mixProgress: 0,
       onFire: false,
       fireHealth: 0,
       fireSpreadTimer: 0,
@@ -133,7 +166,7 @@ export class KitchenModel {
         station.item = null;
         return { kind: "changed", held: extinguisher };
       }
-      return { kind: "blocked", message: "Fogo! Pegue o extintor." };
+      return { kind: "blocked", message: t("kitchen.blockedFire") };
     }
     const kind = station.spec.kind;
 
@@ -144,7 +177,7 @@ export class KitchenModel {
       }
       case "plate_rack": {
         if (!held) {
-          if (station.cleanPlates <= 0) return { kind: "blocked", message: "Sem pratos limpos. Lave na pia!" };
+          if (station.cleanPlates <= 0) return { kind: "blocked", message: t("kitchen.noCleanPlates") };
           station.cleanPlates -= 1;
           return { kind: "changed", held: createPlate() };
         }
@@ -152,11 +185,11 @@ export class KitchenModel {
           station.cleanPlates += 1;
           return { kind: "changed", held: null };
         }
-        return { kind: "blocked", message: "Aqui ficam só pratos limpos e vazios." };
+        return { kind: "blocked", message: t("kitchen.onlyCleanPlates") };
       }
       case "dirty_return": {
         if (!held) {
-          if (station.dirtyPlates <= 0) return { kind: "blocked", message: "Nenhum prato sujo voltou ainda." };
+          if (station.dirtyPlates <= 0) return { kind: "blocked", message: t("kitchen.noDirtyPlates") };
           station.dirtyPlates -= 1;
           return { kind: "changed", held: createPlate(true) };
         }
@@ -164,14 +197,14 @@ export class KitchenModel {
           station.dirtyPlates += 1;
           return { kind: "changed", held: null };
         }
-        return { kind: "blocked", message: "Traga os pratos sujos para a pia." };
+        return { kind: "blocked", message: t("kitchen.bringDirtyPlates") };
       }
       case "sink": {
         if (!held) {
           if (station.cleanPlates <= 0) {
             return {
               kind: "blocked",
-              message: station.dirtyPlates > 0 ? "Segure a ação para lavar." : "A pia está vazia.",
+              message: station.dirtyPlates > 0 ? t("kitchen.holdToWash") : t("kitchen.sinkEmpty"),
             };
           }
           station.cleanPlates -= 1;
@@ -179,32 +212,32 @@ export class KitchenModel {
         }
         if (held.kind === "plate" && held.dirty) {
           station.dirtyPlates += 1;
-          return { kind: "changed", held: null, message: "Segure a ação para lavar." };
+          return { kind: "changed", held: null, message: t("kitchen.holdToWash") };
         }
-        return { kind: "blocked", message: "A pia só aceita pratos sujos." };
+        return { kind: "blocked", message: t("kitchen.sinkOnlyDirty") };
       }
       case "trash": {
-        if (!held) return { kind: "blocked", message: "Lixo." };
-        if (held.kind === "food") return { kind: "changed", held: null, message: "Descartado." };
+        if (!held) return { kind: "blocked", message: t("kitchen.trash") };
+        if (held.kind === "food") return { kind: "changed", held: null, message: t("kitchen.discarded") };
         if (held.kind === "plate") {
-          if (held.contents.length === 0) return { kind: "blocked", message: "O prato já está vazio." };
+          if (held.contents.length === 0) return { kind: "blocked", message: t("kitchen.plateEmpty") };
           held.contents.length = 0;
           // Scraping a plate dirties it; wash it before it can be used again.
           held.dirty = true;
-          return { kind: "changed", held, message: "Prato raspado — leve à pia." };
+          return { kind: "changed", held, message: t("kitchen.plateScraped") };
         }
         if (isCookware(held)) {
-          if (held.contents.length === 0) return { kind: "blocked", message: "Já está vazia." };
+          if (held.contents.length === 0) return { kind: "blocked", message: t("kitchen.alreadyEmpty") };
           emptyCookware(held);
-          return { kind: "changed", held, message: "Conteúdo descartado." };
+          return { kind: "changed", held, message: t("kitchen.contentsDiscarded") };
         }
-        return { kind: "blocked", message: "Não jogue o extintor fora!" };
+        return { kind: "blocked", message: t("kitchen.keepExtinguisher") };
       }
       case "delivery": {
-        if (!held || held.kind !== "plate") return { kind: "blocked", message: "Entregue um prato montado." };
-        if (held.dirty) return { kind: "blocked", message: "Esse prato está sujo." };
+        if (!held || held.kind !== "plate") return { kind: "blocked", message: t("kitchen.deliverAssembled") };
+        if (held.dirty) return { kind: "blocked", message: t("kitchen.plateDirty") };
         const recipe = findMatchingRecipe(held.contents, this.recipes);
-        if (!recipe) return { kind: "blocked", message: "Prato incompleto." };
+        if (!recipe) return { kind: "blocked", message: t("kitchen.plateIncomplete") };
         this.pendingDirtyPlates.push(DIRTY_PLATE_RETURN_SECONDS);
         return { kind: "deliver", plate: held, recipe };
       }
@@ -233,6 +266,25 @@ export class KitchenModel {
       return { kind: "chopping", progress: food.chopProgress };
     }
 
+    if (station.spec.kind === "mixer" && station.item?.kind === "bowl") {
+      const bowl = station.item;
+      const recipe = findMixRecipe(bowl.contents);
+      if (!recipe) return { kind: "none" };
+      this.touchedThisFrame.add(station);
+      station.mixProgress = Math.min(1, station.mixProgress + deltaSeconds / MIX_SECONDS);
+      if (station.mixProgress >= 1) {
+        station.mixProgress = 0;
+        // The bowl keeps its identity; only what is in it changes, so the cook can carry
+        // the result away in the same vessel and start the next bowlful here.
+        const oldest = bowl.contents.reduce((first, food) => Math.min(first, food.createdAt), Infinity);
+        emptyCookware(bowl);
+        bowl.contents.push(createFood(recipe.output, Number.isFinite(oldest) ? oldest : 0));
+        this.events.push({ type: "mixed", station, output: recipe.output });
+        return { kind: "mixing", progress: 1 };
+      }
+      return { kind: "mixing", progress: station.mixProgress };
+    }
+
     if (station.spec.kind === "sink" && station.dirtyPlates > 0) {
       this.touchedThisFrame.add(station);
       station.washProgress = Math.min(1, station.washProgress + deltaSeconds / WASH_SECONDS);
@@ -256,7 +308,7 @@ export class KitchenModel {
     if (station.onFire) return false;
     const kind = station.spec.kind;
     if (kind === "trash") return item.kind === "food";
-    if (kind !== "counter" && kind !== "cutting_board" && kind !== "stove") return false;
+    if (!LANDABLE_STATIONS.has(kind)) return false;
     if (!station.item) {
       if (this.placementRejection(kind, item)) return false;
       station.item = item;
@@ -276,13 +328,16 @@ export class KitchenModel {
     if (held?.kind === "extinguisher") return this.stations.some((entry) => entry.onFire);
     if (held || station.onFire) return false;
     if (station.spec.kind === "sink") return station.dirtyPlates > 0;
+    if (station.spec.kind === "mixer") {
+      return station.item?.kind === "bowl" && findMixRecipe(station.item.contents) !== null;
+    }
     if (station.spec.kind !== "cutting_board" || station.item?.kind !== "food") return false;
     return station.item.state === "raw" && getFoodDefinition(station.item.ingredientId)?.chop === true;
   }
 
   update(deltaSeconds: number): void {
     for (const station of this.stations) {
-      if (station.spec.kind === "stove" && isCookware(station.item)) {
+      if (HEATED_STATIONS.has(station.spec.kind) && isHeatedCookware(station.item)) {
         for (const event of tickCookware(station.item, deltaSeconds)) {
           this.events.push({ type: "cook", station, event });
           if (event === "ignite") this.ignite(station);
@@ -305,6 +360,9 @@ export class KitchenModel {
       if (station.washProgress > 0) {
         station.washProgress = decayProgress(station.washProgress, deltaSeconds);
       }
+      if (station.mixProgress > 0) {
+        station.mixProgress = decayProgress(station.mixProgress, deltaSeconds);
+      }
     }
   }
 
@@ -319,7 +377,7 @@ export class KitchenModel {
   private grabSlot(station: Workstation, held: KitchenItem | null): GrabOutcome {
     const target = station.item;
     if (!held) {
-      if (!target) return { kind: "blocked", message: "Nada aqui." };
+      if (!target) return { kind: "blocked", message: t("kitchen.nothingHere") };
       // Carrying it away abandons the chop outright — no slow rewind to game.
       if (target.kind === "food") target.chopProgress = 0;
       station.item = null;
@@ -332,14 +390,20 @@ export class KitchenModel {
       return { kind: "changed", held: null };
     }
     const combined = combineItems(held, target);
-    if (!combined) return { kind: "blocked", message: "Não combina com isso." };
+    if (!combined) return { kind: "blocked", message: t("kitchen.doesNotCombine") };
     station.item = combined.target;
     return { kind: "changed", held: combined.held };
   }
 
   private placementRejection(kind: KitchenStationKind, held: KitchenItem): string | null {
-    if (kind === "stove" && !isCookware(held)) return "O fogão precisa de uma frigideira ou panela.";
-    if (kind === "extinguisher_stand" && held.kind !== "extinguisher") return "Suporte do extintor.";
+    // Each heat source takes its own vessel: a pan on the stove, a tray in the oven, a
+    // bowl on the mixer. Mixing them up is the commonest fumble, so it says which is wanted.
+    if (kind === "stove" && !(held.kind === "pan" || held.kind === "pot")) {
+      return t("kitchen.stoveNeedsCookware");
+    }
+    if (kind === "oven" && held.kind !== "tray") return t("kitchen.ovenNeedsTray");
+    if (kind === "mixer" && held.kind !== "bowl") return t("kitchen.mixerNeedsBowl");
+    if (kind === "extinguisher_stand" && held.kind !== "extinguisher") return t("kitchen.extinguisherStand");
     return null;
   }
 
@@ -347,7 +411,7 @@ export class KitchenModel {
   private combineWithNew(held: KitchenItem, station: Workstation, now: number): GrabOutcome {
     const fresh = createFood(station.spec.ingredientId ?? "", now);
     const combined = combineItems(held, fresh);
-    if (!combined || combined.target) return { kind: "blocked", message: "Mãos ocupadas." };
+    if (!combined || combined.target) return { kind: "blocked", message: t("kitchen.handsFullDot") };
     return { kind: "changed", held: combined.held };
   }
 

@@ -43,7 +43,7 @@ export const parseOfficialLevels = (
   for (const path of Object.keys(modules).sort()) {
     const map = sanitizeMapData(unwrap(modules[path]));
     if (!map) {
-      warn(`Nível oficial ignorado (JSON inválido): ${path}`);
+      warn(`Official level skipped (invalid JSON): ${path}`);
       continue;
     }
     levels.push({ id: levelIdFromPath(path), map });

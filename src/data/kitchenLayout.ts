@@ -3,7 +3,7 @@ import type { MapData } from "../editor/MapData";
 import type { KitchenStationKind, StationId } from "../types/game";
 import { KITCHEN_TILE } from "./kitchen";
 
-export type InitialItemKind = "pan" | "pot" | "extinguisher";
+export type InitialItemKind = "pan" | "pot" | "tray" | "bowl" | "extinguisher";
 
 export interface KitchenStationPlacement {
   readonly kind: KitchenStationKind;
@@ -90,10 +90,10 @@ export const DEFAULT_KITCHEN_LAYOUT: KitchenLayout = {
       { kind: "counter" },
     ]),
     ...row(ISLAND_Z, FACE_SOUTH, [
-      { col: 5, kind: "counter" },
+      { col: 5, kind: "mixer", initial: "bowl" },
       { col: 6, kind: "cutting_board" },
       { col: 7, kind: "counter" },
-      { col: 8, kind: "counter" },
+      { col: 8, kind: "oven", initial: "tray" },
       { col: 9, kind: "counter" },
       { col: 10, kind: "stove", initial: "pot" },
     ]),
@@ -158,6 +158,12 @@ export const stationsFromMap = (map: MapData): KitchenStationPlacement[] => {
       // Alternate pans and pots so every cooking recipe stays possible.
       stations.push({ ...base, kind, initial: stoveCount % 2 === 0 ? "pan" : "pot" });
       stoveCount += 1;
+    } else if (kind === "oven") {
+      // Each comes with its own vessel: without one the station is unusable, and there is
+      // nowhere else in the kitchen to find a tray or a bowl.
+      stations.push({ ...base, kind, initial: "tray" });
+    } else if (kind === "mixer") {
+      stations.push({ ...base, kind, initial: "bowl" });
     } else if (kind === "extinguisher_stand") {
       stations.push({ ...base, kind, initial: "extinguisher" });
     } else {

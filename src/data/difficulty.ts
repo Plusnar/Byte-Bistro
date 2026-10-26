@@ -1,3 +1,4 @@
+import { translate } from "../i18n";
 import { BALANCE } from "./balance";
 
 /**
@@ -34,7 +35,7 @@ export interface DifficultyTuning {
  */
 export const STANDARD_DIFFICULTY: DifficultyTuning = {
   id: "standard",
-  label: "Padrão",
+  get label() { return translate("difficulty.standard"); },
   orderDurationMultiplier: 1,
   concurrencyRamp: BALANCE.order.concurrencyRamp,
   spawnIntervalSeconds: BALANCE.order.spawnIntervalSeconds,
@@ -44,7 +45,7 @@ export const STANDARD_DIFFICULTY: DifficultyTuning = {
 export const DIFFICULTY_PROFILES: Readonly<Record<DifficultyId, DifficultyTuning>> = {
   relaxed: {
     id: "relaxed",
-    label: "Tranquilo",
+    get label() { return translate("difficulty.relaxed"); },
     orderDurationMultiplier: 1.35,
     concurrencyRamp: [
       { progress: 0, max: 1 },
@@ -57,7 +58,7 @@ export const DIFFICULTY_PROFILES: Readonly<Record<DifficultyId, DifficultyTuning
   standard: STANDARD_DIFFICULTY,
   intense: {
     id: "intense",
-    label: "Intenso",
+    get label() { return translate("difficulty.intense"); },
     orderDurationMultiplier: 0.82,
     concurrencyRamp: [
       { progress: 0, max: 3 },
@@ -69,7 +70,7 @@ export const DIFFICULTY_PROFILES: Readonly<Record<DifficultyId, DifficultyTuning
   },
   meltdown: {
     id: "meltdown",
-    label: "Colapso",
+    get label() { return translate("difficulty.meltdown"); },
     orderDurationMultiplier: 0.68,
     concurrencyRamp: [
       { progress: 0, max: 4 },

@@ -5,27 +5,43 @@ import type {
   RecipeData,
   RuntimeGameState,
   ShiftResult,
+  StarThresholds,
   StationId,
 } from "../types/game";
 import type { CharacterDefinition } from "../data/characters";
 import { formatShiftDuration, type LevelEntry } from "../data/levelCatalog";
 import { mapLevels } from "../data/levelMap";
 import { starsForRank, type LevelRanks } from "../data/levelRanks";
+import { nextStarTarget, starsForCoins } from "../data/levelGoals";
 import { confirmDialog } from "./confirmDialog";
-import { FOOD_STATE_LABEL, STATION_KIND_LABEL } from "../data/kitchen";
+import { FOOD_STATE_LABEL } from "../data/kitchen";
 import { getIngredient } from "../data/ingredients";
+import {
+  LANGUAGES,
+  applyTranslations,
+  formatNumber,
+  getLanguage,
+  onLanguageChange,
+  setLanguage,
+  t,
+  translate,
+  type Language,
+} from "../i18n";
 import { publicUrl } from "../utils/assetUrl";
+import { qualityManager } from "../core/perf/QualityManager";
+import { QUALITY_MODES, isQualityMode } from "../core/perf/qualityProfiles";
 import "../styles/game.css";
 import "../styles/tech-theme.css";
 // Imported last: the order queue deliberately overrides the older HUD-card styling.
 import "../styles/orders.css";
-import "../styles/selection-kitchen.css";
+import "../styles/selection-street.css";
 import "../styles/levels.css";
 // Last: extends the order card's look to the overlays, the prompts and the editor.
 import "../styles/cartoon.css";
 // Presentation only: the reference-inspired skin leaves game state and callbacks intact.
 import "../styles/cosmic.css";
 import "../styles/level-map.css";
+import "../styles/disaster.css";
 
 export type NotificationTone = "info" | "success" | "warning" | "error";
 export type StationProgressTone = "active" | "ideal" | "warning" | "danger";
@@ -73,7 +89,7 @@ export interface OrderTicketComponent {
   ingredientId: string;
   /** The state the recipe wants it in. */
   state: FoodState;
-  stage: "fetch" | "chop" | "cook" | "cooking" | "plate" | "plated";
+  stage: "fetch" | "mix" | "chop" | "cook" | "cooking" | "plate" | "plated";
 }
 
 /** One row of the order queue. All values are pre-derived; GameUI stays Babylon-free. */
@@ -144,6 +160,8 @@ export const chipState = (
   switch (stage) {
     case "fetch":
       return "pending";
+    // Mixing is preparing, not fetching: the ingredients for it are already in hand.
+    case "mix":
     case "chop":
     case "cook":
     case "cooking":
@@ -202,26 +220,8 @@ interface NotificationEntry {
   timeoutId: number;
 }
 
-const STATION_LABELS: Readonly<Record<StationId, string>> = {
-  ingredient_dispenser: "Ingredient Dispenser",
-  bit_crusher: "Bit Crusher",
-  data_mixer: "Data Mixer",
-  compiler_oven: "Compiler Oven",
-  cache_freezer: "Cache Freezer",
-  plating_station: "Plating Station",
-  serving_terminal: "CORE Serving Terminal",
-  ...STATION_KIND_LABEL,
-};
-
-const EFFECT_LABELS: Readonly<Record<keyof AIState, string>> = {
-  memory: "Memory",
-  processing: "Processing",
-  creativity: "Creativity",
-  stability: "Stability",
-  temperature: "Temperature",
-  energy: "Energy",
-  mood: "Mood",
-};
+const stationLabel = (id: StationId): string => translate(`stations.${id}`);
+const effectLabel = (key: keyof AIState): string => translate(`effects.${key}`);
 
 const clamp = (value: number, minimum: number, maximum: number): number =>
   Math.min(maximum, Math.max(minimum, value));
@@ -232,13 +232,6 @@ const formatClock = (seconds: number): string => {
   const remainder = safeSeconds % 60;
   return `${minutes.toString().padStart(2, "0")}:${remainder.toString().padStart(2, "0")}`;
 };
-
-const humanizeId = (value: string): string =>
-  value
-    .split("_")
-    .filter(Boolean)
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
 
 const createElement = <TTag extends keyof HTMLElementTagNameMap>(
   tagName: TTag,
@@ -272,6 +265,9 @@ export class GameUI {
   private notificationSequence = 0;
   private lastFocusedElement: HTMLElement | null = null;
   private destroyed = false;
+  /** The shown results, kept so a language change can write them out again. */
+  private lastResult: Readonly<ShiftResult> | null = null;
+  private readonly stopLanguage: () => void;
 
   private readonly splash: HTMLElement;
   private readonly characterStatus: HTMLElement;
@@ -280,11 +276,14 @@ export class GameUI {
   private levels: readonly LevelEntry[] = [];
   private selectedLevelKey = "";
   private levelRanks: LevelRanks = {};
+  private levelStars: Readonly<Record<string, number>> = {};
   private levelMap: LevelMapPort | null = null;
   /** The level whose window is open, or "" when it is closed. */
   private levelWindowKey = "";
   private levelWindowTimer = 0;
   private editorVisible = false;
+  /** Last value sent through onPreviewActiveChange; the preview starts out drawing. */
+  private previewActive = true;
   private readonly levelMapCanvas: HTMLCanvasElement;
   private readonly levelWindow: HTMLElement;
   private readonly myMaps: HTMLDetailsElement;
@@ -296,6 +295,8 @@ export class GameUI {
   private readonly cookbookNavigation: HTMLElement;
   private readonly cookbookDetail: HTMLElement;
   private readonly notificationRegion: HTMLElement;
+  /** Where the disaster warnings, the chaos vignette and the screen flashes are drawn. */
+  readonly disasterLayer: HTMLElement;
   private readonly stationProgress: HTMLElement;
   private readonly stationProgressLabel: HTMLElement;
   private readonly stationProgressStatus: HTMLElement;
@@ -304,6 +305,12 @@ export class GameUI {
   private readonly stationProgressValue: HTMLElement;
   private readonly orderPanel: HTMLElement;
   private readonly orderTickets: HTMLElement;
+  private readonly orderUpcoming: HTMLElement;
+  private readonly starMeter: HTMLElement;
+  private readonly starMeterFill: HTMLElement;
+  private readonly starMeterNote: HTMLElement;
+  /** Recipe ids currently drawn in the preview strip, to skip redundant rebuilds. */
+  private upcomingKey = "";
   private readonly weddingGuest: HTMLElement;
   /** Live ticket rows, keyed by order id, so the list reconciles instead of rebuilding. */
   private readonly ticketNodes = new Map<string, TicketNode>();
@@ -312,7 +319,10 @@ export class GameUI {
   private readonly shiftTimer: HTMLElement;
   private readonly scoreValue: HTMLElement;
   private readonly comboValue: HTMLElement;
+  private readonly comboChip: HTMLElement;
   private readonly playerStatusPanels: readonly [HTMLElement, HTMLElement];
+  /** Dismissal timers for the per-player speech bubbles, one slot each. */
+  private readonly calloutTimers: [number | undefined, number | undefined] = [undefined, undefined];
   private readonly splitDivider: HTMLElement;
   private readonly debugPanel: HTMLElement;
   private readonly debugRows: HTMLElement;
@@ -345,6 +355,7 @@ export class GameUI {
     this.cookbookNavigation = this.requireElement("[data-ui='cookbook-nav']");
     this.cookbookDetail = this.requireElement("[data-ui='cookbook-detail']");
     this.notificationRegion = this.requireElement("[data-ui='notifications']");
+    this.disasterLayer = this.requireElement("[data-ui='disaster']");
     this.stationProgress = this.requireElement("[data-ui='station-progress']");
     this.stationProgressLabel = this.requireElement("[data-ui='station-progress-label']");
     this.stationProgressStatus = this.requireElement("[data-ui='station-progress-status']");
@@ -353,10 +364,15 @@ export class GameUI {
     this.stationProgressValue = this.requireElement("[data-ui='station-progress-value']");
     this.orderPanel = this.requireElement("[data-ui='order']");
     this.orderTickets = this.requireElement("[data-ui='order-tickets']");
+    this.orderUpcoming = this.requireElement("[data-ui='order-upcoming']");
+    this.starMeter = this.requireElement("[data-ui='star-meter']");
+    this.starMeterFill = this.requireElement("[data-ui='star-meter-fill']");
+    this.starMeterNote = this.requireElement("[data-ui='star-meter-note']");
     this.weddingGuest = this.requireElement("[data-ui='wedding-guest']");
     this.shiftTimer = this.requireElement("[data-ui='shift-timer']");
     this.scoreValue = this.requireElement("[data-ui='score']");
     this.comboValue = this.requireElement("[data-ui='combo']");
+    this.comboChip = this.requireElement(".combo-chip");
     this.playerStatusPanels = [
       this.requireElement("[data-player-status='0']"),
       this.requireElement("[data-player-status='1']"),
@@ -376,7 +392,10 @@ export class GameUI {
         ? [options.selectedCharacterId, options.selectedCharacterId]
         : undefined),
     );
+    applyTranslations(this.shell);
+    this.syncLanguageButtons();
     this.bindActions();
+    this.stopLanguage = onLanguageChange(() => this.retranslate());
     this.setRecipes(options.recipes ?? []);
     this.showSplash(options.startVisible ?? true);
     // The stage is chosen before the cooks. Set once here rather than on every
@@ -389,7 +408,7 @@ export class GameUI {
 
     this.shiftTimer.textContent = formatClock(state.shiftTimeRemaining);
     this.shiftTimer.closest(".shift-chip")?.classList.toggle("is-urgent", state.shiftTimeRemaining <= 30);
-    this.scoreValue.textContent = Math.max(0, Math.round(state.score)).toLocaleString("en-US");
+    this.scoreValue.textContent = formatNumber(Math.max(0, Math.round(state.score)));
     this.comboValue.textContent = state.combo > 1 ? `X${state.combo}` : "—";
     this.comboValue.closest(".shift-chip")?.classList.toggle("is-active", state.combo > 1);
     this.updateMiraState(state.aiState);
@@ -406,7 +425,7 @@ export class GameUI {
     if (!prompt || !key || !carrying) return;
     panel.classList.toggle("has-prompt", Boolean(info.prompt));
     panel.classList.toggle("is-carrying", Boolean(info.carrying));
-    prompt.textContent = info.prompt ?? "MOVE TO A STATION";
+    prompt.textContent = info.prompt ?? t("hud.goToStation");
     key.textContent = info.key;
     key.hidden = !info.prompt;
     carrying.textContent = info.carrying ? info.carrying : "";
@@ -418,12 +437,111 @@ export class GameUI {
     }
   }
 
+  /**
+   * The tickets that have not arrived yet, dimmed ahead of the live ones.
+   *
+   * These are the real draws, not a guess (see `OrderScheduler`), which is the only reason
+   * showing them is fair: a cook can start prepping for an order they can see coming.
+   */
+  setUpcomingOrders(recipeIds: readonly string[]): void {
+    if (this.destroyed) return;
+    const key = recipeIds.join("|");
+    if (key === this.upcomingKey) return;
+    this.upcomingKey = key;
+    this.orderUpcoming.replaceChildren();
+    for (const recipeId of recipeIds) {
+      const item = createElement("li", "order-upcoming-card");
+      const recipe = this.recipes.find((entry) => entry.id === recipeId);
+      const art = document.createElement("img");
+      art.src = publicUrl(`images/dishes/${recipeId}.png`);
+      art.alt = "";
+      art.loading = "lazy";
+      // A recipe with no art of its own shows its name alone rather than a broken icon.
+      art.addEventListener("error", () => { art.hidden = true; }, { once: true });
+      item.append(art);
+      const label = createElement("span");
+      label.textContent = recipe?.shortName ?? recipe?.displayName ?? "";
+      item.append(label);
+      this.orderUpcoming.append(item);
+    }
+    this.orderUpcoming.hidden = recipeIds.length === 0;
+  }
+
+  /**
+   * The coin meter: how far this shift is along the level's own one-, two- and three-star
+   * targets. Hidden when the level sets no targets, rather than showing an empty bar.
+   */
+  setStarMeter(coins: number, thresholds: StarThresholds | null): void {
+    if (this.destroyed) return;
+    if (!thresholds || !Number.isFinite(thresholds.three)) {
+      this.starMeter.hidden = true;
+      return;
+    }
+    this.starMeter.hidden = false;
+    const stars = starsForCoins(coins, thresholds);
+    this.starMeter.dataset.stars = String(stars);
+    this.starMeterFill.style.width = `${clamp((coins / thresholds.three) * 100, 0, 100).toFixed(1)}%`;
+    for (const star of this.starMeter.querySelectorAll<HTMLElement>("[data-star]")) {
+      star.dataset.filled = Number(star.dataset.star) <= stars ? "true" : "false";
+    }
+    const next = nextStarTarget(coins, thresholds);
+    const note = next === null
+      ? t("hud.starsAllEarned")
+      : t("hud.starsToGo", { coins: formatNumber(Math.max(0, next - coins)) });
+    if (this.starMeterNote.textContent !== note) this.starMeterNote.textContent = note;
+  }
+
+  /**
+   * Drains the combo chip as the streak's window runs out, so a run that is about to lapse
+   * looks like one. 0 leaves the chip idle.
+   */
+  setComboWindow(remaining: number): void {
+    if (this.destroyed) return;
+    this.comboChip.style.setProperty("--combo-window", clamp(remaining, 0, 1).toFixed(3));
+    this.comboChip.classList.toggle("is-fading", remaining > 0 && remaining < 0.35);
+  }
+
+  /**
+   * Floats the tip a delivery earned over the cook who served it, so the reward for the
+   * run and the reward for the plate read as two different things.
+   */
+  showTip(index: 0 | 1, amount: number, streak: number): void {
+    if (this.destroyed) return;
+    const text = streak >= 2
+      ? t("hud.tipWithStreak", { coins: formatNumber(amount), streak: String(streak) })
+      : t("hud.tip", { coins: formatNumber(amount) });
+    this.showPlayerCallout(index, text, 1_500);
+  }
+
+  /**
+   * Pops a speech bubble over one cook's status card: the "Hey!" emote, and anything else
+   * a cook says to their partner. Retriggering restarts the timer instead of stacking.
+   */
+  showPlayerCallout(index: 0 | 1, text: string, duration = 1_800): void {
+    if (this.destroyed) return;
+    const bubble = this.playerStatusPanels[index].querySelector<HTMLElement>("[data-player-callout]");
+    if (!bubble) return;
+    const previous = this.calloutTimers[index];
+    if (previous !== undefined) window.clearTimeout(previous);
+    bubble.textContent = text;
+    bubble.hidden = false;
+    // Restart the pop animation: without the reflow the class is already there and a
+    // second "Hey!" in a row would not move at all.
+    bubble.classList.remove("is-new");
+    void bubble.offsetWidth;
+    bubble.classList.add("is-new");
+    this.calloutTimers[index] = window.setTimeout(() => {
+      bubble.hidden = true;
+      this.calloutTimers[index] = undefined;
+    }, Math.max(600, duration));
+  }
+
   setSplitScreen(amount: number, distance: number): void {
     if (this.destroyed) return;
     const split = clamp(amount, 0, 1);
     this.splitDivider.style.setProperty("--split-opacity", split.toFixed(3));
     this.splitDivider.hidden = split < 0.01;
-    this.splitDivider.setAttribute("aria-label", `Split screen, players ${distance.toFixed(1)} meters apart`);
+    this.splitDivider.setAttribute("aria-label", t("hud.splitAria", { distance: formatNumber(distance, { maximumFractionDigits: 1 }) }));
   }
 
   setStationProgress(info: StationProgressInfo | null): void {
@@ -435,7 +553,7 @@ export class GameUI {
     const percentage = clamp(normalizedProgress, 0, 100);
     this.stationProgress.dataset.tone = info.tone ?? "active";
     this.stationProgressLabel.textContent = info.label;
-    this.stationProgressStatus.textContent = info.status ?? "PROCESSING";
+    this.stationProgressStatus.textContent = info.status ?? t("hud.working");
     this.stationProgressDetail.textContent = info.detail ?? `${Math.round(percentage)}%`;
     this.stationProgressBar.style.setProperty("--progress", `${percentage}%`);
     this.stationProgressBar.setAttribute("aria-valuenow", Math.round(percentage).toString());
@@ -532,6 +650,15 @@ export class GameUI {
 
   showResults(result: Readonly<ShiftResult>): void {
     if (this.destroyed) return;
+    this.lastResult = result;
+    this.writeResults(result);
+    this.resultsOverlay.hidden = false;
+    this.shell.dataset.modalOpen = "true";
+    this.captureFocus();
+    this.focusOverlay(this.resultsOverlay);
+  }
+
+  private writeResults(result: Readonly<ShiftResult>): void {
     const quality = result.averageDishQuality <= 1
       ? result.averageDishQuality * 100
       : result.averageDishQuality;
@@ -540,8 +667,8 @@ export class GameUI {
     this.setResultValue("failed", result.ordersFailed.toString());
     this.setResultValue("quality", `${Math.round(clamp(quality, 0, 100))}%`);
     this.setResultValue("stability", `${Math.round(clamp(result.miraStability, 0, 100))}%`);
-    this.setResultValue("score", Math.round(result.cookingScore).toLocaleString("en-US"));
-    this.setResultValue("credits", `+${Math.max(0, Math.round(result.creditsEarned)).toLocaleString("en-US")}`);
+    this.setResultValue("score", formatNumber(Math.round(result.cookingScore)));
+    this.setResultValue("credits", `+${formatNumber(Math.max(0, Math.round(result.creditsEarned)))}`);
     this.setResultValue("combo", `X${result.maxCombo}`);
     this.setResultValue("throws", result.componentsThrown.toString());
     this.setResultValue("sync", `${Math.round(result.teamSynchronization)}%`);
@@ -551,10 +678,21 @@ export class GameUI {
     rank.textContent = result.rank;
     rank.dataset.rank = result.rank;
     this.requireElement("[data-result-message]").textContent = this.getRankMessage(result.rank);
-    this.resultsOverlay.hidden = false;
-    this.shell.dataset.modalOpen = "true";
-    this.captureFocus();
-    this.focusOverlay(this.resultsOverlay);
+
+    // Stars are the level's own goal, met in coins; the rank beside them is the note on
+    // how the shift was played. See src/data/levelGoals.ts.
+    const stars = this.requireElement("[data-result-stars]");
+    stars.dataset.stars = String(result.stars);
+    for (const star of stars.querySelectorAll<HTMLElement>("[data-star]")) {
+      star.dataset.filled = Number(star.dataset.star) <= result.stars ? "true" : "false";
+    }
+    const next = nextStarTarget(result.coins, result.starThresholds);
+    this.requireElement("[data-result-star-note]").textContent =
+      !Number.isFinite(result.starThresholds.three)
+        ? ""
+        : next === null
+          ? t("results.starsAllEarned")
+          : t("results.starsToGo", { coins: formatNumber(Math.max(0, next - result.coins)) });
   }
 
   hideResults(): void {
@@ -617,7 +755,6 @@ export class GameUI {
     this.shell.style.display = visible ? "none" : "";
     this.shell.inert = visible;
     this.editorVisible = visible;
-    this.callbacks.onPreviewActiveChange?.(!visible);
     this.updateLevelMapActivity();
   }
 
@@ -625,6 +762,11 @@ export class GameUI {
     if (this.destroyed) return;
     this.shell.dataset.gameVisible = visible ? "true" : "false";
     this.hud.setAttribute("aria-hidden", visible ? "false" : "true");
+  }
+
+  /** Whether the cook street is on screen, for a preview created after the UI. */
+  get isPreviewActive(): boolean {
+    return this.previewActive;
   }
 
   /** The splash is opaque and covers the whole canvas, so nothing behind it needs drawing. */
@@ -641,7 +783,6 @@ export class GameUI {
       this.splash.contains(document.activeElement)) document.activeElement.blur();
     this.setGameVisible(!visible);
     this.shell.dataset.modalOpen = visible ? "true" : "false";
-    this.callbacks.onPreviewActiveChange?.(visible);
     this.updateLevelMapActivity();
     if (visible) this.focusSplash();
   }
@@ -649,9 +790,11 @@ export class GameUI {
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.stopLanguage();
     window.clearTimeout(this.levelWindowTimer);
     this.listenerController.abort();
     if (this.dialogueTimeoutId !== null) window.clearTimeout(this.dialogueTimeoutId);
+    for (const timer of this.calloutTimers) if (timer !== undefined) window.clearTimeout(timer);
     for (const entry of this.notifications.values()) window.clearTimeout(entry.timeoutId);
     this.notifications.clear();
     this.shell.remove();
@@ -686,8 +829,13 @@ export class GameUI {
   }
 
   /** Best rank per level, for the stars in the level window. */
-  setLevelRanks(ranks: LevelRanks): void {
+  /**
+   * @param stars best stars per level. Stars come from coins now, but a save written
+   * before that has none of its own, so the rank is still the fallback.
+   */
+  setLevelRanks(ranks: LevelRanks, stars: Readonly<Record<string, number>> = {}): void {
     this.levelRanks = ranks;
+    this.levelStars = stars;
     if (this.levelWindowKey) this.fillLevelWindow(this.levelWindowKey);
   }
 
@@ -770,8 +918,9 @@ export class GameUI {
         node.last.recipeId = ticket.recipeId;
         node.dish.hidden = !ticket.recipeId;
         if (ticket.recipeId) {
+          node.dish.hidden = false;
           node.dish.src = publicUrl(`images/dishes/${ticket.recipeId}.png`);
-          node.dish.alt = this.recipeById.get(ticket.recipeId)?.displayName ?? "Prato solicitado";
+          node.dish.alt = this.recipeById.get(ticket.recipeId)?.displayName ?? t("hud.requestedDish");
         }
       }
 
@@ -840,6 +989,21 @@ export class GameUI {
       this.removeTicketNode(orderId, node);
     }, ORDER_EXIT_MS);
     this.orderExitTimers.set(orderId, timeoutId);
+  }
+
+  /**
+   * Makes one ticket flash, so a cook's "Hey!" can point at what they are working on.
+   *
+   * Purely decorative and self-clearing: the CSS animation removes its own class on the
+   * way out, and a ticket that leaves mid-flash takes the class with it.
+   */
+  flashOrder(orderId: string): void {
+    if (this.destroyed) return;
+    const node = this.ticketNodes.get(orderId);
+    if (!node || node.leaving) return;
+    node.root.classList.remove("is-flagged");
+    void node.root.offsetWidth;
+    node.root.classList.add("is-flagged");
   }
 
   private removeTicketNode(orderId: string, node: TicketNode): void {
@@ -951,6 +1115,8 @@ export class GameUI {
       { once: true },
     );
     this.ticketNodes.set(orderId, node);
+    // A recipe with no art of its own shows no icon rather than a broken one.
+    node.dish.addEventListener("error", () => { node.dish.hidden = true; }, { once: true });
     this.orderTickets.append(root);
     return node;
   }
@@ -974,9 +1140,9 @@ export class GameUI {
 
   private renderLevels(): void {
     const kindLabel: Readonly<Record<LevelEntry["kind"], string>> = {
-      scenario: "Cenário",
-      official: "Fase oficial",
-      saved: "Meu mapa",
+      scenario: t("level.kindScenario"),
+      official: t("level.kindOfficial"),
+      saved: t("level.kindSaved"),
     };
     this.levelList.replaceChildren();
     // The official levels live on the map; the list only holds the player's own maps.
@@ -1018,8 +1184,8 @@ export class GameUI {
       remove.type = "button";
       remove.className = "level-card-delete";
       remove.dataset.deleteLevel = entry.key;
-      remove.setAttribute("aria-label", `Excluir o mapa ${entry.title}`);
-      remove.title = "Excluir mapa";
+      remove.setAttribute("aria-label", t("level.deleteAria", { title: entry.title }));
+      remove.title = t("level.deleteTitle");
       remove.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h2v-8h-2z"/></svg>`;
       item.append(card, remove);
       this.levelList.append(item);
@@ -1031,16 +1197,16 @@ export class GameUI {
     const entry = this.levels.find((level) => level.key === key && level.kind === "saved");
     if (!entry || !this.callbacks.onDeleteLevel) return;
     const confirmed = await confirmDialog({
-      title: "Excluir mapa?",
-      message: `O mapa "${entry.title}" será apagado permanentemente. Essa ação não pode ser desfeita.`,
-      confirmLabel: "Excluir",
+      title: t("level.confirmDeleteTitle"),
+      message: t("level.confirmDeleteMessage", { title: entry.title }),
+      confirmLabel: t("common.delete"),
       danger: true,
     });
     if (!confirmed) return;
     if (this.callbacks.onDeleteLevel(entry)) {
-      this.notify(`Mapa "${entry.title}" excluído.`, "warning");
+      this.notify(t("level.deleted", { title: entry.title }), "warning");
     } else {
-      this.notify("Não foi possível excluir o mapa.", "error");
+      this.notify(t("level.deleteFailed"), "error");
     }
   }
 
@@ -1067,11 +1233,19 @@ export class GameUI {
     this.setSplashStep("characters");
   }
 
-  /** The map draws only while the level step is on screen. */
+  /**
+   * Each menu canvas draws only while its step is on screen: the map on the level step, the
+   * cook street on the cook step. The street used to keep drawing — soft shadows, two
+   * skinned cooks, walking robots — behind the map, into a canvas set to display: none.
+   */
   private updateLevelMapActivity(): void {
-    this.levelMap?.setActive(
-      !this.splash.hidden && !this.editorVisible && this.selectionScreen.dataset.step === "level",
-    );
+    const menuShown = !this.splash.hidden && !this.editorVisible;
+    this.levelMap?.setActive(menuShown && this.selectionScreen.dataset.step === "level");
+    const previewActive = menuShown && this.selectionScreen.dataset.step === "characters";
+    if (previewActive !== this.previewActive) {
+      this.previewActive = previewActive;
+      this.callbacks.onPreviewActiveChange?.(previewActive);
+    }
   }
 
   /** On the level step the map takes the keyboard, so Enter opens a star, not a button. */
@@ -1118,17 +1292,19 @@ export class GameUI {
     const entry = levels[index];
     if (!entry) return false;
     const rank = this.levelRanks[key] ?? null;
-    const stars = starsForRank(rank);
-    this.requireElement("[data-ui='level-window-kind']").textContent = `Fase ${index + 1}`;
+    // Coins are the goal now; the rank is only the fallback for a save written before
+    // stars had a coin target to beat.
+    const stars = Math.max(this.levelStars[key] ?? 0, starsForRank(rank));
+    this.requireElement("[data-ui='level-window-kind']").textContent = t("level.number", { number: index + 1 });
     this.requireElement("[data-ui='level-window-title']").textContent = entry.title;
     this.requireElement("[data-ui='level-window-description']").textContent = entry.description || entry.summary || "";
     const rankRow = this.requireElement("[data-ui='level-window-rank']");
-    rankRow.setAttribute("aria-label", rank ? `${stars} de 3 estrelas` : "Ainda sem estrelas");
+    rankRow.setAttribute("aria-label", rank ? t("level.stars", { stars }) : t("level.noStars"));
     rankRow.querySelectorAll<HTMLElement>(".rank-star").forEach((star, starIndex) => {
       star.dataset.filled = String(starIndex < stars);
     });
     const best = this.requireElement("[data-ui='level-window-best']");
-    best.textContent = rank ? `Melhor nota: ${rank}` : "Ainda não jogada";
+    best.textContent = rank ? t("level.best", { rank }) : t("level.notPlayed");
     best.dataset.rank = rank ?? "";
     const meta = this.requireElement("[data-ui='level-window-meta']");
     meta.replaceChildren(
@@ -1189,7 +1365,7 @@ export class GameUI {
         this.selectionScreen.dataset.confirming = "";
         console.error("Não foi possível carregar o personagem.", error);
         this.characterStatus.dataset.state = "error";
-        this.characterStatus.textContent = "Não foi possível carregar o cozinheiro. Tente de novo.";
+        this.characterStatus.textContent = t("menu.cookLoadFailed");
       } finally {
         this.setStartLoading(false);
       }
@@ -1243,6 +1419,19 @@ export class GameUI {
       this.callbacks.onOpenEditor?.();
     }, { signal });
 
+    this.shell.addEventListener("click", (event) => {
+      const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("[data-language]") : null;
+      const language = button?.dataset.language as Language | undefined;
+      if (language && LANGUAGES.includes(language)) setLanguage(language);
+      const quality = event.target instanceof Element
+        ? event.target.closest<HTMLButtonElement>("[data-quality]")?.dataset.quality
+        : undefined;
+      if (isQualityMode(quality)) {
+        qualityManager.setMode(quality);
+        this.syncQualityButtons();
+      }
+    }, { signal });
+
     this.levelList.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -1279,6 +1468,35 @@ export class GameUI {
     }, { signal });
   }
 
+  /** Re-renders everything already on screen after the language changed. */
+  private retranslate(): void {
+    if (this.destroyed) return;
+    applyTranslations(this.shell);
+    this.syncLanguageButtons();
+    this.renderLevels();
+    this.renderCharacterSelector();
+    this.renderCookbook();
+    if (this.levelWindowKey) this.fillLevelWindow(this.levelWindowKey);
+    if (this.lastResult) this.writeResults(this.lastResult);
+    // Ticket chips are cached on their contents; drop the cache so their titles redraw.
+    for (const node of this.ticketNodes.values()) node.last.chipKey = "";
+  }
+
+  private syncLanguageButtons(): void {
+    const current = getLanguage();
+    for (const button of this.shell.querySelectorAll<HTMLButtonElement>("[data-language]")) {
+      button.setAttribute("aria-pressed", String(button.dataset.language === current));
+    }
+    this.syncQualityButtons();
+  }
+
+  private syncQualityButtons(): void {
+    const current = qualityManager.mode;
+    for (const button of this.shell.querySelectorAll<HTMLButtonElement>("[data-quality]")) {
+      button.setAttribute("aria-pressed", String(button.dataset.quality === current));
+    }
+  }
+
   private browseCharacter(slot: 0 | 1, direction: number): void {
     if (!this.characters.length || this.startButton.dataset.loading === "true") return;
     const current = this.characters.findIndex(({ id }) => id === this.selectedCharacterIds[slot]);
@@ -1294,15 +1512,15 @@ export class GameUI {
 
   private renderCharacterSelector(): void {
     const both = this.selectedCharacterIds.every((id) => Boolean(id));
-    this.requireElement("[data-ui='selection-step']").textContent = "JOGADOR 1 E 2";
+    this.requireElement("[data-ui='selection-step']").textContent = t("menu.players");
     this.requireElement("[data-ui='character-count']").textContent = this.characters.length
-      ? `${this.characters.length} cozinheiros`
+      ? t("menu.cookCount", { count: this.characters.length })
       : "";
     this.requireElement<HTMLButtonElement>("[data-action='back-player']").hidden = true;
     this.characterStatus.dataset.state = "ready";
     this.characterStatus.textContent = !this.characters.length
-      ? "Nenhum personagem disponível."
-      : "P1 escolhe com A e D · P2 escolhe com ← e → · ENTER para começar";
+      ? t("menu.noCooks")
+      : t("menu.pickHelp");
     this.startButton.disabled = this.characters.length > 0 && !both;
     this.setStartLoading(false);
     this.updatePreview();
@@ -1314,10 +1532,10 @@ export class GameUI {
       (this.characters.length > 0 && this.selectedCharacterIds.some((id) => !id));
     this.startButton.dataset.loading = loading ? "true" : "false";
     const label = this.startButton.querySelector("span");
-    if (label) label.textContent = loading ? "PREPARANDO…" : "COMEÇAR A COZINHAR";
+    if (label) label.textContent = loading ? t("menu.preparing") : t("menu.startCooking");
     if (loading) {
       this.characterStatus.dataset.state = "loading";
-      this.characterStatus.textContent = "Preparando os cozinheiros…";
+      this.characterStatus.textContent = t("menu.preparingCooks");
     }
   }
 
@@ -1327,8 +1545,8 @@ export class GameUI {
       const empty = createElement("div", "cookbook-empty");
       empty.append(
         createElement("span", "cookbook-empty-icon", "⌁"),
-        createElement("strong", undefined, "RECIPE DATABASE SYNCING"),
-        createElement("p", undefined, "No neural recipes are available in this shift."),
+        createElement("strong", undefined, t("cookbook.emptyTitle")),
+        createElement("p", undefined, t("cookbook.emptyText")),
       );
       this.cookbookNavigation.append(empty);
       this.cookbookDetail.replaceChildren();
@@ -1346,7 +1564,7 @@ export class GameUI {
       const copy = createElement("span", "recipe-tab-copy");
       copy.append(
         createElement("strong", undefined, recipe.displayName),
-        createElement("small", undefined, `${recipe.ingredients.length} COMPONENTS · ${recipe.steps.length} STAGES`),
+        createElement("small", undefined, t("cookbook.tabMeta", { components: recipe.ingredients.length, steps: recipe.steps.length })),
       );
       button.append(indexLabel, copy, createElement("span", "recipe-tab-arrow", "›"));
       this.cookbookNavigation.append(button);
@@ -1370,37 +1588,40 @@ export class GameUI {
     const number = Math.max(0, this.recipes.findIndex((entry) => entry.id === recipe.id)) + 1;
     const titleWrap = createElement("div");
     titleWrap.append(
-      createElement("span", "ui-kicker", `RECIPE FILE // ${number.toString().padStart(2, "0")}`),
+      createElement("span", "ui-kicker", t("cookbook.fileKicker", { number: number.toString().padStart(2, "0") })),
       createElement("h3", undefined, recipe.displayName),
       createElement("p", undefined, recipe.description),
     );
     const reward = createElement("div", "recipe-reward");
-    reward.append(createElement("small", undefined, "BASE REWARD"), createElement("strong", undefined, `${recipe.reward} CR`));
+    reward.append(
+      createElement("small", undefined, t("cookbook.baseReward")),
+      createElement("strong", undefined, t("cookbook.credits", { value: formatNumber(recipe.reward) })),
+    );
     header.append(titleWrap, reward);
 
     const body = createElement("div", "recipe-detail-grid");
     const ingredients = createElement("section", "recipe-section");
-    ingredients.append(createElement("h4", undefined, "Required components"));
+    ingredients.append(createElement("h4", undefined, t("cookbook.components")));
     const ingredientList = createElement("ul", "ingredient-list");
     recipe.ingredients.forEach((ingredient) => {
       const item = createElement("li");
       item.append(
         createElement("span", "ingredient-quantity", `${ingredient.quantity}×`),
-        createElement("span", undefined, humanizeId(ingredient.ingredientId)),
+        createElement("span", undefined, getIngredient(ingredient.ingredientId)?.displayName ?? ingredient.ingredientId),
       );
       ingredientList.append(item);
     });
     ingredients.append(ingredientList);
 
     const effects = createElement("section", "recipe-section");
-    effects.append(createElement("h4", undefined, "CORE response"));
+    effects.append(createElement("h4", undefined, t("cookbook.effects")));
     const effectList = createElement("div", "effect-list");
     const effectEntries = Object.entries(recipe.effects) as Array<[keyof AIState, number]>;
     effectEntries.forEach(([key, value]) => {
       const effect = createElement("div", "effect-chip");
       effect.dataset.effect = value >= 0 ? "positive" : "cooling";
       effect.append(
-        createElement("span", undefined, EFFECT_LABELS[key]),
+        createElement("span", undefined, effectLabel(key)),
         createElement("strong", undefined, `${value >= 0 ? "+" : ""}${value}`),
       );
       effectList.append(effect);
@@ -1409,14 +1630,14 @@ export class GameUI {
     body.append(ingredients, effects);
 
     const pipeline = createElement("section", "recipe-pipeline");
-    pipeline.append(createElement("h4", undefined, "Compilation pipeline"));
+    pipeline.append(createElement("h4", undefined, t("cookbook.steps")));
     const stepList = createElement("ol", "recipe-steps");
     recipe.steps.forEach((step, index) => {
       const item = createElement("li");
       const marker = createElement("span", "step-marker", (index + 1).toString().padStart(2, "0"));
       const stepCopy = createElement("div");
       stepCopy.append(
-        createElement("strong", undefined, STATION_LABELS[step.stationId]),
+        createElement("strong", undefined, stationLabel(step.stationId)),
         createElement("p", undefined, step.description),
       );
       item.append(marker, stepCopy);
@@ -1441,11 +1662,11 @@ export class GameUI {
 
   private getRankMessage(rank: ShiftResult["rank"]): string {
     switch (rank) {
-      case "S": return "Exceptional neural cuisine. CORE will remember this shift.";
-      case "A": return "High-efficiency service with excellent system care.";
-      case "B": return "A stable shift. A few processes can still be optimized.";
-      case "C": return "Shift completed, but CORE detected inconsistent output.";
-      case "D": return "Critical service faults logged. Recalibration recommended.";
+      case "S": return t("results.rankS");
+      case "A": return t("results.rankA");
+      case "B": return t("results.rankB");
+      case "C": return t("results.rankC");
+      case "D": return t("results.rankD");
     }
   }
 
@@ -1493,55 +1714,82 @@ export class GameUI {
     return element;
   }
 
+  /** The PT | EN toggle; shown in the menu header and on the pause card. */
+  private static languageSwitch(): string {
+    const buttons = LANGUAGES.map((language) =>
+      `<button type="button" data-language="${language}" data-i18n-attr="title:language.${language}">${language.toUpperCase()}</button>`,
+    ).join("");
+    return `<div class="language-switch" role="group" data-i18n-attr="aria-label:language.label">${buttons}</div>`;
+  }
+
+  /** Auto | Low | Medium | High, beside the language toggle; see QualityManager. */
+  private static qualitySwitch(): string {
+    const buttons = QUALITY_MODES.map((mode) =>
+      `<button type="button" data-quality="${mode}" data-i18n="graphics.${mode}" data-i18n-attr="title:graphics.${mode}Hint"></button>`,
+    ).join("");
+    return `<div class="language-switch quality-switch" role="group" data-i18n-attr="aria-label:graphics.label">${buttons}</div>`;
+  }
+
   private createMarkup(): string {
     return `
       <div class="hud-layer" data-ui="hud" aria-hidden="false">
-        <div class="shift-cluster" aria-label="Estado do turno">
+        <div class="shift-cluster" data-i18n-attr="aria-label:hud.shiftAria">
           <div class="shift-chip">
-            <span><small>TEMPO</small><strong data-ui="shift-timer">00:00</strong></span>
+            <span><small data-i18n="hud.time"></small><strong data-ui="shift-timer">00:00</strong></span>
           </div>
           <div class="shift-chip score-chip">
-            <span><small>PONTOS</small><strong data-ui="score">0</strong></span>
+            <span><small data-i18n="hud.score"></small><strong data-ui="score">0</strong></span>
           </div>
           <div class="shift-chip combo-chip">
-            <span><small>COMBO</small><strong data-ui="combo">—</strong></span>
+            <span><small data-i18n="hud.combo"></small><strong data-ui="combo">—</strong></span>
+          </div>
+          <div class="star-meter" data-ui="star-meter" hidden data-i18n-attr="aria-label:hud.starMeterAria">
+            <div class="star-meter-track"><span class="star-meter-fill" data-ui="star-meter-fill"></span></div>
+            <div class="star-meter-stars">
+              <span data-star="1"></span><span data-star="2"></span><span data-star="3"></span>
+            </div>
+            <small data-ui="star-meter-note"></small>
           </div>
         </div>
 
-        <section class="order-panel is-empty" data-ui="order" aria-label="Pedidos ativos">
+        <section class="order-panel is-empty" data-ui="order" data-i18n-attr="aria-label:hud.ordersAria">
           <ul class="order-tickets" data-ui="order-tickets" aria-live="polite"></ul>
-          <p class="order-empty-hint">Aguardando pedidos…</p>
+          <ul class="order-upcoming" data-ui="order-upcoming" data-i18n-attr="aria-label:hud.upcomingAria"></ul>
+          <p class="order-empty-hint" data-i18n="hud.waitingOrders"></p>
           <span class="order-overflow" data-ui="wedding-guest" hidden></span>
         </section>
 
         <section class="station-progress" data-ui="station-progress" data-tone="active" hidden aria-live="polite">
-          <header><span data-ui="station-progress-label">ESTAÇÃO</span><strong data-ui="station-progress-status">TRABALHANDO</strong></header>
-          <div class="station-progress-track" data-ui="station-progress-bar" role="progressbar" aria-label="Progresso da estação" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <header><span data-ui="station-progress-label" data-i18n="hud.station"></span><strong data-ui="station-progress-status" data-i18n="hud.working"></strong></header>
+          <div class="station-progress-track" data-ui="station-progress-bar" role="progressbar" data-i18n-attr="aria-label:hud.stationProgressAria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <span class="station-progress-fill"></span><span class="station-ideal-zone" aria-hidden="true"></span>
           </div>
           <footer><span data-ui="station-progress-detail"></span><strong data-ui="station-progress-value">0%</strong></footer>
         </section>
 
-        <div class="coop-player-status" aria-label="Co-op player status">
+        <div class="coop-player-status" data-i18n-attr="aria-label:hud.playersAria">
           <section class="player-status player-one" data-player-status="0">
-            <header><strong>P1</strong><span>WASD · E · F · SHIFT</span></header>
-            <div><kbd data-player-key hidden>E</kbd><span data-player-prompt>VÁ ATÉ UMA ESTAÇÃO</span></div>
-            <small data-player-carrying>MÃOS LIVRES</small>
+            <p class="player-callout" data-player-callout hidden aria-live="polite"></p>
+            <header><strong>P1</strong><span data-i18n="hud.p1Keys"></span></header>
+            <div><kbd data-player-key hidden>E</kbd><span data-player-prompt data-i18n="hud.goToStation"></span></div>
+            <small data-player-carrying data-i18n="hud.handsFree"></small>
             <span class="player-next-step" data-player-step hidden></span>
           </section>
           <section class="player-status player-two" data-player-status="1">
-            <header><strong>P2</strong><span>SETAS · ENTER · RSHIFT</span></header>
-            <div><kbd data-player-key hidden>ENTER</kbd><span data-player-prompt>VÁ ATÉ UMA ESTAÇÃO</span></div>
-            <small data-player-carrying>MÃOS LIVRES</small>
+            <p class="player-callout" data-player-callout hidden aria-live="polite"></p>
+            <header><strong>P2</strong><span data-i18n="hud.p2Keys"></span></header>
+            <div><kbd data-player-key hidden>ENTER</kbd><span data-player-prompt data-i18n="hud.goToStation"></span></div>
+            <small data-player-carrying data-i18n="hud.handsFree"></small>
             <span class="player-next-step" data-player-step hidden></span>
           </section>
         </div>
         <div class="split-screen-divider" data-ui="split-divider" hidden aria-hidden="true"></div>
 
+        <div class="disaster-layer" data-ui="disaster" aria-live="assertive"></div>
         <div class="notification-region" data-ui="notifications" aria-live="polite" aria-relevant="additions"></div>
 
         <aside class="debug-panel" data-ui="debug" hidden>
-          <header><span>TELEMETRIA</span><i>AO VIVO</i></header>
+          <header><span data-i18n="hud.telemetry"></span><i data-i18n="hud.live"></i></header>
           <div data-ui="debug-rows"></div>
         </aside>
       </div>
@@ -1550,21 +1798,25 @@ export class GameUI {
         <div class="selection-screen">
           <header class="selection-header">
             <h1 id="splash-title">BYTE <span>BISTRO</span></h1>
-            <button class="secondary-action menu-map-action" type="button" data-action="open-editor">Criar mapa</button>
+            <div class="selection-header-actions">
+              ${GameUI.qualitySwitch()}
+              ${GameUI.languageSwitch()}
+              <button class="secondary-action menu-map-action" type="button" data-action="open-editor" data-i18n="menu.createMap"></button>
+            </div>
           </header>
           <section class="level-select" data-ui="level-select">
-            <h2>ESCOLHA A FASE</h2>
+            <h2 data-i18n="menu.chooseLevel"></h2>
             <div class="level-map-stage" data-ui="level-map-stage">
-              <canvas class="level-map-canvas" data-ui="level-map-canvas" tabindex="0" aria-label="Mapa de São Bento do Sul. Use as setas para escolher uma fase e Enter para abrir."></canvas>
+              <canvas class="level-map-canvas" data-ui="level-map-canvas" tabindex="0" data-i18n-attr="aria-label:menu.mapAria"></canvas>
               <p class="level-map-hint" aria-hidden="true">
-                <span>Arraste para girar</span>
-                <span>Roda do mouse para zoom</span>
-                <span><kbd>&#8592;</kbd><kbd>&#8594;</kbd><kbd>&#8593;</kbd><kbd>&#8595;</kbd> trocar de fase</span>
-                <span><kbd>Enter</kbd> abrir</span>
+                <span data-i18n="menu.dragToRotate"></span>
+                <span data-i18n="menu.wheelToZoom"></span>
+                <span><kbd>&#8592;</kbd><kbd>&#8594;</kbd><kbd>&#8593;</kbd><kbd>&#8595;</kbd> <span data-i18n="menu.changeLevel"></span></span>
+                <span><kbd>Enter</kbd> <span data-i18n="menu.open"></span></span>
               </p>
               <aside class="level-window" data-ui="level-window" data-open="false" role="dialog" aria-labelledby="level-window-title" hidden>
-                <button class="level-window-close" type="button" data-action="close-level-window" aria-label="Fechar">&times;</button>
-                <span class="level-window-kind" data-ui="level-window-kind">Fase 1</span>
+                <button class="level-window-close" type="button" data-action="close-level-window" data-i18n-attr="aria-label:common.close">&times;</button>
+                <span class="level-window-kind" data-ui="level-window-kind"></span>
                 <h3 id="level-window-title" class="level-window-title" data-ui="level-window-title"></h3>
                 <div class="level-window-rank" data-ui="level-window-rank" role="img">
                   <svg class="rank-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.95 6.1 6.65.85-4.9 4.6 1.3 6.65L12 17.3l-5.95 3.3 1.3-6.65-4.9-4.6 6.65-.85z"/></svg><svg class="rank-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.95 6.1 6.65.85-4.9 4.6 1.3 6.65L12 17.3l-5.95 3.3 1.3-6.65-4.9-4.6 6.65-.85z"/></svg><svg class="rank-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.95 6.1 6.65.85-4.9 4.6 1.3 6.65L12 17.3l-5.95 3.3 1.3-6.65-4.9-4.6 6.65-.85z"/></svg>
@@ -1572,17 +1824,17 @@ export class GameUI {
                 <p class="level-window-best" data-ui="level-window-best"></p>
                 <p class="level-window-description" data-ui="level-window-description"></p>
                 <div class="level-window-meta" data-ui="level-window-meta"></div>
-                <button class="primary-action level-window-play" type="button" data-action="play-level"><span>JOGAR</span><i aria-hidden="true">&#8594;</i></button>
+                <button class="primary-action level-window-play" type="button" data-action="play-level"><span data-i18n="menu.play"></span><i aria-hidden="true">&#8594;</i></button>
               </aside>
               <details class="my-maps" data-ui="my-maps" hidden>
-                <summary>Meus mapas</summary>
+                <summary data-i18n="menu.myMaps"></summary>
                 <ul class="level-list" data-ui="level-list"></ul>
               </details>
             </div>
           </section>
           <section class="selection-arena">
             <div class="character-preview-stage" data-ui="preview-stage">
-              <canvas class="character-preview-canvas" data-ui="preview-canvas" width="900" height="650" aria-label="Cozinheiros escolhidos"></canvas>
+              <canvas class="character-preview-canvas" data-ui="preview-canvas" width="900" height="650" data-i18n-attr="aria-label:menu.cooksAria"></canvas>
               <span class="character-preview-player" data-ui="preview-player" data-player="p1" hidden>P1</span>
               <!-- Keys sit beside each cook, so the control is read where it applies. -->
               <div class="pick-hint pick-hint-p1" data-player="p1">
@@ -1604,9 +1856,9 @@ export class GameUI {
           <footer class="selection-footer">
             <p class="character-status" aria-live="polite" data-ui="character-status" hidden></p>
             <div class="selection-actions">
-              <button class="secondary-action" type="button" data-action="back-player" hidden>Voltar</button>
-              <button class="secondary-action" type="button" data-action="back-level" hidden>Trocar de fase</button>
-              <button class="primary-action start-action" type="button" data-action="start"><span>COME&Ccedil;AR A COZINHAR</span></button>
+              <button class="secondary-action" type="button" data-action="back-player" hidden data-i18n="common.back"></button>
+              <button class="secondary-action" type="button" data-action="back-level" hidden data-i18n="menu.backToLevels"></button>
+              <button class="primary-action start-action" type="button" data-action="start"><span data-i18n="menu.startCooking"></span></button>
             </div>
           </footer>
         </div>
@@ -1615,52 +1867,58 @@ export class GameUI {
       <section class="full-overlay cookbook-overlay" data-ui="cookbook" role="dialog" aria-modal="true" aria-labelledby="cookbook-title" hidden>
         <div class="modal-window cookbook-window">
           <header class="modal-header">
-            <div class="cookbook-brand"><div class="mini-glyph" aria-hidden="true">B</div><div><span class="panel-kicker">MENU</span><h2 id="cookbook-title">RECEITAS</h2></div></div>
-            <div class="modal-header-actions"><button class="icon-button" type="button" data-action="close-cookbook" aria-label="Fechar receitas">× <span>ESC</span></button></div>
+            <div class="cookbook-brand"><div class="mini-glyph" aria-hidden="true">B</div><div><span class="panel-kicker" data-i18n="cookbook.kicker"></span><h2 id="cookbook-title" data-i18n="cookbook.title"></h2></div></div>
+            <div class="modal-header-actions"><button class="icon-button" type="button" data-action="close-cookbook" data-i18n-attr="aria-label:cookbook.closeAria">× <span>ESC</span></button></div>
           </header>
           <div class="cookbook-layout">
-            <nav class="cookbook-nav" data-ui="cookbook-nav" aria-label="Lista de receitas"></nav>
+            <nav class="cookbook-nav" data-ui="cookbook-nav" data-i18n-attr="aria-label:cookbook.listAria"></nav>
             <article class="cookbook-detail" data-ui="cookbook-detail" aria-live="polite"></article>
           </div>
-          <footer class="modal-footer"><span>ESCOLHA UMA RECEITA PARA VER O PREPARO</span><button type="button" class="secondary-action" data-action="close-cookbook">VOLTAR À COZINHA <kbd>TAB</kbd></button></footer>
+          <footer class="modal-footer"><span data-i18n="cookbook.chooseHint"></span><button type="button" class="secondary-action" data-action="close-cookbook"><span data-i18n="cookbook.backToKitchen"></span> <kbd>TAB</kbd></button></footer>
         </div>
       </section>
 
       <section class="full-overlay pause-overlay" data-ui="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
         <div class="pause-card modal-window">
           <div class="pause-emblem" aria-hidden="true"><span>Ⅱ</span></div>
-          <h2 id="pause-title">PAUSADO</h2>
-          <p>Sem pressa. A cozinha espera por você.</p>
-          <button class="primary-action" type="button" data-action="resume"><span>CONTINUAR</span><i aria-hidden="true">→</i></button>
-          <button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span>VOLTAR AO MENU</span></button>
-          <div class="pause-hint"><kbd>ESC</kbd><span>Continuar</span><kbd>TAB</kbd><span>Receitas</span></div>
+          <h2 id="pause-title" data-i18n="pause.title"></h2>
+          <p data-i18n="pause.text"></p>
+          <button class="primary-action" type="button" data-action="resume"><span data-i18n="pause.resume"></span><i aria-hidden="true">→</i></button>
+          <button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span data-i18n="pause.toMenu"></span></button>
+          ${GameUI.languageSwitch()}
+          ${GameUI.qualitySwitch()}
+          <div class="pause-hint"><kbd>ESC</kbd><span data-i18n="pause.hintResume"></span><kbd>TAB</kbd><span data-i18n="pause.hintRecipes"></span></div>
         </div>
       </section>
 
       <section class="full-overlay results-overlay" data-ui="results" role="dialog" aria-modal="true" aria-labelledby="results-title" hidden>
         <div class="results-window modal-window">
-          <header class="results-heading"><span class="panel-kicker">RELATÓRIO DO TURNO</span><h2 id="results-title">TURNO CONCLUÍDO</h2><p>COMO FOI O SEU TURNO</p></header>
+          <header class="results-heading"><span class="panel-kicker" data-i18n="results.kicker"></span><h2 id="results-title" data-i18n="results.title"></h2><p data-i18n="results.subtitle"></p></header>
           <div class="results-body">
             <div class="rank-module">
-              <span>NOTA</span><strong data-result-rank data-rank="B">B</strong>
+              <span data-i18n="results.rank"></span><strong data-result-rank data-rank="B">B</strong>
+              <div class="result-stars" data-result-stars aria-live="polite">
+                <span data-star="1"></span><span data-star="2"></span><span data-star="3"></span>
+              </div>
+              <small data-result-star-note></small>
             </div>
             <div class="results-summary">
-              <p data-result-message>Resultado do turno arquivado.</p>
+              <p data-result-message data-i18n="results.archived"></p>
               <div class="result-grid">
-                <div><span>PEDIDOS ENTREGUES</span><strong data-result="completed">0</strong></div>
-                <div><span>PEDIDOS PERDIDOS</span><strong data-result="failed">0</strong></div>
-                <div><span>QUALIDADE MÉDIA</span><strong data-result="quality">0%</strong></div>
-                <div><span>ESTABILIDADE</span><strong data-result="stability">0%</strong></div>
-                <div><span>MELHOR COMBO</span><strong data-result="combo">X0</strong></div>
-                <div><span>ITENS ARREMESSADOS</span><strong data-result="throws">0</strong></div>
-                <div><span>ENTROSAMENTO</span><strong data-result="sync">0%</strong></div>
-                <div><span>COLAPSOS</span><strong data-result="meltdowns">0</strong></div>
-                <div class="result-score"><span>PONTUAÇÃO TOTAL</span><strong data-result="score">0</strong></div>
-                <div class="result-credits"><span>CRÉDITOS</span><strong data-result="credits">+0</strong></div>
+                <div><span data-i18n="results.completed"></span><strong data-result="completed">0</strong></div>
+                <div><span data-i18n="results.failed"></span><strong data-result="failed">0</strong></div>
+                <div><span data-i18n="results.quality"></span><strong data-result="quality">0%</strong></div>
+                <div><span data-i18n="results.stability"></span><strong data-result="stability">0%</strong></div>
+                <div><span data-i18n="results.combo"></span><strong data-result="combo">X0</strong></div>
+                <div><span data-i18n="results.throws"></span><strong data-result="throws">0</strong></div>
+                <div><span data-i18n="results.sync"></span><strong data-result="sync">0%</strong></div>
+                <div><span data-i18n="results.meltdowns"></span><strong data-result="meltdowns">0</strong></div>
+                <div class="result-score"><span data-i18n="results.score"></span><strong data-result="score">0</strong></div>
+                <div class="result-credits"><span data-i18n="results.credits"></span><strong data-result="credits">+0</strong></div>
               </div>
             </div>
           </div>
-          <footer class="results-footer"><span>SALVO NO SEU PERFIL</span><div class="results-actions"><button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span>MENU</span></button><button class="primary-action" type="button" data-action="restart"><span>JOGAR DE NOVO</span><i aria-hidden="true">↻</i></button></div></footer>
+          <footer class="results-footer"><span data-i18n="results.saved"></span><div class="results-actions"><button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span data-i18n="results.menu"></span></button><button class="primary-action" type="button" data-action="restart"><span data-i18n="results.again"></span><i aria-hidden="true">↻</i></button></div></footer>
         </div>
       </section>
     `;

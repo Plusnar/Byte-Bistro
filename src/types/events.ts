@@ -1,20 +1,39 @@
+import type { KitchenItem } from "../gameplay/kitchen/KitchenItems";
 import type {
   AIState,
   DishQualityBreakdown,
   IngredientInstance,
+  KitchenStationKind,
   MiraExpression,
   Order,
+  RecipeData,
   ShiftResult,
-  StationId,
 } from "./game";
 
+/** Which cook something happened to: 0 for player one, 1 for player two. */
+export type PlayerIndex = 0 | 1;
+
+/** What a cook is doing with their hands at a station. */
+export type StationWorkKind = "chopping" | "mixing" | "washing" | "extinguishing";
+
 export interface GameEvents {
-  "ingredient:picked": IngredientInstance;
-  "ingredient:dropped": IngredientInstance;
-  "station:started": { stationId: StationId; transformationId: string };
-  "station:progress": { stationId: StationId; progress: number; label: string };
-  "station:completed": { stationId: StationId; output: IngredientInstance };
-  "dish:created": IngredientInstance;
+  "ingredient:picked": { item: KitchenItem; playerIndex: PlayerIndex };
+  "ingredient:dropped": { item: KitchenItem; playerIndex: PlayerIndex };
+  "station:started": {
+    stationKind: KitchenStationKind;
+    work: StationWorkKind;
+    playerIndex: PlayerIndex;
+  };
+  "station:progress": {
+    stationKind: KitchenStationKind;
+    work: StationWorkKind;
+    progress: number;
+    playerIndex: PlayerIndex;
+  };
+  /** A station finished something by itself: a chop landed, a pot cooked, a plate washed. */
+  "station:completed": { stationKind: KitchenStationKind; outcome: string };
+  /** A plate left the pass as a finished dish, whether or not a ticket asked for it. */
+  "dish:created": { recipe: RecipeData; playerIndex: PlayerIndex };
   "dish:served": {
     dish: IngredientInstance;
     recipeId: string;

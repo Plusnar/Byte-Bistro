@@ -1,4 +1,4 @@
-import type { Engine, Scene } from "@babylonjs/core";
+import type { AbstractEngine, Scene } from "@babylonjs/core";
 
 export interface ManagedScene {
   readonly scene: Scene;
@@ -9,7 +9,7 @@ export interface ManagedScene {
 export class SceneManager {
   private current: ManagedScene | null = null;
 
-  constructor(private readonly engine: Engine) {}
+  constructor(private readonly engine: AbstractEngine) {}
 
   set(scene: ManagedScene): void {
     if (this.current === scene) return;

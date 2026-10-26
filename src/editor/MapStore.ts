@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { MapData, MapMeta, MapSlotSummary } from "./MapData";
 import { MIN_OBJECT_SCALE, sanitizeColorOverrides } from "./MapData";
 import { generateObjectId, summarizeStations } from "./catalog";
@@ -5,6 +6,7 @@ import { STATION_KIND_LABEL } from "../data/kitchen";
 import { getIngredient } from "../data/ingredients";
 import { DEFAULT_SCENARIO_ID, isScenarioId } from "../data/scenarios";
 import { isDifficultyId } from "../data/difficulty";
+import { sanitizeStarThresholds } from "../data/levelGoals";
 import { sanitizeRobotConfig } from "../data/robotConfig";
 
 const SLOT_PREFIX = "byte-bistro:map-slot:";
@@ -109,9 +111,12 @@ export const sanitizeMapMeta = (value: unknown): MapMeta => {
   return {
     description: stringValue(record.description, "").slice(0, 240),
     shiftDurationSeconds: Math.round(
-      Math.min(900, Math.max(60, finiteNumber(record.shiftDurationSeconds, 240))),
+      Math.min(900, Math.max(60, finiteNumber(record.shiftDurationSeconds, 195))),
     ),
     difficultyId: isDifficultyId(difficultyId) ? difficultyId : "standard",
+    // Only kept when it is a sane ascending trio; a hand-edited file cannot ask for a star
+    // at zero coins or put the second star below the first.
+    starCoins: sanitizeStarThresholds(record.starCoins),
   };
 };
 
@@ -172,7 +177,7 @@ export const sanitizeMapData = (value: unknown): MapData | null => {
   const environment = isRecord(value.environment) ? value.environment : {};
   return {
     version: 1,
-    name: stringValue(value.name, "Untitled Map"),
+    name: stringValue(value.name, t("editor.untitledMap")),
     createdAt: finiteNumber(value.createdAt, Date.now()),
     updatedAt: finiteNumber(value.updatedAt, Date.now()),
     environment: {
@@ -215,7 +220,7 @@ export class MapStore {
         scenarioId: data.scenarioId ?? DEFAULT_SCENARIO_ID,
         description: data.meta?.description ?? "",
         difficultyId: data.meta?.difficultyId ?? "standard",
-        shiftDurationSeconds: data.meta?.shiftDurationSeconds ?? 240,
+        shiftDurationSeconds: data.meta?.shiftDurationSeconds ?? 195,
       });
     }
     return summaries.sort((a, b) => b.updatedAt - a.updatedAt);

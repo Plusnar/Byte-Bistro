@@ -44,6 +44,8 @@ const signatureOf = (item: KitchenItem, recipes: readonly RecipeData[]): string 
     }
     case "pan":
     case "pot":
+    case "tray":
+    case "bowl":
       return `${item.kind}|${isCookwareBurnt(item) ? "burnt" : ""}|${foods(item.contents)}`;
     case "extinguisher":
       return "extinguisher";

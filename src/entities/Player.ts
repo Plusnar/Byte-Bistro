@@ -1,4 +1,5 @@
 import {
+  AbstractMesh,
   Color3,
   DynamicTexture,
   Mesh,
@@ -11,9 +12,12 @@ import {
   Vector3,
 } from "@babylonjs/core";
 import type { InputManager } from "../core/InputManager";
-import type { AssetManager } from "../core/AssetManager";
+import type { AssetManager, ModelInstance } from "../core/AssetManager";
+import { kitchenAssetId } from "../data/kitchen";
 import { getCharacter } from "../data/characters";
+import { CARRY_HOLD, type ArmPose } from "./armPose";
 import { CharacterController } from "./CharacterController";
+import { GAME_CONFIG } from "../config";
 import type { IngredientVisual } from "./IngredientVisual";
 import {
   GROUNDED_SWEEP_DROP,
@@ -28,6 +32,17 @@ import {
 import { STEP_HEIGHT, markCharacterBody, probeGroundHeight } from "../physics/groundProbe";
 import { STEP_OVER_HEIGHT } from "../physics/collisionPolicy";
 import { STUN_SECONDS, STUN_SLIDE_DECELERATION, stunSlideSpeed } from "./stun";
+import {
+  advanceDash,
+  beginDash,
+  cancelDash,
+  canDash,
+  dashReadiness,
+  dashSpeed,
+  isDashing,
+  IDLE_DASH,
+  type DashState,
+} from "./dash";
 
 export type ByteExpression = "^_^" | "-_-" | "O_O" | ">_<" | "X_X";
 
@@ -55,6 +70,18 @@ const STAND_UP_DURATION = 0.55;
 const LYING_PITCH = -Math.PI / 2;
 const LYING_VISUAL_Y = 0.34;
 const STUN_BADGE_HEIGHT = 2.1;
+/**
+ * How far the body steps in towards the board or the sink while working at it. The collider keeps a
+ * wider berth than the cooks' bodies need, which would leave their hands short of it.
+ */
+const CHOP_STEP_IN = 0.2;
+/** The board's knife at the size of the cooks' hands: about 25 cm long. */
+const HAND_KNIFE_SCALE = 0.22;
+/** Seconds the beam takes to lift a cook into the saucer. */
+const ABDUCT_RISE_SECONDS = 1.3;
+/** How high above the floor a cook dropped by the saucer starts falling. */
+const SKY_DROP_HEIGHT = 9;
+const SKY_FALL_ACCELERATION = 22;
 
 let playerSequence = 0;
 
@@ -86,10 +113,23 @@ export class Player {
   private standUpYaw = 0;
   private downedYaw = 0;
   private stunClock = 0;
+  private dash: DashState = IDLE_DASH;
   private readonly slideVelocity = new Vector3();
   private readonly stunBadge: Mesh;
   private readonly stunTexture: DynamicTexture;
   private carriedVisual: IngredientVisual | null = null;
+  private readonly assets: AssetManager | null;
+  private knife: { readonly holder: TransformNode; model: ModelInstance | null } | null = null;
+  /**
+   * Taken by the saucer: rising up its beam, gone inside it, or falling back from
+   * the sky. Null when the cook is in the kitchen.
+   */
+  private abduction: {
+    phase: "rising" | "gone" | "falling";
+    clock: number;
+    readonly ship: TransformNode | null;
+    readonly from: Vector3;
+  } | null = null;
   private readonly walkSpeed: number;
   private readonly runSpeed: number;
   private readonly acceleration: number;
@@ -109,6 +149,7 @@ export class Player {
     this.acceleration = options.acceleration ?? 22;
     this.deceleration = options.deceleration ?? 30;
     this.movementRotation = options.movementRotation ?? 0;
+    this.assets = options.assetManager ?? null;
 
     this.root = MeshBuilder.CreateBox(
       `byte-collider-${sequence}`,
@@ -245,7 +286,7 @@ export class Player {
     this.stunBadge.setEnabled(false);
 
     this.characterController = options.assetManager
-      ? new CharacterController(scene, options.assetManager, this.stepNode)
+      ? new CharacterController(scene, options.assetManager, this.stepNode, GAME_CONFIG.characterLift)
       : null;
     this.setExpression(this.expressionValue);
   }
@@ -286,7 +327,56 @@ export class Player {
   }
 
   isDowned(): boolean {
-    return this.downed || this.standUpTimer > 0;
+    return this.downed || this.standUpTimer > 0 || this.abduction !== null;
+  }
+
+  /** Whether the cook is mid-burst, for the shove it gives and the sound it makes. */
+  get isDashing(): boolean {
+    return isDashing(this.dash);
+  }
+
+  /** Where the current burst is heading. Meaningless unless `isDashing`. */
+  get dashDirection(): Readonly<{ x: number; z: number }> {
+    return { x: this.dash.directionX, z: this.dash.directionZ };
+  }
+
+  /** How ready the dash is, 0 right after one and 1 when it can be used again. */
+  get dashReadiness(): number {
+    return dashReadiness(this.dash);
+  }
+
+  /** Whether the saucer has the cook: rising, inside it, or falling back. */
+  get isAbducted(): boolean {
+    return this.abduction !== null;
+  }
+
+  /** Whether the cook is out of the kitchen altogether, inside the saucer. */
+  get isGone(): boolean {
+    return this.abduction?.phase === "gone";
+  }
+
+  /** Lifts the cook up the beam into `ship`, spinning, then hides them inside it. */
+  abduct(ship: TransformNode): void {
+    if (this.abduction) return;
+    this.downed = false;
+    this.standUpTimer = 0;
+    this.stunBadge.setEnabled(false);
+    this.applyLyingPose(0);
+    this.velocity.setAll(0);
+    this.slideVelocity.setAll(0);
+    this.abduction = { phase: "rising", clock: 0, ship, from: this.root.position.clone() };
+    this.setExpression("O_O");
+  }
+
+  /** Out of the saucer: reappears high above (x, z) and falls back into the kitchen. */
+  dropFromSky(x: number, z: number): void {
+    if (!this.abduction) return;
+    this.root.setEnabled(true);
+    this.stepNode.scaling.setAll(1);
+    this.root.position.set(x, SKY_DROP_HEIGHT, z);
+    this.velocity.setAll(0);
+    this.abduction = { phase: "falling", clock: 0, ship: null, from: this.root.position.clone() };
+    this.characterController?.resetHair();
   }
 
   async prepareCharacterAnimations(): Promise<void> {
@@ -303,6 +393,9 @@ export class Player {
     }
     await this.characterController.selectCharacter(character);
     this.visualRoot.setEnabled(false);
+    // The cooks hold what they carry in both hands, in front of the chest; the
+    // default spot floats it at the height of the primitive avatar's arms.
+    if (character.rig === "Embedded") this.carryAnchor.position.set(...CARRY_HOLD);
   }
 
   /** `deltaSeconds` is clamped to keep collision response stable after tab switches. */
@@ -312,8 +405,14 @@ export class Player {
     bounds?: Readonly<MovementBounds>,
   ): void {
     const delta = Math.min(Math.max(deltaSeconds, 0), 0.05);
+    this.dash = advanceDash(this.dash, delta);
     this.stepOffset = easeStepOffset(this.stepOffset, delta);
     this.stepNode.position.y = this.stepOffset;
+    this.stepNode.position.z = CHOP_STEP_IN * (this.characterController?.reachBlend ?? 0);
+    if (this.abduction) {
+      this.updateAbduction(delta);
+      return;
+    }
     if (this.standUpTimer > 0) {
       this.updateStandUp(delta, bounds);
       return;
@@ -328,13 +427,32 @@ export class Player {
     const rawZ = -movement.y;
     const rotationCosine = Math.cos(this.movementRotation);
     const rotationSine = Math.sin(this.movementRotation);
-    const targetX = (rawX * rotationCosine + rawZ * rotationSine) * targetSpeed;
-    const targetZ = (-rawX * rotationSine + rawZ * rotationCosine) * targetSpeed;
+    const worldX = rawX * rotationCosine + rawZ * rotationSine;
+    const worldZ = -rawX * rotationSine + rawZ * rotationCosine;
+    const targetX = worldX * targetSpeed;
+    const targetZ = worldZ * targetSpeed;
     const moving = movement.lengthSquared() > 0;
     const response = (moving ? this.acceleration : this.deceleration) * delta;
 
-    this.velocity.x = this.moveTowards(this.velocity.x, targetX, response);
-    this.velocity.z = this.moveTowards(this.velocity.z, targetZ, response);
+    // A dash is committed the moment it starts: it aims where the cook is steering, or
+    // where they face when they are standing still, and holds that line to the end.
+    if (input.consumePressed("dash") && canDash(this.dash)) {
+      const yaw = this.facingYaw;
+      this.dash = moving
+        ? beginDash(this.dash, worldX, worldZ)
+        : beginDash(this.dash, Math.sin(yaw), Math.cos(yaw));
+    }
+
+    if (isDashing(this.dash)) {
+      // Written straight onto the velocity, not into the acceleration: the sweep below
+      // still runs, so a dash can never push a cook through a counter.
+      const speed = dashSpeed(this.dash);
+      this.velocity.x = this.dash.directionX * speed;
+      this.velocity.z = this.dash.directionZ * speed;
+    } else {
+      this.velocity.x = this.moveTowards(this.velocity.x, targetX, response);
+      this.velocity.z = this.moveTowards(this.velocity.z, targetZ, response);
+    }
 
     // Chefs never jump, but the fall is still integrated: a displacement with an exactly
     // zero Y makes Babylon's collision sweep degenerate and freezes the player in place.
@@ -627,6 +745,46 @@ export class Player {
   }
 
   /** Height of the walkable surface under the feet, never below the floor. */
+  private updateAbduction(delta: number): void {
+    const abduction = this.abduction!;
+    abduction.clock += delta;
+    if (abduction.phase === "rising") {
+      const t = Math.min(1, abduction.clock / ABDUCT_RISE_SECONDS);
+      const eased = t * t * (3 - 2 * t);
+      const ship = abduction.ship?.getAbsolutePosition() ?? abduction.from.add(new Vector3(0, 6, 0));
+      // Up the beam towards the saucer's belly, drawn in under it as it moves.
+      this.root.position.set(
+        abduction.from.x + (ship.x - abduction.from.x) * eased,
+        abduction.from.y + (ship.y - 0.6 - abduction.from.y) * eased,
+        abduction.from.z + (ship.z - abduction.from.z) * eased,
+      );
+      this.stepNode.rotation.y += delta * (6 + 14 * t);
+      this.stepNode.scaling.setAll(1 - 0.65 * eased);
+      this.characterController?.setLocomotion("idle");
+      if (t >= 1) {
+        abduction.phase = "gone";
+        abduction.clock = 0;
+        this.root.setEnabled(false);
+      }
+      return;
+    }
+    if (abduction.phase === "gone") return;
+
+    // Falling back from the sky, tumbling, until the floor catches them.
+    this.velocity.y -= SKY_FALL_ACCELERATION * delta;
+    this.root.position.y += this.velocity.y * delta;
+    this.stepNode.rotation.y += delta * 9;
+    const floor = this.floorBelow();
+    if (this.root.position.y > floor) return;
+    this.root.position.y = floor;
+    this.velocity.setAll(0);
+    this.stepNode.rotation.y = 0;
+    this.abduction = null;
+    this.onFloor = true;
+    const angle = Math.random() * Math.PI * 2;
+    this.stun(Math.sin(angle), Math.cos(angle), 0.2);
+  }
+
   private floorBelow(): number {
     const surface = probeGroundHeight(
       this.scene,
@@ -650,12 +808,20 @@ export class Player {
   }
 
   teleport(position: Vector3): void {
+    if (this.abduction) {
+      this.abduction = null;
+      this.root.setEnabled(true);
+      this.stepNode.scaling.setAll(1);
+      this.stepNode.rotation.y = 0;
+      this.setExpression("^_^");
+    }
     this.root.position.copyFrom(position);
     this.velocity.setAll(0);
     // A teleport is a cut, not a step: nothing to smooth over.
     this.stepOffset = 0;
     this.stepNode.position.y = 0;
     this.onFloor = true;
+    this.characterController?.resetHair();
     // A cook knocked down when the shift ended must not start the next one lying down,
     // still sliding and wearing the dizzy stars.
     if (this.downed || this.standUpTimer > 0) {
@@ -698,6 +864,8 @@ export class Player {
     this.downedTimer = 0;
     this.standUpTimer = 0;
     this.stunClock = 0;
+    // A cook on the floor is not still dashing; the burst would fight the slide.
+    this.dash = cancelDash(this.dash);
     this.slideVelocity.set(nx * speed, 0, nz * speed);
     this.velocity.setAll(0);
     this.downedYaw = this.facingYaw;
@@ -708,6 +876,20 @@ export class Player {
     this.applyLyingPose(1);
     this.setExpression("X_X");
     this.stunBadge.setEnabled(true);
+  }
+
+  /**
+   * What the arms hold over the legs' clip: the carried item, or the knife at a
+   * board. The knife is made the first time the cook chops.
+   */
+  setArmPose(pose: ArmPose): void {
+    if (pose === "chop") this.ensureKnife();
+    this.characterController?.setArmPose(pose);
+  }
+
+  /** Whether the cook holds the board's knife, which the board then hides. */
+  get holdsKnife(): boolean {
+    return this.characterController?.holdsKnife ?? false;
   }
 
   /** Arm swing for throwing or setting an item down. Ignored while on the floor. */
@@ -743,12 +925,44 @@ export class Player {
   dispose(): void {
     this.dropCarriedItem();
     this.characterController?.dispose();
+    this.knife?.model?.dispose();
+    this.knife?.holder.dispose(false, false);
+    this.knife = null;
     this.faceTexture.dispose();
     this.stunTexture.dispose();
     for (const material of this.ownedMaterials) {
       material.dispose();
     }
     this.root.dispose(false, false);
+  }
+
+  private ensureKnife(): void {
+    if (this.knife || !this.assets || !this.characterController) return;
+    // Unparented: the arm pose places it in world space every frame.
+    const holder = new TransformNode(`${this.root.name}-knife`, this.scene);
+    holder.scaling.setAll(HAND_KNIFE_SCALE);
+    holder.setEnabled(false);
+    const knife: { readonly holder: TransformNode; model: ModelInstance | null } = { holder, model: null };
+    this.knife = knife;
+    const adopt = (model: ModelInstance | null): void => {
+      if (!model) return;
+      if (this.knife !== knife) {
+        model.dispose();
+        return;
+      }
+      knife.model = model;
+      for (const root of model.rootNodes) {
+        for (const node of [root, ...root.getDescendants()]) {
+          if (node instanceof AbstractMesh) node.isPickable = false;
+        }
+      }
+    };
+    const id = kitchenAssetId("knife");
+    const options = { namePrefix: `${this.root.name}-`, parent: holder };
+    const loaded = this.assets.instantiateLoaded(id, options);
+    if (loaded) adopt(loaded);
+    else void this.assets.instantiateModel(id, options).then(adopt);
+    this.characterController.setKnifeProp(holder);
   }
 
   /** Three dizzy stars, drawn once per player and shown while they are down. */

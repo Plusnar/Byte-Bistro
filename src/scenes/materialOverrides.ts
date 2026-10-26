@@ -1,3 +1,5 @@
+import { t } from "../i18n";
+import { localizeMaterialWords } from "../i18n/materialNames";
 import {
   AbstractMesh,
   Color3,
@@ -49,16 +51,21 @@ const hasTexture = (material: Material): boolean =>
   (material instanceof PBRMaterial && Boolean(material.albedoTexture)) ||
   (material instanceof StandardMaterial && Boolean(material.diffuseTexture));
 
-/** "Pra_MetalPreto" → "Metal preto"; generic Blender names become "Cor". */
+/**
+ * "Pra_MetalPreto" → "Metal preto" (or "Black metal" in English); generic Blender names
+ * become "Cor". See `localizeMaterialWords` for how either language's names are written.
+ */
 export const materialLabel = (name: string): string => {
   const trimmed = name.replace(/^[A-Za-z]{2,4}_(?=[A-Z])/, "").replace(/\.\d+$/, "");
-  if (!trimmed || /^material$/i.test(trimmed)) return "Cor";
+  if (!trimmed || /^material$/i.test(trimmed)) return t("editor.colour");
   const words = trimmed
     .replace(/([a-zà-ÿ])([A-Z])/g, "$1 $2")
     .replace(/[_\-.]+/g, " ")
     .trim()
-    .toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
+    .toLowerCase()
+    .split(" ")
+    .filter(Boolean);
+  return localizeMaterialWords(words);
 };
 
 const meshesUnder = (roots: readonly Node[]): AbstractMesh[] => {
@@ -89,7 +96,7 @@ export const listMaterialSlots = (roots: readonly Node[]): MaterialSlot[] => {
   }
   const list = [...slots.values()];
   // A single textured material (KayKit/Kenney atlases) is the whole object's tone.
-  if (list.length === 1 && list[0]!.textured) return [{ ...list[0]!, label: "Tom" }];
+  if (list.length === 1 && list[0]!.textured) return [{ ...list[0]!, label: t("editor.tone") }];
   return list;
 };
 

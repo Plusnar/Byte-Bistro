@@ -1,11 +1,12 @@
-import { createDefaultPersistentState } from "./GameState";
+import { createDefaultPersistentState, SAVE_VERSION } from "./GameState";
 import type {
   PersistentGameState,
   ShiftRank,
   StationId,
 } from "../types/game";
 import { clamp } from "../utils/math";
-import { sanitizeLevelRanks } from "../data/levelRanks";
+import { sanitizeLevelRanks, starsForRank } from "../data/levelRanks";
+import { isLanguage } from "../i18n";
 
 export interface StorageAdapter {
   getItem(key: string): string | null;
@@ -66,6 +67,34 @@ const upgradeRecord = (
   return upgrades;
 };
 
+/**
+ * Fills in a star count for every level that has a rank but no stars yet.
+ *
+ * Only ever adds: a level that already has stars keeps them, and the best of the two wins
+ * where both exist, so re-reading a save can never take a star away.
+ */
+const seedLevelStars = (
+  stars: Record<string, number>,
+  ranks: Readonly<Record<string, ShiftRank>>,
+): Record<string, number> => {
+  const seeded = { ...stars };
+  for (const [key, rank] of Object.entries(ranks)) {
+    seeded[key] = Math.max(seeded[key] ?? 0, starsForRank(rank));
+  }
+  return seeded;
+};
+
+/** `key → whole number` maps, discarding anything a hand-edited save put there. */
+const numberRecord = (value: unknown, maximum = Number.MAX_SAFE_INTEGER): Record<string, number> => {
+  const entries: Record<string, number> = {};
+  if (!isRecord(value)) return entries;
+  for (const [key, amount] of Object.entries(value)) {
+    if (!key || typeof amount !== "number" || !Number.isFinite(amount)) continue;
+    entries[key] = Math.min(maximum, Math.max(0, Math.round(amount)));
+  }
+  return entries;
+};
+
 const sanitizePersistentState = (
   value: unknown,
   fallback: PersistentGameState,
@@ -74,14 +103,20 @@ const sanitizePersistentState = (
     return fallback;
   }
   const rawSettings = isRecord(value.settings) ? value.settings : {};
+  const levelRanks = sanitizeLevelRanks(value.levelRanks);
   return {
-    version: Math.max(1, Math.floor(finiteNumber(value.version, fallback.version))),
+    version: SAVE_VERSION,
     credits: Math.max(0, Math.floor(finiteNumber(value.credits, fallback.credits))),
     unlockedRecipes: stringArray(value.unlockedRecipes, fallback.unlockedRecipes),
     unlockedStations: stationArray(value.unlockedStations, fallback.unlockedStations),
     highestRank: rankValue(value.highestRank, fallback.highestRank),
     // Older saves have none; they start with every level unplayed.
-    levelRanks: sanitizeLevelRanks(value.levelRanks),
+    levelRanks,
+    // A save written before stars came from coins has none of its own, so they are seeded
+    // from the ranks it does have. Nobody loses a star to the upgrade, and a later shift
+    // overwrites the seed with a real coin total.
+    levelStars: seedLevelStars(numberRecord(value.levelStars, 3), levelRanks),
+    levelBestScore: numberRecord(value.levelBestScore),
     settings: {
       masterVolume: clamp(
         finiteNumber(rawSettings.masterVolume, fallback.settings.masterVolume),
@@ -96,6 +131,7 @@ const sanitizePersistentState = (
         typeof rawSettings.showDebug === "boolean"
           ? rawSettings.showDebug
           : fallback.settings.showDebug,
+      language: isLanguage(rawSettings.language) ? rawSettings.language : fallback.settings.language,
     },
     chapter: Math.max(1, Math.floor(finiteNumber(value.chapter, fallback.chapter))),
     upgrades: upgradeRecord(value.upgrades, fallback.upgrades),

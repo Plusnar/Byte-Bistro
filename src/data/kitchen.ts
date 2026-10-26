@@ -1,4 +1,5 @@
-import type { FoodState, KitchenStationKind } from "../types/game";
+import type { FoodState, KitchenStationKind, RecipeComponent } from "../types/game";
+import { localizedRecord } from "../i18n";
 import {
   INGREDIENT_IDS,
   ingredientCrateModelId,
@@ -10,7 +11,21 @@ export const KITCHEN_TILE = 1.2;
 /** Height of a counter top; items resting on stations sit here. */
 export const COUNTER_HEIGHT = 0.9;
 
-export type CookwareKind = "pan" | "pot";
+/**
+ * Vessels a cook carries food around in.
+ *
+ * `pan` and `pot` go on the stove; `tray` goes in the oven, which bakes unattended and is
+ * the station that most forces the pair to coordinate; `bowl` goes on the mixer, where
+ * ingredients are combined by hand rather than by heat.
+ */
+export type CookwareKind = "pan" | "pot" | "tray" | "bowl";
+
+/** The vessels that cook with heat. A bowl never burns — nothing under it is lit. */
+export const HEATED_COOKWARE: ReadonlySet<CookwareKind> = new Set<CookwareKind>([
+  "pan",
+  "pot",
+  "tray",
+]);
 
 export interface ModelVisual {
   readonly assetId: string;
@@ -94,6 +109,13 @@ const ingredientVisual = (id: string, scale: number): ModelVisual => ({
   fitToSize: INGREDIENT_ITEM_SIZE,
 });
 
+/** A prepared ingredient, which borrows art from the scenario set rather than the bespoke one. */
+const preparedVisual = (assetId: string, scale: number): ModelVisual => ({
+  assetId,
+  scale,
+  fitToSize: INGREDIENT_ITEM_SIZE,
+});
+
 export const FOOD_DEFINITIONS: Readonly<Record<string, FoodDefinition>> = {
   ram_module: {
     ingredientId: "ram_module",
@@ -131,7 +153,74 @@ export const FOOD_DEFINITIONS: Readonly<Record<string, FoodDefinition>> = {
     cook: null,
     visuals: { raw: ingredientVisual("data_cream", 0.85) },
   },
+
+  /*
+   * Prepared ingredients: what the mixer turns a bowlful into. They are ordinary foods
+   * from here on, which is why multi-step recipes need no new matching rule — a dough is
+   * just an ingredient that happens to be made rather than fetched.
+   *
+   * Their art already existed (see `INGREDIENT_SCENARIO_VISUALS`), left over from the
+   * machine pipeline that was never wired up.
+   */
+  ram_dough: {
+    ingredientId: "ram_dough",
+    chop: false,
+    cook: "tray",
+    visuals: { raw: preparedVisual("food-bread", 0.7) },
+  },
+  cookie_dough: {
+    ingredientId: "cookie_dough",
+    chop: false,
+    cook: "tray",
+    visuals: { raw: preparedVisual("food-bowl", 0.8) },
+  },
+  gelato_mix: {
+    ingredientId: "gelato_mix",
+    chop: false,
+    cook: null,
+    visuals: { raw: preparedVisual("food-bowl", 0.8) },
+  },
 };
+
+/**
+ * What the mixer makes. Each entry is a bowl's worth of ingredients, in the state they
+ * have to be in, and the one prepared ingredient they become.
+ *
+ * This is the chain the old machine pipeline described and never ran, rebuilt on the live
+ * model: no buffers, no station ids, just "these go in, that comes out".
+ */
+export interface MixRecipe {
+  readonly id: string;
+  readonly inputs: readonly RecipeComponent[];
+  readonly output: string;
+}
+
+export const MIX_RECIPES: readonly MixRecipe[] = [
+  {
+    id: "mix_ram_dough",
+    inputs: [
+      { ingredientId: "ram_module", state: "chopped" },
+      { ingredientId: "binary_sugar", state: "raw" },
+    ],
+    output: "ram_dough",
+  },
+  {
+    id: "mix_cookie_dough",
+    inputs: [
+      { ingredientId: "cache_fragment", state: "chopped" },
+      { ingredientId: "binary_sugar", state: "raw" },
+    ],
+    output: "cookie_dough",
+  },
+  {
+    id: "mix_gelato",
+    inputs: [
+      { ingredientId: "cooling_fluid", state: "chopped" },
+      { ingredientId: "data_cream", state: "chopped" },
+    ],
+    output: "gelato_mix",
+  },
+];
 
 /**
  * How each preparation state reads on the shared per-ingredient model.
@@ -184,33 +273,48 @@ export const plateableState = (definition: FoodDefinition): FoodState =>
 export const cookableState = (definition: FoodDefinition): FoodState =>
   definition.chop ? "chopped" : "raw";
 
-export const FOOD_STATE_LABEL: Readonly<Record<FoodState, string>> = {
-  raw: "cru",
-  chopped: "picado",
-  cooked: "cozido",
-  burnt: "queimado",
-};
+/** Read through, never spread: each access gives the current language's text. */
+export const FOOD_STATE_LABEL: Readonly<Record<FoodState, string>> = localizedRecord(
+  ["raw", "chopped", "cooked", "burnt"],
+  "foodStates",
+);
 
-export const STATION_KIND_LABEL: Readonly<Record<KitchenStationKind, string>> = {
-  crate: "Caixa de ingredientes",
-  counter: "Bancada",
-  cutting_board: "Tábua de corte",
-  stove: "Fogão",
-  sink: "Pia",
-  plate_rack: "Pratos limpos",
-  dirty_return: "Pratos sujos",
-  trash: "Lixo",
-  delivery: "Entrega",
-  extinguisher_stand: "Extintor",
-};
+/** Read through, never spread: each access gives the current language's text. */
+export const STATION_KIND_LABEL: Readonly<Record<KitchenStationKind, string>> = localizedRecord(
+  ["crate", "counter", "cutting_board", "stove", "oven", "mixer", "sink", "plate_rack", "dirty_return", "trash", "delivery", "extinguisher_stand"],
+  "stations",
+);
 
 /** Seconds of held chopping to turn a raw ingredient into its chopped state. */
 export const CHOP_SECONDS = 2.2;
 /** Seconds of held washing per dirty plate. */
 export const WASH_SECONDS = 2.4;
-export const COOK_SECONDS: Readonly<Record<CookwareKind, number>> = { pan: 6, pot: 9 };
-/** Grace window after cooking completes before the food burns. */
-export const BURN_GRACE_SECONDS: Readonly<Record<CookwareKind, number>> = { pan: 6, pot: 8 };
+/** The oven is the longest wait in the kitchen, which is what makes it worth planning around. */
+export const COOK_SECONDS: Readonly<Record<CookwareKind, number>> = {
+  pan: 6,
+  pot: 9,
+  tray: 11,
+  bowl: 0,
+};
+/**
+ * Grace window after cooking completes before the food burns. The oven's is tight: it is
+ * the station you have to come back for.
+ */
+export const BURN_GRACE_SECONDS: Readonly<Record<CookwareKind, number>> = {
+  pan: 6,
+  pot: 8,
+  tray: 5,
+  bowl: 0,
+};
+/** Seconds of held mixing to turn a bowl of ingredients into one prepared item. */
+export const MIX_SECONDS = 2.6;
+/** How many ingredients each vessel holds. */
+export const COOKWARE_CAPACITY: Readonly<Record<CookwareKind, number>> = {
+  pan: 1,
+  pot: 3,
+  tray: 2,
+  bowl: 3,
+};
 /** Burnt food keeps heating; after this the stove catches fire. */
 export const FIRE_DELAY_SECONDS = 2.5;
 export const FIRE_SPREAD_SECONDS = 5;

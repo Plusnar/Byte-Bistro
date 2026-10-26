@@ -1,4 +1,4 @@
-import type { StationId } from "../types/game";
+import type { StarThresholds, StationId } from "../types/game";
 import type { DifficultyId } from "../data/difficulty";
 import type { RobotConfig } from "../data/robotConfig";
 
@@ -93,6 +93,12 @@ export interface MapMeta {
   readonly description: string;
   readonly shiftDurationSeconds: number;
   readonly difficultyId: DifficultyId;
+  /**
+   * Hand-set coin targets for one, two and three stars. Left out, they are derived from
+   * the level's own menu and length — see `src/data/levelGoals.ts`, which is the sane
+   * default and keeps re-balancing automatic.
+   */
+  readonly starCoins?: StarThresholds;
 }
 
 export interface MapData {

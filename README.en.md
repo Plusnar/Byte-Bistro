@@ -38,7 +38,7 @@ The game is set in **São Bento do Sul, Santa Catarina, Brazil**, as a way to sh
 
 ## How to play
 
-1. In the menu, pick a level on the map, then the two cooks: Player 1 switches with `A`/`D` and Player 2 with the arrow keys.
+1. In the menu, pick a level on the map, then the two cooks. The **PT | EN** button at the top of the menu (and on the pause screen) switches the whole game's language at once: Player 1 switches with `A`/`D` and Player 2 with the arrow keys.
 
    ![Choosing the cooks](docs/images/selecao-personagens.jpg)
 
@@ -51,21 +51,25 @@ The game is set in **São Bento do Sul, Santa Catarina, Brazil**, as a way to sh
 | --- | --- | --- |
 | Move | `W A S D` | Arrow keys |
 | Run | Left `Shift` | `Numpad 0` |
+| Dash (shoulders aside whoever is in the way) | `Space` | `Numpad .` |
+| Call your partner | `Q` | `Numpad 1` |
 | Pick up, drop, combine, deliver | `E` | `Enter` |
-| Hold: chop, wash, extinguish · Tap with an ingredient: throw | `F` | Right `Shift` |
+| Hold: chop, wash, extinguish · With an ingredient: aim, release to throw | `F` | Right `Shift` |
 | Recipe book | `Tab` | — |
 | Pause | `Esc` | — |
 
 ## Build mode
 
-In the menu, **Criar mapa** opens the editor, inspired by *The Sims 4*'s build mode. A finished map can be played right away.
+In the menu, **Create map** opens the editor, inspired by *The Sims 4*'s build mode. A finished map can be played right away.
 
 ![Build mode overview](docs/images/construcao-visao-geral.jpg)
 
 - A **catalogue** of more than 1,600 objects, grouped in tabs and packs, with search.
 - **Draw walls and floors** by clicking and dragging.
 - **Walls up, cutaway or down**, to see inside while building.
-- Orbit camera, **top-down view**, grid, and a warning when an object does not fit.
+- Camera and controls as in *The Sims 4*: the right button rotates and tilts, dragging the ground (left or wheel button) moves the view, the wheel zooms towards the cursor and the mouse at the screen edge slides the camera. `W A S D` move, `Q`/`E` rotate, `,`/`.` rotate the object and `9`/`0` raise and lower it.
+- **Free placement**: any object goes anywhere, off the lot too (it becomes scenery) and on top of other objects, like a lamp on a table.
+- **Top-down view** and grid.
 
 ![Walls and floors drawn by dragging](docs/images/construcao-paredes-e-pisos.jpg)
 

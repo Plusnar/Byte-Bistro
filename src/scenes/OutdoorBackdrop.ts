@@ -13,7 +13,7 @@ import {
   type Scene,
 } from "@babylonjs/core";
 import type { AssetManager, ModelInstance } from "../core/AssetManager";
-import { publicUrl } from "../utils/assetUrl";
+import { publicModelUrl } from "../core/assets/assetRegistry";
 
 /**
  * The world outside the build area: a sky, a lawn to the horizon and a ring of trees around it.
@@ -25,7 +25,7 @@ import { publicUrl } from "../utils/assetUrl";
  */
 
 export const BACKDROP_ASSET_ID = "environment-city";
-export const BACKDROP_ASSET_URL = publicUrl("assets/environment/cidade_fundo.glb");
+export const BACKDROP_ASSET_URL = publicModelUrl("assets/environment/cidade_fundo.glb");
 
 /** Sky and lawn palette; the horizon doubles as fog and clear colour so the trees fade into it. */
 export const BACKDROP_COLORS = {

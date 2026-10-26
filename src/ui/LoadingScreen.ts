@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * Drives the loading screen that `index.html` paints before any JavaScript runs.
  *
@@ -96,7 +97,7 @@ export class LoadingScreen {
   fail(failure: LoadingFailure): void {
     this.root.dataset.state = "error";
     this.setStatus(failure.message);
-    this.retryButton.textContent = "Tentar novamente";
+    this.retryButton.textContent = t("boot.retry");
     this.retryButton.hidden = !failure.onRetry;
     const retry = failure.onRetry;
     this.retryButton.onclick = retry

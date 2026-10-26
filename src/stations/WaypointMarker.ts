@@ -12,6 +12,12 @@ export interface WaypointMarkerOptions {
   readonly label: string;
   readonly color: string;
   readonly playerIndex: 0 | 1;
+  /**
+   * Whether to draw the column and the beam above the ring. A marker that says "go here"
+   * wants them; one that says "it lands here" does not, and leaving them out is two fewer
+   * meshes to draw.
+   */
+  readonly beam?: boolean;
 }
 
 const MARKER_RING_TUBULAR = 0.08;
@@ -26,8 +32,8 @@ const colorFor = (hex: string): Color3 => Color3.FromHexString(hex);
 export class WaypointMarker {
   readonly root: TransformNode;
 
-  private readonly column: Mesh;
-  private readonly beam: Mesh;
+  private readonly column: Mesh | null;
+  private readonly beam: Mesh | null;
   private readonly ring: Mesh;
   private readonly baseDisc: Mesh;
   private readonly columnMaterial: StandardMaterial;
@@ -68,15 +74,21 @@ export class WaypointMarker {
       0.45,
     );
 
-    this.column = MeshBuilder.CreateCylinder(
-      `waypoint-column-${options.playerIndex}`,
-      { height: 0.7, diameter: 0.18, tessellation: 16 },
-      scene,
-    );
-    this.column.parent = this.root;
-    this.column.position.y = 1.3;
-    this.column.material = this.columnMaterial;
-    this.column.isPickable = false;
+    const withBeam = options.beam ?? true;
+
+    this.column = withBeam
+      ? MeshBuilder.CreateCylinder(
+        `waypoint-column-${options.playerIndex}`,
+        { height: 0.7, diameter: 0.18, tessellation: 16 },
+        scene,
+      )
+      : null;
+    if (this.column) {
+      this.column.parent = this.root;
+      this.column.position.y = 1.3;
+      this.column.material = this.columnMaterial;
+      this.column.isPickable = false;
+    }
 
     this.ring = MeshBuilder.CreateTorus(
       `waypoint-ring-${options.playerIndex}`,
@@ -99,15 +111,19 @@ export class WaypointMarker {
     this.baseDisc.material = this.baseMaterial;
     this.baseDisc.isPickable = false;
 
-    this.beam = MeshBuilder.CreateCylinder(
-      `waypoint-beam-${options.playerIndex}`,
-      { height: 4, diameter: 0.05, tessellation: 12 },
-      scene,
-    );
-    this.beam.parent = this.root;
-    this.beam.position.y = 2.0;
-    this.beam.material = this.beamMaterial;
-    this.beam.isPickable = false;
+    this.beam = withBeam
+      ? MeshBuilder.CreateCylinder(
+        `waypoint-beam-${options.playerIndex}`,
+        { height: 4, diameter: 0.05, tessellation: 12 },
+        scene,
+      )
+      : null;
+    if (this.beam) {
+      this.beam.parent = this.root;
+      this.beam.position.y = 2.0;
+      this.beam.material = this.beamMaterial;
+      this.beam.isPickable = false;
+    }
 
     const observer = scene.onBeforeRenderObservable.add(this.tick);
     this.observer = {
@@ -131,20 +147,21 @@ export class WaypointMarker {
     this.ringMaterial.dispose();
     this.beamMaterial.dispose();
     this.baseMaterial.dispose();
-    this.column.dispose();
+    this.column?.dispose();
     this.ring.dispose();
-    this.beam.dispose();
+    this.beam?.dispose();
     this.baseDisc.dispose();
     this.root.dispose(false, false);
   }
 
   private tick = (): void => {
-    if (this.disposed) return;
+    // A hidden marker animates nothing: the aiming markers spend almost the whole shift
+    // switched off, and their idle cost should be the observer call and nothing else.
+    if (this.disposed || !this.root.isEnabled()) return;
     this.clock += this.scene.getEngine().getDeltaTime() / 1000;
     this.ring.rotation.y = this.clock * 1.6;
-    this.column.position.y = 1.3 + Math.sin(this.clock * 4.2) * 0.07;
-    this.beam.scaling.x = this.beam.scaling.z = 1 + Math.sin(this.clock * 5) * 0.18;
-    if (!this.root.isEnabled()) return;
+    if (this.column) this.column.position.y = 1.3 + Math.sin(this.clock * 4.2) * 0.07;
+    if (this.beam) this.beam.scaling.x = this.beam.scaling.z = 1 + Math.sin(this.clock * 5) * 0.18;
     // Scale from the stored base color; scaling the live color compounds every frame.
     const pulse = 0.7 + Math.abs(Math.sin(this.clock * 3.2)) * 0.5;
     this.ringBaseEmissive.scaleToRef(pulse, this.ringMaterial.emissiveColor);

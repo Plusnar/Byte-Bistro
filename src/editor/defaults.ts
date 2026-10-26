@@ -1,4 +1,4 @@
-import { getIngredient } from "../data/ingredients";
+import { t } from "../i18n";
 import { DEFAULT_KITCHEN_LAYOUT } from "../data/kitchenLayout";
 import { EDITOR_ASSET_CATALOG, kitchenCrateEntry, kitchenStationEntry } from "./catalog";
 import type { MapData, MapPlacedObject } from "./MapData";
@@ -24,7 +24,7 @@ const createObject = (
   ...extras,
 });
 
-export const createDefaultMap = (name = "Sala padrão"): MapData => {
+export const createDefaultMap = (name = t("editor.defaultMap")): MapData => {
   const now = Date.now();
   const objects: MapPlacedObject[] = [];
 
@@ -33,7 +33,7 @@ export const createDefaultMap = (name = "Sala padrão"): MapData => {
       { x: 0, y: 0, z: 0 },
       { x: 0, y: 0, z: 0 },
       { x: 1.08, y: 1.08, z: 1.22 },
-      { collides: true, label: "Ambiente completo", color: "#374357" },
+      { collides: true, label: t("editor.fullRoom"), color: "#374357" },
     ),
   );
 
@@ -43,19 +43,19 @@ export const createDefaultMap = (name = "Sala padrão"): MapData => {
       { x: layout.spawns[0].x, y: 0, z: layout.spawns[0].z },
       { x: 0, y: 0, z: 0 },
       { x: 1, y: 1, z: 1 },
-      { playerIndex: 1, label: "Início do Jogador 1", color: "#55F3EC" },
+      { playerIndex: 1, label: t("editor.spawn1"), color: "#55F3EC" },
     ),
     createObject("default-player-spawn-2", "spawn", "spawn", "build-player-spawn-2",
       { x: layout.spawns[1].x, y: 0, z: layout.spawns[1].z },
       { x: 0, y: 0, z: 0 },
       { x: 1, y: 1, z: 1 },
-      { playerIndex: 2, label: "Início do Jogador 2", color: "#FF65C3" },
+      { playerIndex: 2, label: t("editor.spawn2"), color: "#FF65C3" },
     ),
   );
 
   layout.stations.forEach((station, index) => {
     const entry = station.kind === "crate"
-      ? kitchenCrateEntry(station.ingredientId ?? "", getIngredient(station.ingredientId ?? "")?.displayName ?? "")
+      ? kitchenCrateEntry(station.ingredientId ?? "")
       : kitchenStationEntry(station.kind);
     objects.push(
       createObject(
@@ -91,7 +91,7 @@ export const createDefaultMap = (name = "Sala padrão"): MapData => {
   };
 };
 
-export const emptyMap = (name = "Mapa vazio"): MapData => {
+export const emptyMap = (name = t("editor.emptyMap")): MapData => {
   const now = Date.now();
   return {
     version: 1,

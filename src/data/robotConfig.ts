@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * Robots placed from the editor ("Robos" in the catalogue).
  *
@@ -27,17 +28,17 @@ export interface RobotClip {
  * only fetched when a placed robot actually asks for one of its clips.
  */
 export const ROBOT_CLIPS: readonly RobotClip[] = [
-  { id: "Idle_A", label: "Parado", pack: "general" },
-  { id: "Idle_B", label: "Parado (impaciente)", pack: "general" },
-  { id: "Interact", label: "Interagindo", pack: "general" },
-  { id: "Use_Item", label: "Usando item", pack: "general" },
-  { id: "Walking_A", label: "Andando", pack: "movement" },
-  { id: "Waving", label: "Acenando", pack: "simulation" },
-  { id: "Cheering", label: "Comemorando", pack: "simulation" },
-  { id: "Sit_Chair_Idle", label: "Sentado na cadeira", pack: "simulation" },
-  { id: "Sit_Floor_Idle", label: "Sentado no chão", pack: "simulation" },
-  { id: "Lie_Idle", label: "Deitado", pack: "simulation" },
-  { id: "Push_Ups", label: "Flexões", pack: "simulation" },
+  { id: "Idle_A", get label() { return t("editor.clipIdle"); }, pack: "general" },
+  { id: "Idle_B", get label() { return t("editor.clipIdleImpatient"); }, pack: "general" },
+  { id: "Interact", get label() { return t("editor.clipInteract"); }, pack: "general" },
+  { id: "Use_Item", get label() { return t("editor.clipUseItem"); }, pack: "general" },
+  { id: "Walking_A", get label() { return t("editor.clipWalking"); }, pack: "movement" },
+  { id: "Waving", get label() { return t("editor.clipWaving"); }, pack: "simulation" },
+  { id: "Cheering", get label() { return t("editor.clipCheering"); }, pack: "simulation" },
+  { id: "Sit_Chair_Idle", get label() { return t("editor.clipSitChair"); }, pack: "simulation" },
+  { id: "Sit_Floor_Idle", get label() { return t("editor.clipSitFloor"); }, pack: "simulation" },
+  { id: "Lie_Idle", get label() { return t("editor.clipLie"); }, pack: "simulation" },
+  { id: "Push_Ups", get label() { return t("editor.clipPushUps"); }, pack: "simulation" },
 ];
 
 export const DEFAULT_ROBOT_CLIP = "Idle_A";
@@ -120,19 +121,19 @@ export interface RobotPreset {
 /** Catalogue entries, so the common robots are one click rather than five fields. */
 export const ROBOT_PRESETS: readonly RobotPreset[] = [
   {
-    label: "Robô convidado",
+    get label() { return t("editor.presetGuest"); },
     config: { ...DEFAULT_ROBOT_CONFIG },
   },
   {
-    label: "Robô parado",
+    get label() { return t("editor.presetStanding"); },
     config: { ...DEFAULT_ROBOT_CONFIG, customer: true, canMove: false, idleClip: "Waving" },
   },
   {
-    label: "Robô decorativo",
+    get label() { return t("editor.presetDecor"); },
     config: { ...DEFAULT_ROBOT_CONFIG, customer: false, canMove: false, idleClip: "Cheering" },
   },
   {
-    label: "Robô sentado",
+    get label() { return t("editor.presetSitting"); },
     config: { ...DEFAULT_ROBOT_CONFIG, customer: true, canMove: false, idleClip: "Sit_Chair_Idle" },
   },
 ];

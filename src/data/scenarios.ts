@@ -1,3 +1,4 @@
+import { translate } from "../i18n";
 import type { MovementBounds } from "../entities/Player";
 import { DEFAULT_KITCHEN_LAYOUT } from "./kitchenLayout";
 import { RECIPES } from "./recipes";
@@ -68,6 +69,12 @@ export interface ScenarioDefinition {
   /** Recipes on this scenario's menu. */
   readonly recipeIds: readonly string[];
   readonly requirements: ScenarioRequirements;
+  /**
+   * The level shipped in `src/data/levels` that this scenario plays (its file name, as
+   * `casamento` for `casamento.bytebistro.json`). Without one, or if the file is gone,
+   * the scenario plays its built-in layout.
+   */
+  readonly levelId?: string;
 }
 
 /** Warm evening light for the wedding hall: golden over the arch, rosy over the cake. */
@@ -100,22 +107,24 @@ const WEDDING_LIGHTING: ScenarioLighting = {
  */
 const WEDDING_REQUIREMENTS: ScenarioRequirements = {
   stations: [
-    { id: "cutting_board", label: STATION_KIND_LABEL.cutting_board },
-    { id: "stove", label: STATION_KIND_LABEL.stove },
+    { id: "cutting_board", get label() { return STATION_KIND_LABEL.cutting_board; } },
+    { id: "stove", get label() { return STATION_KIND_LABEL.stove; } },
     // A pot is not its own tile: `stationsFromMap` alternates pan/pot per stove, so the
     // second stove is what puts a pot in the kitchen. Recipes that boil need it.
-    { id: "stove", label: "Panela (exige um 2\u00ba fog\u00e3o)", count: 2 },
-    { id: "counter", label: STATION_KIND_LABEL.counter },
-    { id: "plate_rack", label: STATION_KIND_LABEL.plate_rack },
-    { id: "sink", label: STATION_KIND_LABEL.sink },
-    { id: "trash", label: STATION_KIND_LABEL.trash },
-    { id: "extinguisher_stand", label: STATION_KIND_LABEL.extinguisher_stand },
+    { id: "stove", get label() { return translate("stations.pot"); }, count: 2 },
+    { id: "oven", get label() { return STATION_KIND_LABEL.oven; } },
+    { id: "mixer", get label() { return STATION_KIND_LABEL.mixer; } },
+    { id: "counter", get label() { return STATION_KIND_LABEL.counter; } },
+    { id: "plate_rack", get label() { return STATION_KIND_LABEL.plate_rack; } },
+    { id: "sink", get label() { return STATION_KIND_LABEL.sink; } },
+    { id: "trash", get label() { return STATION_KIND_LABEL.trash; } },
+    { id: "extinguisher_stand", get label() { return STATION_KIND_LABEL.extinguisher_stand; } },
     // Not on the requested list, but a shift with nowhere to serve cannot be won at all.
-    { id: "delivery", label: STATION_KIND_LABEL.delivery },
+    { id: "delivery", get label() { return STATION_KIND_LABEL.delivery; } },
   ],
   ingredients: INGREDIENT_IDS.map((id) => ({
     id,
-    label: getIngredient(id)?.displayName ?? id,
+    get label() { return getIngredient(id)?.displayName ?? id; },
   })),
   requiresSpawns: true,
   requiresFloor: true,
@@ -123,15 +132,17 @@ const WEDDING_REQUIREMENTS: ScenarioRequirements = {
 
 export const WEDDING_SCENARIO: ScenarioDefinition = {
   id: "wedding",
-  displayName: "Casamento ChatGPT ♡ Gemini",
-  description: "A recepção do casamento. Sirva os convidados robôs antes do tempo acabar.",
+  get displayName() { return translate("scenarios.wedding.name"); },
+  get description() { return translate("scenarios.wedding.description"); },
   thumbnailUrl: publicUrl("images/scenarios/wedding.png"),
-  shiftDurationSeconds: 240,
+  shiftDurationSeconds: 195,
   difficultyId: "standard",
   lighting: WEDDING_LIGHTING,
   receptionArea: DEFAULT_KITCHEN_LAYOUT.receptionArea,
   recipeIds: RECIPES.map((recipe) => recipe.id),
   requirements: WEDDING_REQUIREMENTS,
+  // The official wedding: the hall as built in the editor.
+  levelId: "casamento",
 };
 
 export const SCENARIOS: readonly ScenarioDefinition[] = [WEDDING_SCENARIO];

@@ -1,3 +1,5 @@
+import { formatNumber, t } from "../i18n";
+import { moveCameraTarget } from "./editorCamera";
 import { INGREDIENT_ASSETS } from "../data/ingredientAssets";
 import { ASSET_LIBRARY } from "../data/assetLibrary";
 import { createBuildingMesh } from "../editor/building";
@@ -6,7 +8,6 @@ import {
   ArcRotateCamera,
   Color3,
   DirectionalLight,
-  Engine,
   HemisphericLight,
   HighlightLayer,
   InstancedMesh,
@@ -21,10 +22,12 @@ import {
   TransformNode,
   UtilityLayerRenderer,
   Vector3,
+  type AbstractEngine,
   type LinesMesh,
 } from "@babylonjs/core";
 import type { ModelInstance } from "../core/AssetManager";
-import { AssetManager } from "../core/AssetManager";
+import type { AssetManager } from "../core/AssetManager";
+import { assetStreaming } from "../core/assets/AssetStreamingManager";
 import type { ManagedScene } from "../core/SceneManager";
 import { CHARACTERS, SCENARIO_ASSETS } from "../data";
 import { MANNEQUIN } from "../systems/WeddingGuests";
@@ -33,6 +36,7 @@ import { hasColorChange, hasTransformChange, isVisualPreservingChange } from "..
 import {
   createPlacedObject,
   generateObjectId,
+  objectLabel,
   roundPlacement,
   type EditorAssetEntry,
 } from "../editor/catalog";
@@ -47,14 +51,21 @@ import {
   GRID_STEP,
   isWallCutAway,
   layoutFloorRect,
+  alignToWall,
+  depthNudge,
+  isPostAsset,
   layoutWallRun,
   pieceStep,
-  placementProblem,
+  insideLot,
+  restingHeight,
   snapTo,
   type Footprint,
   type PiecePlacement,
   type Point2,
+  type WallLine,
 } from "../editor/buildTools";
+import { buildExtinguisher, showsExtinguisher, stationDressing } from "../stations/stationDressing";
+import { COUNTER_HEIGHT, kitchenAssetId } from "../data/kitchen";
 import { isFloorAsset, isWallAsset } from "../physics/collisionPolicy";
 import { OutdoorBackdrop } from "./OutdoorBackdrop";
 import {
@@ -75,7 +86,8 @@ import {
 export type EditorTool = "select" | "place" | "erase" | "eyedropper" | "design" | "wall" | "floor";
 /** The Sims' walls views: all up, cut where they face the camera, all lowered. */
 export type WallMode = "up" | "cutaway" | "down";
-export type PlacementIssue = "outside" | "overlap" | null;
+/** Nothing refuses a placement; off the lot it is only scenery, and the hint says so. */
+export type PlacementIssue = "outside" | null;
 
 export interface EditorSceneCallbacks {
   readonly onExit: () => void;
@@ -98,6 +110,8 @@ interface EditorObjectVisual {
   readonly root: TransformNode;
   /** Display-only node under the root: walls are lowered here, never in the saved transform. */
   readonly body: TransformNode;
+  /** What sits on a station (plates, board, extinguisher), unscaled by the counter's own scale. */
+  readonly dressing: TransformNode | null;
   readonly instance: ModelInstance | null;
   readonly proxy: Mesh | null;
   readonly isWall: boolean;
@@ -107,6 +121,8 @@ interface EditorObjectVisual {
   clip: Plane | null;
   /** Ground footprint, cached until the transform changes. */
   footprint: Footprint | null;
+  /** Half a wall's length along its run, cached until the transform changes. */
+  span: number | null;
 }
 
 interface BuildDrag {
@@ -115,6 +131,10 @@ interface BuildDrag {
   /** Measured once, before any ghost exists: the ghosts would otherwise count as the piece. */
   readonly step: { x: number; z: number };
   pieces: PiecePlacement[];
+  /** Where the pointer last was, to redraw the run when its side is flipped. */
+  last: Point2;
+  /** The , . keys mid-drag: the wall's other side faces the way the drag would put it. */
+  flip: boolean;
 }
 
 interface GhostSource {
@@ -132,14 +152,20 @@ const OUTLINE_LIMIT = 60;
 const SELECTION_COLOR = Color3.FromHexString("#5DE4FF");
 const HOVER_COLOR = Color3.FromHexString("#FFFFFF");
 const VALID_COLOR = Color3.FromHexString("#5CFF9D");
-const INVALID_COLOR = Color3.FromHexString("#FF5A5A");
-const CAMERA_TARGET_LIMIT = BUILD_LOT_HALF + 20;
+/** Off the lot: allowed, but the cooks cannot reach it. */
+const SCENERY_COLOR = Color3.FromHexString("#FFC857");
+/** Objects may sit well past the lot line, so the camera may follow them out there. */
+const CAMERA_TARGET_LIMIT = BUILD_LOT_HALF + 40;
 const MIN_RADIUS = 4;
 const MAX_RADIUS = 90;
 const TOP_VIEW_BETA = 0.02;
 const MIN_BETA = 0.25;
 const MAX_BETA = 1.45;
 const DEFAULT_CAMERA = { alpha: -Math.PI / 2, beta: 0.95, radius: 28 } as const;
+/** A press that moves less than this many CSS pixels is a click, not a drag. */
+const DRAG_THRESHOLD = 4;
+/** How close to the canvas edge, in CSS pixels, the pointer scrolls the view. */
+const EDGE_SCROLL_MARGIN = 14;
 
 const isTypingTarget = (target: EventTarget | null): boolean =>
   target instanceof HTMLElement &&
@@ -179,12 +205,16 @@ export class EditorScene implements ManagedScene {
   private previewVersion = 0;
   private refreshVersion = 0;
   private snap = true;
-  private surfacePlacement = false;
+  /** Raised by 9 / 0 or the height field, on top of whatever the object rests on. */
   private placementHeight = 0;
   private placementRotation = 0;
-  private allowOverlap = false;
   private placementIssue: PlacementIssue = null;
   private dragPoint: Vector3 | null = null;
+  /**
+   * How high the dragged lead object sits above what it rests on, kept as it is dragged
+   * onto a table or off it; null for floors and room shells, which stay on the ground.
+   */
+  private dragLift: number | null = null;
   /** "Girar": the selection turns about its centre as the pointer circles it. */
   private rotateDrag: { pivot: Vector3; startAngle: number; start: Map<string, { y: number; x: number; z: number }> } | null = null;
   /** "Escala": dragging up grows the selection, down shrinks it. */
@@ -199,7 +229,18 @@ export class EditorScene implements ManagedScene {
   private ghostPools: InstancedMesh[][] = [];
   private gizmoStart: { pivot: Vector3; roots: Map<string, Vector3> } | null = null;
   private orbiting = false;
-  private isDragPanning = false;
+  /** Grab-the-ground pan: the ground point under the pointer at the start stays under it. */
+  private groundPan: { anchor: Vector3 | null; startTarget: Vector3 } | null = null;
+  /**
+   * A left press on empty space (or on a floor not yet selected), as in the Sims: a drag
+   * pans the view (Ctrl: orbits it), a click selects or clears.
+   */
+  private pendingDrag: {
+    clientX: number; clientY: number; x: number; y: number;
+    orbit: boolean; additive: boolean; clickId?: string;
+  } | null = null;
+  /** Where the pointer is over the bare canvas, for edge scrolling; null over the panels. */
+  private edgePointer: { clientX: number; clientY: number } | null = null;
   private altHeld = false;
   private hoverId: string | null = null;
   private history: MapData[] = [];
@@ -227,8 +268,13 @@ export class EditorScene implements ManagedScene {
   private readonly releaseInput = (): void => {
     this.cameraKeys.clear();
     this.orbiting = false;
-    this.isDragPanning = false;
+    this.groundPan = null;
+    this.pendingDrag = null;
+    this.edgePointer = null;
     this.altHeld = false;
+  };
+  private readonly pointerLeaveObserver = (event: MouseEvent): void => {
+    if (!event.relatedTarget) this.edgePointer = null;
   };
   private readonly dropObserver = (event: DragEvent): void => {
     if (event.target instanceof HTMLElement && event.target.closest("[data-editor-chrome]")) return;
@@ -242,7 +288,7 @@ export class EditorScene implements ManagedScene {
   };
 
   constructor(
-    engine: Engine,
+    engine: AbstractEngine,
     _host: HTMLElement,
     private readonly callbacks: EditorSceneCallbacks,
     initialMap: MapData | null = null,
@@ -263,7 +309,7 @@ export class EditorScene implements ManagedScene {
     this.scene.collisionsEnabled = false;
     this.scene.skipPointerMovePicking = true;
 
-    this.assets = new AssetManager(this.scene, [
+    this.assets = assetStreaming.createSceneAssets(this.scene, [
       // Robots placed from the "Robôs" catalogue draw this model, so the editor needs it too
       // or they would all render as grey proxy boxes.
       { id: MANNEQUIN.modelAssetId, url: MANNEQUIN.modelUrl, required: true },
@@ -312,6 +358,7 @@ export class EditorScene implements ManagedScene {
     window.addEventListener("keydown", this.keyObserver);
     window.addEventListener("keyup", this.keyObserver);
     window.addEventListener("blur", this.releaseInput);
+    document.addEventListener("mouseout", this.pointerLeaveObserver);
 
     void this.refresh();
     // Debug handle for ?dev sessions, like Game's __bbGame: lets the screenshot harness
@@ -333,8 +380,10 @@ export class EditorScene implements ManagedScene {
   getSelectionSize(): number { return this.selectionIds.size; }
   getWallMode(): WallMode { return this.wallMode; }
   isGridVisible(): boolean { return this.gridVisible; }
+  /** "Livre": no grid, any angle, no squaring up to walls, as when Alt is held. */
+  isFreePlacement(): boolean { return !this.snap; }
   isTopView(): boolean { return this.desired.beta <= TOP_VIEW_BETA + 1e-3; }
-  isOverlapAllowed(): boolean { return this.allowOverlap; }
+  getPlacementHeight(): number { return this.placementHeight; }
   getPlacementIssue(): PlacementIssue { return this.placementIssue; }
   canUndo(): boolean { return this.history.length > 0; }
   canRedo(): boolean { return this.future.length > 0; }
@@ -358,26 +407,25 @@ export class EditorScene implements ManagedScene {
 
   /** One line of help for what the pointer does right now. */
   getHint(): string {
-    if (this.loadingProgress < 1) return `Carregando objetos… ${Math.round(this.loadingProgress * 100)}%`;
+    if (this.loadingProgress < 1) return t("editor.hintLoading", { percent: Math.round(this.loadingProgress * 100) });
     switch (this.currentTool) {
       case "place":
-        if (this.placementIssue === "overlap") return "Não cabe aqui: sobreposto a outro objeto (ative “Permitir sobreposição” para forçar)";
-        if (this.placementIssue === "outside") return "Fora do lote de construção";
-        return "Clique para colocar · , . girar (Shift: 15°) · Alt: sem grade · Esc: cancelar";
+        if (this.placementIssue === "outside") return t("editor.hintOutside");
+        return t("editor.hintPlace");
       case "wall":
-        return this.currentAsset ? "Clique e arraste para desenhar a parede · Esc: cancelar" : "Escolha um estilo de parede no catálogo";
+        return this.currentAsset ? t("editor.hintWall") : t("editor.hintChooseWall");
       case "floor":
-        return this.currentAsset ? "Clique e arraste para cobrir uma área com piso · Esc: cancelar" : "Escolha um piso no catálogo";
+        return this.currentAsset ? t("editor.hintFloor") : t("editor.hintChooseFloor");
       case "eyedropper":
-        return "Clique num objeto para copiá-lo com as cores";
+        return t("editor.hintEyedropper");
       case "design":
-        return this.selectionIds.size ? "Mude as cores no painel à direita · clique em outro objeto para trocar" : "Clique num objeto para mudar as cores";
+        return this.selectionIds.size ? t("editor.hintDesignSelected") : t("editor.hintDesign");
       case "erase":
-        return "Clique para apagar · arraste para apagar uma área";
+        return t("editor.hintErase");
       default:
         return this.selectionIds.size
-          ? "Arraste para mover · , . girar · Ctrl+D duplicar · Delete apagar · F focar"
-          : "Clique para selecionar · arraste numa área vazia para selecionar vários";
+          ? t("editor.hintSelected")
+          : t("editor.hintSelect");
     }
   }
 
@@ -445,7 +493,7 @@ export class EditorScene implements ManagedScene {
     this.placementRotation = template.rotation.y;
     void this.createPreview();
     this.bump();
-    return template.label ?? "objeto";
+    return objectLabel(template) ?? t("editor.object");
   }
 
   setGizmoMode(mode: "position" | "rotation" | "scale"): void {
@@ -454,16 +502,16 @@ export class EditorScene implements ManagedScene {
     this.bump();
   }
 
-  setPlacementOptions(snap: boolean, surface: boolean, height: number): void {
-    this.snap = snap;
-    this.surfacePlacement = surface;
-    this.placementHeight = Number.isFinite(height) ? height : 0;
-    this.positionGizmo.snapDistance = snap ? GRID_STEP : 0;
+  setFreePlacement(free: boolean): void {
+    this.snap = !free;
+    this.positionGizmo.snapDistance = this.snap ? GRID_STEP : 0;
     this.bump();
   }
 
-  setAllowOverlap(allow: boolean): void {
-    this.allowOverlap = allow;
+  setPlacementOptions(snap: boolean, height: number): void {
+    this.snap = snap;
+    this.placementHeight = Number.isFinite(height) ? Math.max(0, height) : 0;
+    this.positionGizmo.snapDistance = snap ? GRID_STEP : 0;
     this.bump();
   }
 
@@ -509,9 +557,19 @@ export class EditorScene implements ManagedScene {
 
   /** Turns the selection (or the next placement) by 45°, or 15° when `fine`. */
   rotateSelected(direction = 1, fine = false): void {
+    // Mid-drag, a wall turns to the run; what the keys choose is which side faces out.
+    const drag = this.buildDrag;
+    if (drag?.kind === "wall") {
+      drag.flip = !drag.flip;
+      this.updateBuildDrag(new Vector3(drag.last.x, 0, drag.last.z));
+      return;
+    }
     const angle = direction * (fine ? SNAP_ROTATION : Math.PI / 4);
     this.placementRotation = wrapAngle(this.placementRotation + angle);
     if (this.preview) this.preview.root.rotation.y = this.placementRotation;
+    if (this.currentTool === "place" || this.currentTool === "wall") {
+      this.updatePointerFeedback(this.lastPointerX, this.lastPointerY);
+    }
     if (this.currentTool !== "select" && this.currentTool !== "design") return;
     if (!this.selectionIds.size) return;
     this.checkpoint();
@@ -637,7 +695,7 @@ export class EditorScene implements ManagedScene {
   }
 
   saveCurrentMap(name: string, meta: MapMeta, slotId?: string): string | null {
-    const trimmed = name.trim() || "Fase sem nome";
+    const trimmed = name.trim() || t("editor.unnamedLevel");
     const targetSlotId = slotId || this.store.generateSlotId();
     // The level settings live on the map, so an exported file plays the same anywhere.
     const data: MapData = {
@@ -748,6 +806,7 @@ export class EditorScene implements ManagedScene {
     window.removeEventListener("keydown", this.keyObserver);
     window.removeEventListener("keyup", this.keyObserver);
     window.removeEventListener("blur", this.releaseInput);
+    document.removeEventListener("mouseout", this.pointerLeaveObserver);
     this.previewVersion++;
     this.refreshVersion++;
     this.disposeGhosts();
@@ -956,6 +1015,8 @@ export class EditorScene implements ManagedScene {
       const data = roundPlacement({ ...visual.data, position, rotation, scale });
       visual.data = data;
       visual.footprint = null;
+      visual.span = null;
+      this.nudgeBody(visual);
       updates.push(data);
     }
     if (updates.length === 0) return;
@@ -995,6 +1056,8 @@ export class EditorScene implements ManagedScene {
       if (!this.gizmoDragging && hasTransformChange(visual.data, data)) {
         this.applyTransform(visual.root, data);
         visual.footprint = null;
+        visual.span = null;
+        this.nudgeBody(visual);
       }
       if (hasColorChange(visual.data, data) && visual.instance) {
         applyColorOverrides(visual.instance.rootNodes, data.colors, this.colorCache);
@@ -1065,6 +1128,7 @@ export class EditorScene implements ManagedScene {
       proxy.onDisposeObservable.addOnce(() => proxyMaterial.dispose());
     }
     if (instance && object.colors) applyColorOverrides(instance.rootNodes, object.colors, this.colorCache);
+    const dressing = await this.dressStation(object, root);
     for (const mesh of root.getChildMeshes()) {
       mesh.isPickable = true;
       mesh.metadata = { objectId: object.id };
@@ -1073,6 +1137,7 @@ export class EditorScene implements ManagedScene {
       data: object,
       root,
       body,
+      dressing,
       instance,
       proxy,
       isWall: isWallAsset(object.assetId, object.category),
@@ -1080,7 +1145,9 @@ export class EditorScene implements ManagedScene {
       lowered: false,
       clip: null,
       footprint: null,
+      span: null,
     };
+    this.nudgeBody(visual);
     if (object.assetId === "scenario-room-wide") {
       // Scene clip planes are global, so one is set only while the shell itself draws.
       for (const mesh of root.getChildMeshes()) {
@@ -1208,7 +1275,13 @@ export class EditorScene implements ManagedScene {
       }
       const lowered = this.wallMode === "down" ||
         (this.wallMode === "cutaway" && !shell && !this.selectionIds.has(visual.data.id) &&
-          isWallCutAway({ x: visual.root.position.x, z: visual.root.position.z }, targetPoint, cameraPoint));
+          isWallCutAway(
+            { x: visual.root.position.x, z: visual.root.position.z },
+            targetPoint,
+            cameraPoint,
+            undefined,
+            isPostAsset(visual.data.assetId) ? undefined : visual.data.rotation.y,
+          ));
       if (lowered === visual.lowered) continue;
       visual.lowered = lowered;
       visual.body.scaling.y = lowered ? LOWERED_WALL_SCALE : 1;
@@ -1227,8 +1300,9 @@ export class EditorScene implements ManagedScene {
       return Math.max(-1, Math.min(1, value));
     };
     const fast = keys.has("ShiftLeft") || keys.has("ShiftRight") ? 2.5 : 1;
-    const forward = axis(["KeyW", "KeyS"], ["ArrowUp", "ArrowDown"]);
-    const strafe = axis(["KeyD", "KeyA"], ["ArrowRight", "ArrowLeft"]);
+    const edge = this.edgeScroll();
+    const forward = Math.max(-1, Math.min(1, axis(["KeyW", "KeyS"], ["ArrowUp", "ArrowDown"]) + edge.forward));
+    const strafe = Math.max(-1, Math.min(1, axis(["KeyD", "KeyA"], ["ArrowRight", "ArrowLeft"]) + edge.strafe));
     if (forward || strafe) {
       const speed = this.desired.radius * 0.9 * fast * deltaSeconds;
       const f = { x: -Math.cos(this.desired.alpha), z: -Math.sin(this.desired.alpha) };
@@ -1238,18 +1312,103 @@ export class EditorScene implements ManagedScene {
     }
     const turn = axis(["KeyE", "KeyQ"]);
     if (turn) this.desired.alpha += turn * 1.8 * deltaSeconds;
-    const zoom = axis(["KeyX", "KeyZ"]);
+    const zoom = axis(["KeyX", "KeyZ"], ["Minus", "Equal"], ["NumpadSubtract", "NumpadAdd"]);
     if (zoom) this.desired.radius *= 1 + zoom * 1.4 * deltaSeconds;
 
     this.clampDesired();
-    const ease = 1 - Math.exp(-12 * deltaSeconds);
+    const ease = 1 - Math.exp(-18 * deltaSeconds);
     const camera = this.camera;
     camera.alpha += (this.desired.alpha - camera.alpha) * ease;
     camera.beta += (this.desired.beta - camera.beta) * ease;
     camera.radius += (this.desired.radius - camera.radius) * ease;
+    // While the ground is grabbed the view keeps up exactly; easing would let the grabbed
+    // point slide out from under the pointer.
+    const targetEase = this.groundPan ? 1 : ease;
     const target = camera.target.clone();
-    target.addInPlace(this.desired.target.subtract(target).scaleInPlace(ease));
-    camera.setTarget(target);
+    target.addInPlace(this.desired.target.subtract(target).scaleInPlace(targetEase));
+    moveCameraTarget(camera, target);
+  }
+
+  /** The Sims' edge scrolling: the pointer resting at the canvas edge slides the view that way. */
+  private edgeScroll(): { forward: number; strafe: number } {
+    const pointer = this.edgePointer;
+    const busy = this.orbiting || this.groundPan || this.pendingDrag || this.dragPoint ||
+      this.rotateDrag || this.scaleDrag || this.marquee || this.buildDrag || this.gizmoDragging;
+    if (!pointer || busy) return { forward: 0, strafe: 0 };
+    const rect = this.canvas.getBoundingClientRect();
+    const { clientX: x, clientY: y } = pointer;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return { forward: 0, strafe: 0 };
+    const strafe = x <= rect.left + EDGE_SCROLL_MARGIN ? -1 : x >= rect.right - EDGE_SCROLL_MARGIN ? 1 : 0;
+    const forward = y <= rect.top + EDGE_SCROLL_MARGIN ? 1 : y >= rect.bottom - EDGE_SCROLL_MARGIN ? -1 : 0;
+    return { forward, strafe };
+  }
+
+  /**
+   * Zooms by `factor` towards the ground point under the pointer, which stays put on screen,
+   * rather than towards the middle of the view.
+   */
+  private zoomTowards(x: number, y: number, factor: number): void {
+    const before = this.desired.radius;
+    this.desired.radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, before * factor));
+    const applied = this.desired.radius / before;
+    const ground = this.pickGround(x, y, false);
+    if (!ground || Vector3.Distance(ground, this.desired.target) > MAX_RADIUS * 2) return;
+    const target = this.desired.target;
+    target.x += (ground.x - target.x) * (1 - applied);
+    target.z += (ground.z - target.z) * (1 - applied);
+  }
+
+  /** Grabs the ground under the pointer; `updateGroundPan` keeps it there. */
+  private beginGroundPan(x: number, y: number): void {
+    const picked = this.pickGround(x, y, false);
+    // Too close to the horizon to grab (no anchor): the pan follows screen distance instead.
+    const anchor = picked && this.isGrabbable(picked) ? picked : null;
+    this.groundPan = { anchor, startTarget: this.camera.target.clone() };
+  }
+
+  /** Ground far beyond the view's focus is near the horizon, where a pixel spans metres. */
+  private isGrabbable(point: Vector3): boolean {
+    return Vector3.Distance(point, this.camera.target) <= this.camera.radius * 4;
+  }
+
+  private updateGroundPan(x: number, y: number, dx: number, dy: number): void {
+    const pan = this.groundPan;
+    if (!pan) return;
+    const point = pan.anchor ? this.pickGround(x, y, false) : null;
+    if (!pan.anchor || !point || !this.isGrabbable(point)) {
+      const scale = this.camera.radius * 0.0016;
+      const f = { x: -Math.cos(this.camera.alpha), z: -Math.sin(this.camera.alpha) };
+      this.desired.target.x += (-dx * f.z + dy * f.x) * scale;
+      this.desired.target.z += (dx * f.x + dy * f.z) * scale;
+      return;
+    }
+    // The point was picked through the view as it stands now. Moving the view by d moves the
+    // ground under every pixel by d, so taking off how far it has moved gives where this
+    // pixel looked at the start; the view then moves by whatever keeps the anchor under it.
+    const moved = this.camera.target.subtract(pan.startTarget);
+    const atStart = point.subtract(moved);
+    this.desired.target.x = pan.startTarget.x + pan.anchor.x - atStart.x;
+    this.desired.target.z = pan.startTarget.z + pan.anchor.z - atStart.z;
+  }
+
+  /** 9 / 0, the Sims' moveobjects keys: raise or lower the selection, or the next placement. */
+  private nudgeHeight(delta: number): void {
+    const round = (value: number): number => Math.max(0, Math.round(value / GRID_STEP) * GRID_STEP);
+    const placing = this.currentTool === "place" && this.currentAsset;
+    if (placing || this.selectionIds.size === 0) {
+      this.placementHeight = round(this.placementHeight + delta);
+      this.updatePointerFeedback(this.lastPointerX, this.lastPointerY);
+      this.bump();
+      return;
+    }
+    this.checkpoint();
+    for (const id of this.selectionIds) {
+      const root = this.visuals.get(id)?.root;
+      if (root) root.position.y = round(root.position.y + delta);
+    }
+    this.commitGizmoChange();
+    this.dropCheckpointIfUnchanged();
+    this.refreshGizmo();
   }
 
   private clampDesired(): void {
@@ -1299,18 +1458,20 @@ export class EditorScene implements ManagedScene {
       return;
     }
     if (event.target instanceof HTMLElement && event.target.closest("[data-editor-chrome]")) {
+      this.edgePointer = null;
       if (this.preview && !this.buildDrag) this.preview.root.setEnabled(false);
       if (this.pickIndicator) this.pickIndicator.isVisible = false;
       this.setHover(null);
       return;
     }
     event.preventDefault();
+    this.edgePointer = event.target === this.canvas ? { clientX: event.clientX, clientY: event.clientY } : null;
+    const { x, y } = this.pointerCoordinates(event);
     if (event instanceof WheelEvent) {
-      const factor = Math.pow(1.0015, Math.max(-300, Math.min(300, event.deltaY)));
-      this.desired.radius *= factor;
+      const fast = event.shiftKey ? 2 : 1;
+      this.zoomTowards(x, y, Math.pow(1.0015, Math.max(-300, Math.min(300, event.deltaY * fast))));
       return;
     }
-    const { x, y } = this.pointerCoordinates(event);
     if (event.type === "pointerdown") {
       this.handlePointerDown(event, x, y);
     } else if (event.type === "pointermove") {
@@ -1322,10 +1483,11 @@ export class EditorScene implements ManagedScene {
     this.lastPointerX = x;
     this.lastPointerY = y;
     this.altHeld = event.altKey;
-    if (event.button === 2 || event.button === 1 || (event.button === 0 && event.shiftKey && this.currentTool === "select")) {
+    // The Sims: right button orbits, the wheel button grabs the ground.
+    if (event.button === 2 || event.button === 1) {
       this.canvas.setPointerCapture(event.pointerId);
-      this.orbiting = event.button === 2;
-      this.isDragPanning = !this.orbiting;
+      if (event.button === 2) this.orbiting = true;
+      else this.beginGroundPan(x, y);
       return;
     }
     if (event.button !== 0 || this.gizmoDragging || this.utilityLayer.utilityLayerScene.pick(x, y)?.hit) return;
@@ -1343,7 +1505,14 @@ export class EditorScene implements ManagedScene {
         const point = this.pickGround(x, y, false);
         if (!point) return;
         this.canvas.setPointerCapture(event.pointerId);
-        this.buildDrag = { kind: this.currentTool, start: { x: point.x, z: point.z }, step: this.pieceSize(), pieces: [] };
+        this.buildDrag = {
+          kind: this.currentTool,
+          start: { x: point.x, z: point.z },
+          step: this.pieceSize(),
+          pieces: [],
+          last: { x: point.x, z: point.z },
+          flip: false,
+        };
         this.updateBuildDrag(point);
         return;
       }
@@ -1352,22 +1521,28 @@ export class EditorScene implements ManagedScene {
         if (!id) return;
         this.selectObject(id, false);
         const label = this.startCopying();
-        if (label) this.callbacks.onNotice?.(`Conta-gotas: colocando cópias de "${label}"`, "info");
+        if (label) this.callbacks.onNotice?.(t("editor.copyingNotice", { name: label }), "info");
         return;
       }
       case "design": {
         const id = this.pickObjectId(x, y);
         if (id) this.selectObject(id, event.ctrlKey || event.metaKey);
+        else this.beginPendingDrag(event, x, y, event.ctrlKey || event.metaKey);
         return;
       }
       case "erase": {
+        // Shift+drag knocks down everything in a box; a plain click, one object.
+        if (event.shiftKey) {
+          this.marquee = { x: event.clientX, y: event.clientY, additive: false, erase: true, element: null };
+          return;
+        }
         const id = this.pickObjectId(x, y);
         if (id) {
           this.selectObject(id, false);
           this.deleteSelected();
           return;
         }
-        this.marquee = { x: event.clientX, y: event.clientY, additive: false, erase: true, element: null };
+        this.beginPendingDrag(event, x, y, true);
         return;
       }
       default:
@@ -1377,17 +1552,17 @@ export class EditorScene implements ManagedScene {
 
   private selectPointerDown(event: PointerEvent, x: number, y: number): void {
     const id = this.pickObjectId(x, y);
-    const additive = event.ctrlKey || event.metaKey;
-    if (!id) {
-      // A click on empty space clears the selection; a drag draws a selection box.
-      this.marquee = { x: event.clientX, y: event.clientY, additive, erase: false, element: null };
+    const additive = event.ctrlKey || event.metaKey || event.shiftKey;
+    // Shift+drag draws a selection box from anywhere; Shift+click adds to the selection.
+    if (event.shiftKey) {
+      this.marquee = { x: event.clientX, y: event.clientY, additive, erase: false, element: null, clickId: id ?? undefined };
       return;
     }
-    // Floors and room shells cover the whole stage: dragging on one draws a selection box
-    // instead of dragging the room, and a plain click still selects it.
-    const picked = this.visuals.get(id);
-    if ((picked?.isFloor || picked?.data.category === "room") && !this.selectionIds.has(id)) {
-      this.marquee = { x: event.clientX, y: event.clientY, additive, erase: false, element: null, clickId: id };
+    // Empty space, and floors and room shells (they cover the whole stage), behave as the
+    // ground does in the Sims: dragging pans the view, a click selects it or clears.
+    const picked = id ? this.visuals.get(id) : undefined;
+    if (!id || ((picked?.isFloor || picked?.data.category === "room") && !this.selectionIds.has(id))) {
+      this.beginPendingDrag(event, x, y, additive, id ?? undefined);
       return;
     }
     if (!this.selectionIds.has(id) || additive) this.selectObject(id, additive);
@@ -1395,11 +1570,25 @@ export class EditorScene implements ManagedScene {
     if (this.gizmoMode === "position") {
       this.checkpoint();
       this.dragPoint = this.pickGround(x, y, false);
+      // The lead is the first selected object, as in `dragSelection`.
+      const lead = this.visuals.get([...this.selectionIds][0] ?? "");
+      this.dragLift = lead && !lead.isFloor && lead.data.category !== "room"
+        ? lead.root.position.y - (this.pickSurface(x, y, this.selectionIds)?.y ?? 0)
+        : null;
     } else if (this.gizmoMode === "rotation") {
       this.beginRotate(x, y);
     } else {
       this.beginScale(y);
     }
+  }
+
+  /** A left press that becomes a pan (Ctrl: an orbit) once it moves, or a click if it does not. */
+  private beginPendingDrag(event: PointerEvent, x: number, y: number, additive: boolean, clickId?: string): void {
+    this.canvas.setPointerCapture(event.pointerId);
+    this.pendingDrag = {
+      clientX: event.clientX, clientY: event.clientY, x, y,
+      orbit: event.ctrlKey || event.metaKey, additive, clickId,
+    };
   }
 
   private handlePointerMove(event: PointerEvent, x: number, y: number): void {
@@ -1408,16 +1597,21 @@ export class EditorScene implements ManagedScene {
     this.lastPointerX = x;
     this.lastPointerY = y;
     this.altHeld = event.altKey;
+    const pending = this.pendingDrag;
+    if (pending) {
+      if (Math.hypot(event.clientX - pending.clientX, event.clientY - pending.clientY) < DRAG_THRESHOLD) return;
+      this.pendingDrag = null;
+      if (pending.orbit) this.orbiting = true;
+      else this.beginGroundPan(pending.x, pending.y);
+    }
     if (this.orbiting) {
-      this.desired.alpha -= dx * 0.006;
-      if (!this.isTopView()) this.desired.beta -= dy * 0.005;
+      const speed = event.shiftKey ? 2 : 1;
+      this.desired.alpha -= dx * 0.006 * speed;
+      if (!this.isTopView()) this.desired.beta -= dy * 0.005 * speed;
       return;
     }
-    if (this.isDragPanning) {
-      const scale = this.camera.radius * 0.0016;
-      const f = { x: -Math.cos(this.camera.alpha), z: -Math.sin(this.camera.alpha) };
-      this.desired.target.x += (-dx * f.z + dy * f.x) * scale;
-      this.desired.target.z += (dx * f.x + dy * f.z) * scale;
+    if (this.groundPan) {
+      this.updateGroundPan(x, y, dx, dy);
       return;
     }
     if (this.buildDrag) {
@@ -1445,10 +1639,19 @@ export class EditorScene implements ManagedScene {
       this.refreshGizmo();
     }
     this.dragPoint = null;
+    this.dragLift = null;
     this.rotateDrag = null;
     this.scaleDrag = null;
     if (this.marquee) this.finishMarquee(event);
-    this.isDragPanning = false;
+    const click = this.pendingDrag;
+    this.pendingDrag = null;
+    if (click) {
+      // It never moved: a click. On a floor or room shell it selects it; on empty space it
+      // clears the selection (the sledgehammer has none to clear).
+      if (click.clickId) this.selectObject(click.clickId, click.additive);
+      else if (!click.additive) this.clearSelection();
+    }
+    this.groundPan = null;
     this.orbiting = false;
   }
 
@@ -1462,13 +1665,25 @@ export class EditorScene implements ManagedScene {
     if (this.preview) {
       this.preview.root.setEnabled(Boolean(point));
       if (point) this.preview.root.position.copyFrom(point);
+      // The ghost shows exactly what a click lays: a wall piece on its grid line, turned
+      // and stretched as the run would be; an object squared up to a wall beside it.
+      if (point && this.currentTool === "wall") {
+        const piece = this.wallRun(point, point, this.pieceSize().x)[0];
+        if (piece) {
+          this.preview.root.position.set(piece.x, point.y, piece.z);
+          this.preview.root.rotation.y = piece.rotationY;
+          this.preview.root.scaling.x = this.preview.data.scale.x * (piece.stretch ?? 1);
+        }
+      } else if (point && this.currentTool === "place") {
+        this.preview.root.rotation.y = this.placementTurn(point);
+      }
     }
     const issue = point && this.currentTool === "place" ? this.placementIssueAt(point) : null;
     if (issue !== this.placementIssue) {
       this.placementIssue = issue;
       this.bump();
     }
-    const tint = issue ? INVALID_COLOR : VALID_COLOR;
+    const tint = issue ? SCENERY_COLOR : VALID_COLOR;
     if (this.preview) {
       for (const mesh of this.preview.root.getChildMeshes()) {
         mesh.renderOverlay = true;
@@ -1494,21 +1709,40 @@ export class EditorScene implements ManagedScene {
       root.position.addInPlace(delta);
     }
     this.dragPoint = point;
+    // Onto a table, off it again: the lead object keeps its height above whatever is under
+    // the pointer, and the rest of the group moves with it.
+    const lead = this.visuals.get([...this.selectionIds][0] ?? "")?.root;
+    if (this.dragLift !== null && lead) {
+      const support = this.pickSurface(x, y, this.selectionIds)?.y ?? 0;
+      const rise = Math.max(0, support + this.dragLift) - lead.position.y;
+      if (Math.abs(rise) > 1e-4) {
+        for (const id of this.selectionIds) {
+          const root = this.visuals.get(id)?.root;
+          if (root) root.position.y = Math.max(0, root.position.y + rise);
+        }
+      }
+    }
+    // A single object dragged up to a wall squares up to it, at whatever angle it runs.
+    const single = this.selectionIds.size === 1 ? this.visuals.get([...this.selectionIds][0]!) : undefined;
+    if (snap && single && !single.isWall && !single.isFloor && single.data.category !== "room") {
+      const turn = alignToWall(single.root.position, single.root.rotation.y, this.wallLines(this.selectionIds));
+      if (turn !== null) {
+        this.useEuler(single.root);
+        single.root.rotation.y = turn;
+      }
+    }
     // Snap the result, not just the step, by moving the lead object onto the grid and the
     // rest by the same amount: a group keeps its shape, and lands aligned.
-    if (snap) {
-      const lead = this.visuals.get([...this.selectionIds][0] ?? "")?.root;
-      if (lead) {
-        const offsetX = snapTo(lead.position.x, GRID_STEP) - lead.position.x;
-        const offsetZ = snapTo(lead.position.z, GRID_STEP) - lead.position.z;
-        if (offsetX || offsetZ) {
-          for (const id of this.selectionIds) {
-            const root = this.visuals.get(id)?.root;
-            if (root) { root.position.x += offsetX; root.position.z += offsetZ; }
-          }
-          this.dragPoint.x += offsetX;
-          this.dragPoint.z += offsetZ;
+    if (snap && lead) {
+      const offsetX = snapTo(lead.position.x, GRID_STEP) - lead.position.x;
+      const offsetZ = snapTo(lead.position.z, GRID_STEP) - lead.position.z;
+      if (offsetX || offsetZ) {
+        for (const id of this.selectionIds) {
+          const root = this.visuals.get(id)?.root;
+          if (root) { root.position.x += offsetX; root.position.z += offsetZ; }
         }
+        this.dragPoint.x += offsetX;
+        this.dragPoint.z += offsetZ;
       }
     }
     this.commitGizmoChange();
@@ -1629,7 +1863,7 @@ export class EditorScene implements ManagedScene {
       this.selectionIds.clear();
       for (const id of inside) this.selectionIds.add(id);
       this.deleteSelected();
-      this.callbacks.onNotice?.(`${inside.length} objeto(s) apagado(s) · Ctrl+Z desfaz`, "warning");
+      this.callbacks.onNotice?.(t("editor.deletedNotice", { count: inside.length }), "warning");
       return;
     }
     if (!box.additive) this.selectionIds.clear();
@@ -1640,12 +1874,8 @@ export class EditorScene implements ManagedScene {
   // ---------------------------------------------------------------------------------------
   // Placement
 
+  /** Anything goes anywhere, as with the Sims' moveobjects: on, in or past other objects. */
   private tryPlaceAt(point: Vector3): void {
-    const issue = this.placementIssueAt(point);
-    if (issue) {
-      this.callbacks.onNotice?.(issue === "outside" ? "Fora do lote de construção" : "Não cabe aqui: sobreposto a outro objeto", "warning");
-      return;
-    }
     this.placeAt(point);
   }
 
@@ -1657,9 +1887,9 @@ export class EditorScene implements ManagedScene {
         ...structuredClone(this.copyTemplate),
         id: generateObjectId(),
         position: { x: point.x, y: point.y, z: point.z },
-        rotation: { ...this.copyTemplate.rotation, y: this.placementRotation },
+        rotation: { ...this.copyTemplate.rotation, y: this.placementTurn(point) },
       })
-      : { ...createPlacedObject(this.currentAsset, point), rotation: { x: 0, y: this.placementRotation, z: 0 } };
+      : { ...createPlacedObject(this.currentAsset, point), rotation: { x: 0, y: this.placementTurn(point), z: 0 } };
     const objects = created.role === "spawn"
       ? [...this.currentMap.objects.filter(object => object.playerIndex !== created.playerIndex), created]
       : [...this.currentMap.objects, created];
@@ -1668,29 +1898,128 @@ export class EditorScene implements ManagedScene {
     void this.refresh();
   }
 
-  /** Why the ghost may not go down at `point`, or null. */
+  /**
+   * The turn an object set down at `point` takes: the designer's, squared up to a wall
+   * within reach (the Sims' wall snapping). Free placement, Alt, and walls and floors
+   * themselves keep exactly the turn chosen.
+   */
+  private placementTurn(point: Point2): number {
+    const preview = this.preview;
+    if (!this.snap || this.altHeld || !preview || preview.isWall || preview.isFloor || preview.data.category === "room") {
+      return this.placementRotation;
+    }
+    return alignToWall(point, this.placementRotation, this.wallLines()) ?? this.placementRotation;
+  }
+
+  /** Every wall piece on the map as a line on the ground, but those in `exclude`. */
+  private wallLines(exclude: ReadonlySet<string> = new Set()): WallLine[] {
+    const lines: WallLine[] = [];
+    for (const [id, visual] of this.visuals) {
+      if (!visual.isWall || exclude.has(id)) continue;
+      lines.push({
+        x: visual.root.position.x,
+        z: visual.root.position.z,
+        rotationY: visual.root.rotationQuaternion?.toEulerAngles().y ?? visual.root.rotation.y,
+        halfLength: this.wallHalfLength(visual),
+      });
+    }
+    return lines;
+  }
+
+  /**
+   * Draws a wall or floor piece a hair off its saved place, as the game does, so pieces
+   * that overlap do not flicker (see depthNudge). Display only: the body, not the root.
+   */
+  private nudgeBody(visual: EditorObjectVisual): void {
+    const { data, body } = visual;
+    if (visual.dressing) this.unscaleDressing(visual.dressing, data);
+    const kind = visual.isFloor ? "floor" : visual.isWall && !isPostAsset(data.assetId) && data.assetId !== "scenario-room-wide" ? "wall" : null;
+    if (!kind || data.id.startsWith("preview-")) return;
+    const nudge = depthNudge(kind, data.position, data.rotation.y);
+    // Into the root's own frame: undo its turn and scale.
+    const cos = Math.cos(data.rotation.y);
+    const sin = Math.sin(data.rotation.y);
+    const localX = nudge.x * cos - nudge.z * sin;
+    const localZ = nudge.x * sin + nudge.z * cos;
+    body.position.set(
+      localX / (Math.abs(data.scale.x) || 1),
+      nudge.y / (Math.abs(data.scale.y) || 1),
+      localZ / (Math.abs(data.scale.z) || 1),
+    );
+  }
+
+  /**
+   * Sets on a station what the game will put on it — the board and knife, the plate
+   * stacks, the extinguisher (see stationDressing) — so it reads as what it is. Under
+   * its own node, which undoes the counter's scale: the game sizes these by themselves.
+   */
+  private async dressStation(object: MapPlacedObject, root: TransformNode): Promise<TransformNode | null> {
+    const kind = object.stationId;
+    const models = stationDressing(kind);
+    if (models.length === 0 && !showsExtinguisher(kind)) return null;
+    const node = new TransformNode(`editor-dressing-${object.id}`, this.scene);
+    node.parent = root;
+    this.unscaleDressing(node, object);
+    if (showsExtinguisher(kind)) {
+      const stand = new TransformNode(`${node.name}-extinguisher`, this.scene);
+      stand.parent = node;
+      stand.position.y = COUNTER_HEIGHT;
+      buildExtinguisher(this.scene, stand, `${node.name}-extinguisher`);
+    }
+    await Promise.all(models.map(async (piece, index) => {
+      const holder = new TransformNode(`${node.name}-${index}`, this.scene);
+      holder.parent = node;
+      holder.position.set(...piece.position);
+      if (piece.rotation) holder.rotation.set(...piece.rotation);
+      holder.scaling.set(...piece.scale);
+      try {
+        await this.assets.instantiateModel(kitchenAssetId(piece.model), {
+          namePrefix: `${holder.name}-`,
+          parent: holder,
+          cloneMaterials: false,
+        });
+      } catch (error) {
+        console.warn(`Editor could not dress ${object.assetId} with ${piece.model}`, error);
+      }
+    }));
+    return node;
+  }
+
+  private unscaleDressing(node: TransformNode, object: MapPlacedObject): void {
+    node.scaling.set(
+      1 / (Math.abs(object.scale.x) || 1),
+      1 / (Math.abs(object.scale.y) || 1),
+      1 / (Math.abs(object.scale.z) || 1),
+    );
+  }
+
+  /** Half the piece's length along its own X, the way a wall runs. */
+  private wallHalfLength(visual: EditorObjectVisual): number {
+    if (visual.span !== null) return visual.span;
+    visual.root.computeWorldMatrix(true);
+    const inverse = Matrix.Invert(visual.root.getWorldMatrix());
+    let min = Infinity;
+    let max = -Infinity;
+    for (const mesh of visual.root.getChildMeshes()) {
+      if (mesh.getTotalVertices() === 0) continue;
+      mesh.computeWorldMatrix(true);
+      for (const corner of mesh.getBoundingInfo().boundingBox.vectorsWorld) {
+        const x = Vector3.TransformCoordinates(corner, inverse).x;
+        min = Math.min(min, x);
+        max = Math.max(max, x);
+      }
+    }
+    visual.span = Number.isFinite(min) ? ((max - min) / 2) * Math.abs(visual.root.scaling.x) : 0.5;
+    return visual.span;
+  }
+
+  /** Whether the ghost at `point` lands off the lot, where it is only scenery. */
   private placementIssueAt(point: Vector3): PlacementIssue {
     const preview = this.preview;
     if (!preview) return null;
     preview.root.position.copyFrom(point);
-    const candidate = this.footprintOf(preview, true);
-    if (!candidate) return null;
-    // Set on top of something, or deliberately raised: overlap is the point.
-    const stacked = point.y > 0.05;
-    const kind = this.currentAsset;
-    const ignoresOverlap = this.allowOverlap || stacked || !kind ||
-      isFloorAsset(kind.assetId) || kind.role === "spawn" || kind.category === "room";
-    const others: Footprint[] = [];
-    if (!ignoresOverlap) {
-      for (const visual of this.visuals.values()) {
-        if (visual.isFloor || visual.data.assetId === "scenario-room-wide" || visual.data.role === "spawn") continue;
-        // Anything raised off the floor (a lamp on a table) is not in the way at ground level.
-        if (visual.data.position.y > 0.05) continue;
-        const footprint = this.footprintOf(visual, false);
-        if (footprint) others.push(footprint);
-      }
-    }
-    return placementProblem(candidate, others);
+    const footprint = this.footprintOf(preview, true);
+    return footprint && !insideLot(footprint) ? "outside" : null;
   }
 
   private footprintOf(visual: EditorObjectVisual, fresh: boolean): Footprint | null {
@@ -1716,11 +2045,28 @@ export class EditorScene implements ManagedScene {
     return point;
   }
 
+  /**
+   * The top of the placed object under the pointer, when the pointer is on an upward face of
+   * one: where something set down there rests. Floors and the room shell are the ground, and
+   * the ghost and `exclude` (what is being dragged) are looked through.
+   */
+  private pickSurface(x: number, y: number, exclude: ReadonlySet<string> = new Set()): Vector3 | null {
+    const ghost = this.preview?.root;
+    const hit = this.scene.pick(x, y, (mesh) => {
+      const id = mesh.metadata?.objectId as string | undefined;
+      if (!id || exclude.has(id) || !mesh.isPickable || !mesh.isEnabled()) return false;
+      if (ghost && mesh.isDescendantOf(ghost)) return false;
+      const visual = this.visuals.get(id);
+      return Boolean(visual) && !visual!.isFloor && visual!.data.category !== "room";
+    });
+    if (!hit?.hit || !hit.pickedPoint) return null;
+    const height = restingHeight({ y: hit.pickedPoint.y, normalY: hit.getNormal(true, true)?.y ?? 0 });
+    return height > 0 ? new Vector3(hit.pickedPoint.x, height, hit.pickedPoint.z) : null;
+  }
+
   private pickPlacement(x: number, y: number): Vector3 | null {
-    const surface = this.surfacePlacement
-      ? this.scene.pick(x, y, mesh => Boolean(mesh.metadata?.objectId) && mesh.isPickable && mesh.isEnabled())?.pickedPoint
-      : null;
-    const point = surface?.clone() ?? this.pickGround(x, y);
+    const surface = this.pickSurface(x, y);
+    const point = surface ?? this.pickGround(x, y);
     if (!point) return null;
     if (this.snap && !this.altHeld) { point.x = snapTo(point.x, GRID_STEP); point.z = snapTo(point.z, GRID_STEP); }
     // A copy stays at its original's height unless it is set down on whatever is under it.
@@ -1759,30 +2105,45 @@ export class EditorScene implements ManagedScene {
     if (!preview) return { x: 1, z: 1 };
     const rotation = preview.root.rotation.y;
     const position = preview.root.position.clone();
+    // Unstretched: a diagonal ghost is drawn √2 longer than the piece it lays.
+    const stretched = preview.root.scaling.x;
     preview.root.rotation.y = 0;
     preview.root.position.setAll(0);
+    preview.root.scaling.x = preview.data.scale.x;
     const footprint = this.footprintOf(preview, true);
     preview.root.rotation.y = rotation;
     preview.root.position.copyFrom(position);
+    preview.root.scaling.x = stretched;
     if (!footprint) return { x: 1, z: 1 };
     return { x: pieceStep(footprint.maxX - footprint.minX), z: pieceStep(footprint.maxZ - footprint.minZ) };
+  }
+
+  /** A wall run as the tools lay it now: on the grid or free, its side as chosen. */
+  private wallRun(start: Point2, end: Point2, step: number, flip = false): PiecePlacement[] {
+    const pieces = layoutWallRun(start, end, step, { free: !this.snap || this.altHeld, facing: this.placementRotation });
+    return flip ? pieces.map((piece) => ({ ...piece, rotationY: wrapAngle(piece.rotationY + Math.PI) })) : pieces;
   }
 
   private updateBuildDrag(point: Vector3): void {
     const drag = this.buildDrag;
     if (!drag) return;
     const size = drag.step;
-    const inLot = (piece: PiecePlacement): boolean =>
-      Math.abs(piece.x) <= BUILD_LOT_HALF && Math.abs(piece.z) <= BUILD_LOT_HALF;
-    // Like the Sims, nothing is built past the lot line.
-    drag.pieces = (drag.kind === "wall"
-      ? layoutWallRun(drag.start, { x: point.x, z: point.z }, size.x)
-      : layoutFloorRect(drag.start, { x: point.x, z: point.z }, size.x, size.z)).filter(inLot);
+    drag.last = { x: point.x, z: point.z };
+    // Walls and floors may run past the lot line too; out there they are scenery.
+    drag.pieces = drag.kind === "wall"
+      ? this.wallRun(drag.start, drag.last, size.x, drag.flip)
+      : layoutFloorRect(drag.start, { x: point.x, z: point.z }, size.x, size.z);
     this.showGhosts(drag.pieces);
     this.callbacks.onNotice?.(
       drag.kind === "wall"
-        ? `${drag.pieces.length} peça(s) · ${(drag.pieces.length * size.x).toFixed(2).replace(".", ",")} m`
-        : `${drag.pieces.length} piso(s)`,
+        ? t("editor.wallPieces", {
+          count: drag.pieces.length,
+          length: formatNumber(
+            drag.pieces.reduce((sum, piece) => sum + size.x * (piece.stretch ?? 1), 0),
+            { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+          ),
+        })
+        : t("editor.floorPieces", { count: drag.pieces.length }),
       "info",
     );
   }
@@ -1819,7 +2180,7 @@ export class EditorScene implements ManagedScene {
         }
         ghost.setEnabled(true);
         const world = Matrix.Compose(
-          scaling,
+          new Vector3(scaling.x * (piece.stretch ?? 1), scaling.y, scaling.z),
           Quaternion.RotationAxis(Vector3.Up(), piece.rotationY),
           new Vector3(piece.x, this.placementHeight, piece.z),
         );
@@ -1848,25 +2209,43 @@ export class EditorScene implements ManagedScene {
     const asset = this.currentAsset;
     if (!drag || !asset || drag.pieces.length === 0) return;
     // Redrawing over an existing run must not stack duplicate pieces on top of each other.
-    const existing = new Set(this.currentMap.objects
+    // A wall is the same line whichever way it faces: drawn again the other way round,
+    // the piece already there turns to face the new way.
+    const wall = drag.kind === "wall";
+    const keyOf = (x: number, z: number, rotation: number): string => {
+      const turn = wall ? ((wrapAngle(rotation) % Math.PI) + Math.PI) % Math.PI : wrapAngle(rotation);
+      return `${x.toFixed(2)}|${z.toFixed(2)}|${(Math.abs(turn - Math.PI) < 0.005 ? 0 : turn).toFixed(2)}`;
+    };
+    const existing = new Map(this.currentMap.objects
       .filter(object => object.assetId === asset.assetId)
-      .map(object => `${object.position.x.toFixed(2)}|${object.position.z.toFixed(2)}|${wrapAngle(object.rotation.y).toFixed(2)}`));
+      .map(object => [keyOf(object.position.x, object.position.z, object.rotation.y), object] as const));
     const created: MapPlacedObject[] = [];
+    const turned = new Map<string, number>();
     for (const piece of drag.pieces) {
-      const key = `${piece.x.toFixed(2)}|${piece.z.toFixed(2)}|${wrapAngle(piece.rotationY).toFixed(2)}`;
-      if (existing.has(key)) continue;
-      existing.add(key);
+      const key = keyOf(piece.x, piece.z, piece.rotationY);
+      const there = existing.get(key);
+      if (there) {
+        if (wall && Math.abs(wrapAngle(there.rotation.y - piece.rotationY)) > 0.01) turned.set(there.id, piece.rotationY);
+        continue;
+      }
       const base = createPlacedObject(asset, new Vector3(piece.x, this.placementHeight, piece.z));
-      created.push(roundPlacement({
+      const placed = roundPlacement({
         ...base,
         rotation: { x: 0, y: piece.rotationY, z: 0 },
+        scale: { ...base.scale, x: base.scale.x * (piece.stretch ?? 1) },
         colors: this.copyTemplate?.assetId === asset.assetId ? this.copyTemplate.colors : undefined,
-      }));
+      });
+      existing.set(key, placed);
+      created.push(placed);
     }
-    if (created.length === 0) return;
+    if (created.length === 0 && turned.size === 0) return;
     this.checkpoint();
-    this.currentMap = { ...this.currentMap, objects: [...this.currentMap.objects, ...created], updatedAt: Date.now() };
-    this.callbacks.onNotice?.(`${created.length} peça(s) colocada(s) · Ctrl+Z desfaz`, "success");
+    const objects = this.currentMap.objects.map((object) => {
+      const turn = turned.get(object.id);
+      return turn === undefined ? object : roundPlacement({ ...object, rotation: { ...object.rotation, y: turn } });
+    });
+    this.currentMap = { ...this.currentMap, objects: [...objects, ...created], updatedAt: Date.now() };
+    this.callbacks.onNotice?.(t("editor.placedPieces", { count: created.length }), "success");
     void this.refresh();
   }
 
@@ -1889,6 +2268,7 @@ export class EditorScene implements ManagedScene {
     }
     const ctrl = event.ctrlKey || event.metaKey;
     const cameraCodes = ["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ", "KeyE", "KeyZ", "KeyX",
+      "Equal", "Minus", "NumpadAdd", "NumpadSubtract",
       "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ShiftLeft", "ShiftRight"];
     if (!ctrl && !event.altKey && cameraCodes.includes(event.code)) {
       event.preventDefault();
@@ -1907,7 +2287,7 @@ export class EditorScene implements ManagedScene {
       case "KeyA": this.selectAll(); return true;
       case "KeyC": {
         const count = this.copySelection();
-        if (count) this.callbacks.onNotice?.(`${count} objeto(s) copiado(s) · Ctrl+V cola`, "info");
+        if (count) this.callbacks.onNotice?.(t("editor.copiedNotice", { count }), "info");
         return true;
       }
       case "KeyV": this.pasteClipboard(); return true;
@@ -1942,12 +2322,15 @@ export class EditorScene implements ManagedScene {
       case "Digit1": this.setGizmoMode("position"); return true;
       case "Digit2": this.setGizmoMode("rotation"); return true;
       case "Digit3": this.setGizmoMode("scale"); return true;
+      case "Digit9": this.nudgeHeight(GRID_STEP); return true;
+      case "Digit0": this.nudgeHeight(-GRID_STEP); return true;
       case "KeyH": this.setTool("select"); this.setAsset(null); return true;
       case "KeyI": this.setTool("eyedropper"); this.setAsset(null); return true;
       case "KeyR": this.setTool("design"); this.setAsset(null); return true;
       case "KeyK": this.setTool("erase"); this.setAsset(null); return true;
       case "KeyV": this.cycleWallMode(); return true;
       case "KeyG": this.setGridVisible(!this.gridVisible); return true;
+      case "KeyL": this.setFreePlacement(this.snap); return true;
       case "KeyT": this.toggleTopView(); return true;
       case "KeyF": this.frameSelection(); return true;
       default: return false;

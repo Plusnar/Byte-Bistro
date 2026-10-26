@@ -1,7 +1,15 @@
 import { BALANCE } from "../data/balance";
-import type { RuntimeGameState, ShiftRank, ShiftResult } from "../types/game";
+import { starsForCoins } from "../data/levelGoals";
+import type { RuntimeGameState, ShiftRank, ShiftResult, StarThresholds } from "../types/game";
 import { clamp } from "../utils/math";
 import { ScoreSystem } from "./ScoreSystem";
+
+/** A level that set no targets: reported as-is, and no coin total earns a star. */
+const NO_STAR_THRESHOLDS: StarThresholds = {
+  one: Number.POSITIVE_INFINITY,
+  two: Number.POSITIVE_INFINITY,
+  three: Number.POSITIVE_INFINITY,
+};
 
 export class ShiftSystem {
   constructor(private readonly scoreSystem: ScoreSystem = new ScoreSystem()) {}
@@ -21,7 +29,6 @@ export class ShiftSystem {
       activeOrders: [],
       completedOrders: 0,
       failedOrders: 0,
-      coreHunger: 25,
       combo: 0,
       maxCombo: 0,
       meltdowns: 0,
@@ -57,7 +64,11 @@ export class ShiftSystem {
     };
   }
 
-  createResult(state: RuntimeGameState): ShiftResult {
+  /**
+   * @param starThresholds what this level asks for, from `src/data/levelGoals.ts`. Left
+   * out, the result still reports its coins and simply earns no stars.
+   */
+  createResult(state: RuntimeGameState, starThresholds?: StarThresholds): ShiftResult {
     const averageDishQuality =
       state.servedDishes.length === 0
         ? 0
@@ -81,7 +92,6 @@ export class ShiftSystem {
       ordersFailed: state.failedOrders,
       averageDishQuality,
       miraStability: state.aiState.stability,
-      coreHunger: state.coreHunger,
       maxCombo: state.maxCombo,
       meltdowns: state.meltdowns,
       componentsThrown: state.componentsThrown,
@@ -94,6 +104,11 @@ export class ShiftSystem {
       cookingScore,
       creditsEarned: Math.round(cookingScore * BALANCE.shift.creditsPerScore),
       rank: this.getRank(performance),
+      // Coins are what the shift actually paid out; stars are what this level wanted for
+      // it. The rank above stays the note on execution — the two answer different questions.
+      coins: cookingScore,
+      stars: starThresholds ? starsForCoins(cookingScore, starThresholds) : 0,
+      starThresholds: starThresholds ?? NO_STAR_THRESHOLDS,
     };
   }
 

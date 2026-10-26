@@ -2,8 +2,10 @@ export const GAME_CONFIG = {
   title: "BYTE BISTRO",
   organization: "NEURADYNE SYSTEMS",
   player: {
-    walkSpeed: 4.4,
-    runMultiplier: 1.55,
+    walkSpeed: 3.6,
+    // Running covers ground; the dash (see src/entities/dash.ts) is the burst. The two
+    // would compete if a held run were nearly as fast, so the run sits closer to the walk.
+    runMultiplier: 1.3,
     interactionRadius: 2.25,
     bounds: {
       minX: -12.8,
@@ -21,10 +23,16 @@ export const GAME_CONFIG = {
     smoothing: 5.5,
   },
   shift: {
-    developmentDuration: 240,
-    standardDuration: 240,
+    developmentDuration: 195,
+    standardDuration: 195,
   },
   interactionCooldownMs: 160,
+  /**
+   * How much of their own colour the cooks show regardless of the room's light (see
+   * CharacterController.setLift): their models read dark under the kitchen's warm light.
+   * Only the cooks; the room and the guests are lit as before.
+   */
+  characterLift: 0.3,
 } as const;
 
 export const DEV_MODE = import.meta.env.DEV;

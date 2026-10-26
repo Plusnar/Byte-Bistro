@@ -9,6 +9,7 @@ import {
   StandardMaterial,
   TransformNode,
   Vector3,
+  type BaseTexture,
   type Scene,
 } from "@babylonjs/core";
 import type { AssetManager, ModelInstance } from "../core/AssetManager";
@@ -24,6 +25,8 @@ import {
   type EmbeddedClipKey,
   type PlayableClip,
 } from "./embeddedClips";
+import { ArmPoser, type ArmPose } from "./armPose";
+import { HairPhysics } from "./hairPhysics";
 
 /** Slowest a locomotion clip plays, so a cook easing off still steps. */
 const MIN_LOCOMOTION_RATE = 0.8;
@@ -72,19 +75,48 @@ export class CharacterController {
   private deathPlaying = false;
   /** Clips for a character that ships its own animations; null for KayKit cooks. */
   private embedded: Map<EmbeddedClipKey, PlayableClip> | null = null;
+  /** Spring hair, for a cook whose file has hair joints. */
+  private hair: HairPhysics | null = null;
+  private arms: ArmPoser | null = null;
+  private armPose: ArmPose = "none";
+  private knifeProp: TransformNode | null = null;
   /** Where a character is in hit, fall, lie. */
   private downedStage: "none" | "falling" | "lying" = "none";
   private gestureActive = false;
   /** A locomotion change asked for mid-gesture, applied once the gesture ends. */
   private pendingLocomotion: { state: CharacterLocomotionState; speed?: number } | null = null;
 
+  /** Each converted material's own colour, before the lift is added (see setLift). */
+  private readonly liftSources = new Map<StandardMaterial, { readonly colour: Color3; readonly texture: BaseTexture | null }>();
+
+  /**
+   * @param lift Share of the model's own colour it shows regardless of the light (see
+   *   setLift); 0 leaves it lit like the room.
+   */
   constructor(
     scene: Scene,
     private readonly assets: AssetManager,
     parent: Node,
+    private lift = 0,
   ) {
     this.modelRoot = new TransformNode("player-character-model", scene);
     this.modelRoot.parent = parent;
+  }
+
+  /**
+   * Brightens the model without washing it out: `amount` of its own colour (its texture
+   * times its tint) is added as self-illumination. Hues and the shading of the light stay,
+   * just with lifted shadows; a white light would instead flatten the colours and burn
+   * the lit side to white. Parts that glow on their own keep their glow.
+   */
+  setLift(amount: number): void {
+    this.lift = Math.max(0, amount);
+    for (const [material, source] of this.liftSources) this.applyLift(material, source);
+  }
+
+  private applyLift(material: StandardMaterial, source: { readonly colour: Color3; readonly texture: BaseTexture | null }): void {
+    material.emissiveTexture = this.lift > 0 ? source.texture : null;
+    material.emissiveColor.copyFrom(source.colour).scaleInPlace(this.lift);
   }
 
   get hasCharacter(): boolean {
@@ -135,6 +167,42 @@ export class CharacterController {
     return `X${minimum.x.toFixed(1)}/${maximum.x.toFixed(1)} ` +
       `Y${minimum.y.toFixed(1)}/${maximum.y.toFixed(1)} ` +
       `Z${minimum.z.toFixed(1)}/${maximum.z.toFixed(1)}`;
+  }
+
+  /**
+   * Holds the arms in a pose over whatever the legs are doing: carrying an item,
+   * chopping. Throws, falls and getting up take the arms back while they play.
+   * Characters without Mixamo arms ignore it.
+   */
+  setArmPose(pose: ArmPose): void {
+    this.armPose = pose;
+    this.arms?.setPose(pose);
+  }
+
+  /** The knife shown in the cook's right hand while chopping; an unparented node. */
+  setKnifeProp(knife: TransformNode | null): void {
+    this.knifeProp = knife;
+    this.arms?.setKnife(knife);
+  }
+
+  /** How far into the chopping pose the arms are, 0..1. */
+  get chopBlend(): number {
+    return this.arms?.chopBlend ?? 0;
+  }
+
+  /** How far into a pose that leans over a counter the arms are, 0..1. */
+  get reachBlend(): number {
+    return this.arms?.reachBlend ?? 0;
+  }
+
+  /** Whether the knife is in the cook's hand, so the board should not show its own. */
+  get holdsKnife(): boolean {
+    return this.arms?.holdsKnife ?? false;
+  }
+
+  /** Lets the hair fall straight into the current pose, as after a cut. */
+  resetHair(): void {
+    this.hair?.reset();
   }
 
   async prepare(): Promise<void> {
@@ -254,6 +322,33 @@ export class CharacterController {
     this.activeState = null;
     this.activeAmbientId = clipId;
     group.start(true, 1);
+  }
+
+  /**
+   * Plays a clip from an animation pack once, such as a robot's throw. Resolves with
+   * how long it runs in seconds, or 0 when it cannot be played. Whatever plays next
+   * (an ambient clip, locomotion) takes over from its last frame.
+   */
+  async playOneShot(clipId: string, pack: AnimationPackKey, speed = 1): Promise<number> {
+    if (!this.characterInstance) return 0;
+    const selection = this.selectionSequence;
+    let group = this.oneShots.get(clipId);
+    if (!group) {
+      const source = await this.getPackSource(pack);
+      if (!source || selection !== this.selectionSequence || !this.characterInstance) return 0;
+      group = this.oneShots.get(clipId) ?? this.cloneFrom(source, clipId) ?? undefined;
+      if (!group) return 0;
+      group.loopAnimation = false;
+      this.oneShots.set(clipId, group);
+    }
+    this.stopDeath();
+    this.activeAnimation?.stop(true);
+    this.activeAnimation = group;
+    this.activeState = null;
+    this.activeAmbientId = null;
+    group.start(false, speed);
+    const fps = group.targetedAnimations[0]?.animation.framePerSecond ?? 30;
+    return (group.to - group.from) / fps / speed;
   }
 
   private async getPackSource(pack: AnimationPackKey): Promise<ModelInstance | null> {
@@ -572,6 +667,22 @@ export class CharacterController {
       this.characterMaterials.push(...materials);
       this.selectedCharacterId = definition.id;
       this.embedded = clips;
+      if (this.modelRoot.parent instanceof TransformNode) {
+        // Attached before the hair, so the hair is simulated after the lean. A throw,
+        // a fall or getting up owns the arms while it plays; getting up is the clip
+        // with no locomotion state.
+        this.arms = ArmPoser.attach(
+          instance.rootNodes,
+          this.modelRoot.getScene(),
+          this.modelRoot.parent,
+          () => this.gestureActive || this.deathPlaying || this.activeState === null,
+        );
+        this.arms?.setPose(this.armPose);
+        this.arms?.setKnife(this.knifeProp);
+      }
+      if (definition.hair) {
+        this.hair = HairPhysics.attach(instance.rootNodes, this.modelRoot.getScene(), definition.hair);
+      }
 
       // One persistent listener each, keyed off state rather than added per play,
       // so a retriggered clip never leaves a stale handler behind.
@@ -708,6 +819,12 @@ export class CharacterController {
           material.diffuseColor.copyFrom(source.albedoColor);
           material.emissiveTexture = source.emissiveTexture;
           material.emissiveColor.copyFrom(source.emissiveColor);
+          // Glowing parts (eyes, screens) keep their own emissive; the rest may be lifted.
+          if (!source.emissiveTexture && source.emissiveColor.toLuminance() < 0.01) {
+            const lifted = { colour: source.albedoColor.clone(), texture: source.albedoTexture };
+            this.liftSources.set(material, lifted);
+            this.applyLift(material, lifted);
+          }
           material.specularColor.copyFrom(Color3.White().scale(0.12));
           material.alpha = source.alpha;
           material.backFaceCulling = source.backFaceCulling;
@@ -772,6 +889,10 @@ export class CharacterController {
     this.activeAmbientId = null;
     for (const clip of this.embedded?.values() ?? []) clip.group.dispose();
     this.embedded = null;
+    this.hair?.dispose();
+    this.hair = null;
+    this.arms?.dispose();
+    this.arms = null;
     this.downedStage = "none";
     this.gestureActive = false;
     this.pendingLocomotion = null;

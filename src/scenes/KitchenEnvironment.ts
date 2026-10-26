@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { createBuildingMesh } from "../editor/building";
 import { WEDDING_HALL_PLACEMENTS } from "./weddingHall";
 import {
@@ -38,8 +39,9 @@ import {
   shouldCollide,
 } from "../physics/collisionPolicy";
 import { createPartitionedCollider, needsPartitioning } from "../physics/partitionedCollider";
+import { batchStaticMeshes } from "../core/render/staticBatching";
 import { OutdoorBackdrop } from "./OutdoorBackdrop";
-import { BUILD_LOT_HALF, isWallCutAway } from "../editor/buildTools";
+import { BUILD_LOT_HALF, depthNudge, isPostAsset, isWallCutAway } from "../editor/buildTools";
 import { GAME_CONFIG } from "../config";
 import { applyColorOverrides, MaterialOverrideCache } from "./materialOverrides";
 
@@ -349,9 +351,28 @@ const cutScale = (object: MapPlacedObject, cutaway?: MapCutaway): Vector3 => {
   const scale = toVector3(object.scale);
   const cut = cutaway && object.assetId !== "scenario-room-wide" &&
     isWallAsset(object.assetId, object.category) &&
-    isWallCutAway({ x: object.position.x, z: object.position.z }, cutaway.target, cutaway.camera);
+    isWallCutAway(
+      { x: object.position.x, z: object.position.z },
+      cutaway.target,
+      cutaway.camera,
+      undefined,
+      isPostAsset(object.assetId) ? undefined : object.rotation.y,
+    );
   if (cut) scale.y *= CUTAWAY_WALL_SCALE;
   return scale;
+};
+
+/** Where a piece is drawn: walls and floor tiles a hair apart from their neighbours (see depthNudge). */
+const nudged = (object: MapPlacedObject): Vector3 => {
+  const position = toVector3(object.position);
+  const kind = isFloorAsset(object.assetId)
+    ? "floor"
+    : object.assetId !== "scenario-room-wide" && isWallAsset(object.assetId, object.category) && !isPostAsset(object.assetId)
+      ? "wall"
+      : null;
+  if (!kind) return position;
+  const nudge = depthNudge(kind, object.position, object.rotation.y);
+  return position.addInPlaceFromFloats(nudge.x, nudge.y, nudge.z);
 };
 
 /** Stations and dispensers are drawn by WorkstationView, so only decor is placed here. */
@@ -359,7 +380,7 @@ export const placementsFromMap = (map: MapData, cutaway?: MapCutaway): readonly 
   map.objects.filter(object => object.role === "decor").map((object, index) => ({
     name: `custom-${object.role}-${index}`,
     assetId: object.assetId,
-    position: toVector3(object.position),
+    position: nudged(object),
     rotation: toVector3(object.rotation),
     scale: cutScale(object, cutaway),
     // Maps saved before scenery was solid stored `false` everywhere, so the
@@ -485,7 +506,7 @@ export const robotsFromMap = (map: MapData): RobotSpawn[] =>
     .filter(object => object.role === "robot")
     .map((object, index) => ({
       id: object.id,
-      name: object.robot?.displayName || `Robô-${String(index + 1).padStart(2, "0")}`,
+      name: object.robot?.displayName || t("wedding.robotName", { number: String(index + 1).padStart(2, "0") }),
       position: { ...object.position },
       rotationY: object.rotation.y,
       config: sanitizeRobotConfig(object.robot),
@@ -515,6 +536,8 @@ export class KitchenEnvironment {
   private readonly placementRoots: TransformNode[] = [];
   /** Recoloured material clones, shared by every object painted the same. */
   private readonly colorCache = new MaterialOverrideCache();
+  /** Meshes drawn with their own clip plane; batching would lose the per-mesh switch. */
+  private readonly clippedMeshes = new Set<Mesh>();
   private disposed = false;
 
   constructor(
@@ -567,9 +590,9 @@ export class KitchenEnvironment {
         camera: { x: centre.x + GAME_CONFIG.camera.offsetX, z: centre.z + GAME_CONFIG.camera.offsetZ },
       })
       : WEDDING_HALL_PLACEMENTS;
-    this.ready = this.loadScenario(placements).then(() => {
-      if (!options.map && !this.disposed) this.mergeStaticDecor();
-    });
+    // Every level is batched, the editor's maps included: the official wedding is one, and
+    // skipping them left its ~1,550 decor meshes as separate draw calls.
+    this.ready = this.loadScenario(placements).then(() => this.batchStaticDecor());
   }
 
   dispose(): void {
@@ -586,54 +609,23 @@ export class KitchenEnvironment {
   }
 
   /**
-   * Merges the hall's decor into one mesh per material.
+   * Draws the level's decor as one batch per material (see `batchStaticMeshes`).
    *
-   * The wedding hall is ~1,200 small meshes (every floor tile and wall panel is its own
-   * model), and each cost a draw call plus per-frame culling — it took the shift from
-   * ~34 to ~17 fps. They never move, so meshes sharing a material and the same collision
-   * setup become one: identical pixels, a few dozen draw calls. Merged meshes large enough
-   * to be expensive to sweep are then partitioned like any other big collider.
+   * Every floor tile and wall panel is its own model, and drawing them one by one was most
+   * of each frame. Collision is untouched: solid pieces stay as invisible colliders, so the
+   * cooks, the ground probe and the robots' navigation see exactly the same obstacles.
    */
-  private mergeStaticDecor(): void {
-    const groups = new Map<string, Mesh[]>();
-    for (const placementRoot of this.placementRoots) {
-      for (const mesh of placementRoot.getChildMeshes(false)) {
-        if (!(mesh instanceof Mesh) || mesh.getTotalVertices() === 0 || !mesh.material) continue;
-        if (mesh.skeleton || mesh.morphTargetManager || mesh.subMeshes?.length !== 1) continue;
-        // Already stood in for by a partitioned collider, which dies with its source.
-        if (needsPartitioning(mesh)) continue;
-        const key = [
-          mesh.material.uniqueId,
-          mesh.checkCollisions,
-          mesh.collisionGroup,
-          mesh.getVerticesDataKinds().sort().join(","),
-        ].join("|");
-        const group = groups.get(key);
-        if (group) group.push(mesh);
-        else groups.set(key, [mesh]);
-      }
-    }
-    for (const meshes of groups.values()) {
-      if (meshes.length < 2) continue;
-      const first = meshes[0]!;
-      const solid = first.checkCollisions;
-      const collisionGroup = first.collisionGroup;
-      const merged = Mesh.MergeMeshes(meshes, true, true);
-      if (!merged) continue;
-      merged.parent = this.root;
-      merged.isPickable = false;
-      merged.receiveShadows = true;
-      merged.checkCollisions = solid;
-      merged.collisionGroup = collisionGroup;
-      merged.freezeWorldMatrix();
-      if (solid && needsPartitioning(merged)) createPartitionedCollider(merged);
-    }
-    // What is left of a fully merged model is its empty glTF node tree, which would still be
-    // walked and culled every frame.
-    for (const placementRoot of this.placementRoots) {
-      const drawsSomething = placementRoot.getChildMeshes(false).some((mesh) => mesh.getTotalVertices() > 0);
-      if (!drawsSomething) for (const child of placementRoot.getChildren()) child.dispose();
-    }
+  private async batchStaticDecor(): Promise<void> {
+    if (this.disposed) return;
+    const decor = this.placementRoots.flatMap((placementRoot) => placementRoot.getChildMeshes(false));
+    await batchStaticMeshes(decor, this.root, {
+      skip: (mesh) => this.clippedMeshes.has(mesh),
+      shouldStop: () => this.disposed,
+    });
+    if (this.disposed) return;
+    // A model whose meshes all went into batches leaves its glTF node tree behind; frozen,
+    // it costs nothing to keep for the colliders hanging off it.
+    for (const placementRoot of this.placementRoots) placementRoot.freezeWorldMatrix();
   }
 
   /**
@@ -738,6 +730,7 @@ export class KitchenEnvironment {
 
   /** Scene clip planes are global, so enable one only while this mesh renders. */
   private clipMesh(mesh: Mesh, plane: Plane): void {
+    this.clippedMeshes.add(mesh);
     let previous: Nullable<Plane> = null;
     mesh.onBeforeRenderObservable.add(() => {
       previous = this.scene.clipPlane;

@@ -8,6 +8,8 @@ import type { MovementBounds } from '../entities/Player';
 import type { CharacterDefinition } from '../data/characters';
 import type { Order } from '../types/game';
 import { publicUrl } from '../utils/assetUrl';
+import { bundledModelUrl } from '../core/assets/assetRegistry';
+import { onLanguageChange, t } from '../i18n';
 import { integrateFall, isGrounded } from '../entities/groundedMove';
 import {
   DEFAULT_ROBOT_CONFIG, ROBOT_ASSET_ID, getRobotClip,
@@ -15,14 +17,13 @@ import {
 } from '../data/robotConfig';
 
 export const MANNEQUIN: CharacterDefinition = {
-  id: 'wedding-mannequin', displayName: 'Convidado robô', role: 'Convidado',
+  id: 'wedding-mannequin', get displayName() { return t('wedding.guest'); }, get role() { return t('wedding.guestRole'); },
   modelAssetId: ROBOT_ASSET_ID,
-  modelUrl: new URL('../../Anim/Mannequin Character/characters/Mannequin_Medium.glb', import.meta.url).href,
+  modelUrl: bundledModelUrl("Anim/Mannequin Character/characters/Mannequin_Medium.glb"),
   previewUrl: '', targetHeight: 1.8, rig: 'Rig_Medium',
 };
-export const DISH_NAMES: Record<string, string> = {
-  ram_cake: 'Bolo de memória RAM', cache_cookies: 'Cookies de cache', cooling_gelato: 'Gelato refrigerante',
-};
+/** Dishes a guest can be seen eating; names live with the recipes. */
+const DISH_IDS = ['ram_cake', 'cache_cookies', 'cooling_gelato'] as const;
 /** Four robots keeps the reception readable and the frame budget predictable. */
 const NAMES = ['Ada-01', 'Turing-02', 'Pixel-03', 'Nina-04'];
 /** A flat sign with the couple's name, hung where a decorated hall has room for it. */
@@ -47,6 +48,8 @@ export interface WeddingGuest {
   /** Where this robot belongs: its editor position, or its spot in the reception. */
   anchor: Vector3;
   config: RobotConfig;
+  /** Seconds left of a one-shot (a throw) that must not be cut by the idle clip. */
+  busy: number;
 }
 
 /** A guest's outstanding kitchen ticket. */
@@ -80,6 +83,9 @@ export class WeddingGuests {
   private readonly ownedMeshes: Mesh[] = [];
   private readonly materials: StandardMaterial[] = [];
   private readonly textures: Texture[] = [];
+  /** Signs drawn with text, redrawn when the language changes. */
+  private readonly signs: (() => void)[] = [];
+  private readonly stopLanguage = onLanguageChange(() => { for (const draw of this.signs) draw(); });
   private readonly dishMaterials = new Map<string, StandardMaterial>();
   private elapsed = 0;
   private nextArrival = 0;
@@ -133,10 +139,9 @@ export class WeddingGuests {
       const cz = (this.area.minZ + this.area.maxZ) / 2;
       this.createReception(cx, cz, this.area.maxX - this.area.minX, this.area.maxZ - this.area.minZ);
     }
-    for (const id of Object.keys(DISH_NAMES)) {
+    for (const id of DISH_IDS) {
       const mat = this.material(`dish-${id}`, '#ffffff', 0.8);
-      const texture = new Texture(publicUrl(`images/dishes/${id}.png`), scene);
-      texture.hasAlpha = true;
+      const texture = assets.createTexture(publicUrl(`images/dishes/${id}.png`), { hasAlpha: true });
       mat.diffuseTexture = texture;
       mat.emissiveTexture = texture;
       mat.useAlphaFromDiffuseTexture = true;
@@ -187,7 +192,7 @@ export class WeddingGuests {
       root.setEnabled(false);
       root.rotation.y = entry.rotationY;
       this.guests.push({ id, name: entry.name, root, controller, target: entry.anchor.clone(),
-        active: false, wait: 0, requestedRecipe: null, icon, blockedFor: 0,
+        active: false, wait: 0, requestedRecipe: null, icon, blockedFor: 0, busy: 0,
         path: [], lastSpeed: 0,
         anchor: entry.anchor, config: entry.config });
     }
@@ -271,6 +276,10 @@ export class WeddingGuests {
     const grid = this.navGrid();
     for (const g of this.guests) {
       if (!g.active) continue;
+      if (g.busy > 0) {
+        g.busy -= dt;
+        continue;
+      }
       g.wait = Math.max(0, g.wait - dt);
       if (!g.config.canMove || g.requestedRecipe || g.wait > 0) { this.playIdle(g); continue; }
       const position = g.root.position;
@@ -492,6 +501,31 @@ export class WeddingGuests {
   }
 
   /** Loops whatever this robot idles as, falling back to the stock idle for unknown clips. */
+  /** Robots standing in the kitchen, free to throw something. */
+  get idleRobots(): WeddingGuest[] {
+    return this.guests.filter((g) => g.active && g.busy <= 0 && g.controller.hasCharacter);
+  }
+
+  /**
+   * Turns `g` to face `target` and plays a throw. Resolves with the seconds from
+   * now until the hand lets go, or null when the clip is not available.
+   */
+  async throwAt(g: WeddingGuest, target: Vector3): Promise<number | null> {
+    const dx = target.x - g.root.position.x;
+    const dz = target.z - g.root.position.z;
+    g.root.rotationQuaternion = null;
+    g.root.rotation.y = Math.atan2(dx, dz);
+    g.busy = 1.2;
+    const seconds = await g.controller.playOneShot("Throw", "general", 1.25);
+    if (seconds <= 0) {
+      g.busy = 0;
+      return null;
+    }
+    g.busy = seconds;
+    // The arm comes over and lets go a little before the middle of the clip.
+    return seconds * 0.42;
+  }
+
   private playIdle(g: WeddingGuest): void {
     const clip = getRobotClip(g.config.idleClip);
     if (!clip) { g.controller.setLocomotion('idle'); return; }
@@ -595,16 +629,21 @@ export class WeddingGuests {
     sign.isPickable = false;
     this.ownedMeshes.push(sign);
     const tex = new DynamicTexture('wedding-banner-text', { width: 1024, height: 200 }, this.scene, false);
-    const ctx = tex.getContext();
-    ctx.fillStyle = '#fff6e8'; ctx.fillRect(0, 0, 1024, 200);
-    ctx.strokeStyle = '#d9a441'; ctx.lineWidth = 12; ctx.strokeRect(6, 6, 1012, 188);
-    ctx.fillStyle = '#7a3b55'; ctx.font = 'bold 84px serif';
-    const title = 'ChatGPT ♡ Gemini';
-    ctx.fillText(title, (1024 - ctx.measureText(title).width) / 2, 118);
-    ctx.fillStyle = '#b07a2a'; ctx.font = '30px serif';
-    const subtitle = 'RECEPÇÃO DO CASAMENTO';
-    ctx.fillText(subtitle, (1024 - ctx.measureText(subtitle).width) / 2, 170);
-    tex.update();
+    const draw = (): void => {
+      const ctx = tex.getContext();
+      ctx.clearRect(0, 0, 1024, 200);
+      ctx.fillStyle = '#fff6e8'; ctx.fillRect(0, 0, 1024, 200);
+      ctx.strokeStyle = '#d9a441'; ctx.lineWidth = 12; ctx.strokeRect(6, 6, 1012, 188);
+      ctx.fillStyle = '#7a3b55'; ctx.font = 'bold 84px serif';
+      const title = 'ChatGPT ♡ Gemini';
+      ctx.fillText(title, (1024 - ctx.measureText(title).width) / 2, 118);
+      ctx.fillStyle = '#b07a2a'; ctx.font = '30px serif';
+      const subtitle = t('wedding.bannerSubtitle');
+      ctx.fillText(subtitle, (1024 - ctx.measureText(subtitle).width) / 2, 170);
+      tex.update();
+    };
+    draw();
+    this.signs.push(draw);
     const mat = this.material('wedding-banner-material', '#ffffff');
     mat.diffuseTexture = tex; sign.material = mat;
     this.textures.push(tex);
@@ -626,16 +665,23 @@ export class WeddingGuests {
     const sign = this.billboard('wedding-welcome', 3.7, 0.72);
     sign.position.set(cx, 0.8, this.area.maxZ);
     const tex = new DynamicTexture('wedding-sign', { width: 1024, height: 200 }, this.scene, false);
-    tex.drawText('ChatGPT ♡ Gemini', null, 90, 'bold 60px sans-serif', '#ffe7b0', '#35293f');
-    const ctx = tex.getContext(); ctx.font = '30px sans-serif'; ctx.fillStyle = '#fff4db';
-    const label = 'SALÃO DO CASAMENTO • ENTRADA À ESQUERDA';
-    ctx.fillText(label, (1024 - ctx.measureText(label).width) / 2, 156); tex.update();
+    const draw = (): void => {
+      // drawText with a clear colour repaints the whole sign, so the old label goes too.
+      tex.drawText('ChatGPT ♡ Gemini', null, 90, 'bold 60px sans-serif', '#ffe7b0', '#35293f');
+      const ctx = tex.getContext(); ctx.font = '30px sans-serif'; ctx.fillStyle = '#fff4db';
+      const label = t('wedding.hallSign');
+      ctx.fillText(label, (1024 - ctx.measureText(label).width) / 2, 156); tex.update();
+    };
+    draw();
+    this.signs.push(draw);
     const mat = this.material('wedding-sign-material', '#ffffff'); mat.diffuseTexture = tex; sign.material = mat;
     this.textures.push(tex);
   }
 
   dispose(): void {
     this.generation++;
+    this.stopLanguage();
+    this.signs.length = 0;
     for (const g of this.guests) { g.controller.dispose(); g.root.dispose(); }
     for (const mesh of this.ownedMeshes) mesh.dispose();
     for (const material of this.materials) material.dispose(false, false);

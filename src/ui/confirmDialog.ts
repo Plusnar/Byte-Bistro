@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import "../styles/confirm-dialog.css";
 
 export interface ConfirmDialogOptions {
@@ -49,11 +50,11 @@ export const confirmDialog = (options: ConfirmDialogOptions): Promise<boolean> =
   const cancel = document.createElement("button");
   cancel.type = "button";
   cancel.className = "confirm-dialog-cancel";
-  cancel.textContent = options.cancelLabel ?? "Cancelar";
+  cancel.textContent = options.cancelLabel ?? t("common.cancel");
   const confirm = document.createElement("button");
   confirm.type = "button";
   confirm.className = "confirm-dialog-confirm";
-  confirm.textContent = options.confirmLabel ?? "Confirmar";
+  confirm.textContent = options.confirmLabel ?? t("common.confirm");
   actions.append(cancel, confirm);
 
   dialog.append(title, message, actions);
@@ -146,11 +147,11 @@ export const textDialog = (options: TextDialogOptions): Promise<string | null> =
   const cancel = document.createElement("button");
   cancel.type = "button";
   cancel.className = "confirm-dialog-cancel";
-  cancel.textContent = options.cancelLabel ?? "Cancelar";
+  cancel.textContent = options.cancelLabel ?? t("common.cancel");
   const confirm = document.createElement("button");
   confirm.type = "submit";
   confirm.className = "confirm-dialog-confirm";
-  confirm.textContent = options.confirmLabel ?? "Confirmar";
+  confirm.textContent = options.confirmLabel ?? t("common.confirm");
   actions.append(cancel, confirm);
 
   dialog.append(title, message, actions);

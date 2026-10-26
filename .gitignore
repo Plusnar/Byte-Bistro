@@ -15,6 +15,17 @@
 # Dev/preview middleware imported by vite.config.ts
 !/server/
 
+# Asset pipeline output and performance gates: `npm run build` needs all of these
+# (the registry imports optimized/, vite.config.ts and prebuild run the scripts).
+!/optimized/
+!/asset-pipeline.json
+!/performance-budget.json
+!/scripts/
+/scripts/*
+!/scripts/assets/
+!/scripts/build/
+!/scripts/perf/
+
 # Models the code imports from outside src/ and public/
 !/Scenario/
 /Scenario/*

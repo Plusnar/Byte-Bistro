@@ -18,7 +18,9 @@ import {
   VertexData,
   type Node,
 } from "@babylonjs/core";
-import { AssetManager, type ModelInstance } from "../core/AssetManager";
+import type { AssetManager, ModelInstance } from "../core/AssetManager";
+import { assetStreaming } from "../core/assets/AssetStreamingManager";
+import { qualityManager } from "../core/perf/QualityManager";
 import {
   LEVEL_LANDMARKS,
   LEVEL_MAP_URL,
@@ -138,6 +140,7 @@ export class LevelMapView {
   private elapsed = 0;
   private active = true;
   private disposed = false;
+  private readonly unregisterQuality: () => void;
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly options: LevelMapOptions) {
     this.engine = new Engine(canvas, true, {
@@ -188,7 +191,7 @@ export class LevelMapView {
     this.selectedMaterial = this.createStarMaterial("level-map-star-selected", 0.3);
     this.mapRoot = new TransformNode("level-map-root", this.scene);
 
-    this.assets = new AssetManager(this.scene, [MAP_ASSET]);
+    this.assets = assetStreaming.createSceneAssets(this.scene, [MAP_ASSET]);
     this.settled = this.load().then(() => this.map !== null).catch((error: unknown) => {
       console.error("O mapa de fases não pôde ser carregado.", error);
       return false;
@@ -209,6 +212,7 @@ export class LevelMapView {
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
+    this.unregisterQuality = qualityManager.registerEngine(this.engine, { followsDevicePixelRatio: false });
     this.engine.runRenderLoop(this.frame);
   }
 
@@ -279,6 +283,7 @@ export class LevelMapView {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.unregisterQuality();
     this.resizeObserver.disconnect();
     this.engine.stopRenderLoop(this.frame);
     for (const star of this.stars) star.root.dispose();

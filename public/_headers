@@ -1,0 +1,18 @@
+# Cloudflare Pages response headers (https://developers.cloudflare.com/pages/configuration/headers/).
+# See docs/PERFORMANCE_ARCHITECTURE.md, "Cache and distribution".
+
+# Vite output: every file name carries its content hash, so it never changes in place.
+/bundle/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Third-party decoders copied by the asset pipeline, version in the file name.
+/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Must always be fresh: they name everything else.
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/asset-manifest.json
+  Cache-Control: no-cache

@@ -26,9 +26,3 @@ export {
   type ShiftScoreInput,
 } from "./ScoreSystem";
 export { ShiftSystem } from "./ShiftSystem";
-export {
-  TransformationSystem,
-  containsIngredientSubset,
-  type TransformationOptions,
-  type TransformationResult,
-} from "./TransformationSystem";

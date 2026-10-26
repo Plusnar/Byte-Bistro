@@ -60,7 +60,48 @@ interface Entry {
   error: unknown;
   /** Backoff: a failed attempt is not retried before this timestamp. */
   retryAt: number;
+  /**
+   * Requests that can still be cancelled. A request without a signal can never be, so it
+   * makes the entry uncancellable for good.
+   */
+  cancellableHolders: number;
+  uncancellable: boolean;
+  /** Aborts the running download when every holder cancelled. */
+  controller: AbortController | null;
+  /** For the retention budget: least recently used bytes go first. */
+  lastUsed: number;
+  /** Where the bytes came from, for the perf report. */
+  source: "network" | "persistent" | null;
 }
+
+/** The DOMException a cancelled request rejects with, as fetch itself does. */
+export const abortError = (): Error =>
+  typeof DOMException === "function"
+    ? new DOMException("The asset request was cancelled.", "AbortError")
+    : Object.assign(new Error("The asset request was cancelled."), { name: "AbortError" });
+
+export const isAbortError = (error: unknown): boolean =>
+  typeof error === "object" && error !== null && (error as { name?: unknown }).name === "AbortError";
+
+/**
+ * Persistent storage below the network (Cache Storage, see PersistentAssetStore). Only
+ * content-addressed URLs are offered to it, so a stored file can never be stale.
+ */
+export interface PersistentBytes {
+  get(key: string): Promise<ArrayBuffer | null>;
+  put(key: string, bytes: ArrayBuffer): void;
+}
+
+/** Where a file is actually fetched from (CDN origin, version query), and its storage key. */
+export interface NetworkTarget {
+  readonly url: string;
+  /** Content-addressed key for the persistent store; null when the file is not. */
+  readonly persistKey: string | null;
+  /** `no-cache` for files without a version, so an update is never served stale. */
+  readonly cache: RequestCache;
+}
+
+export type NetworkResolver = (url: string) => NetworkTarget | Promise<NetworkTarget>;
 
 export interface AssetProgress {
   /** 0..1, byte-weighted. Files whose size is not known yet count as an average file. */
@@ -81,7 +122,17 @@ export interface AssetCacheOptions {
   readonly retryDelayMs?: number;
   /** Runs `callback` when the main thread is idle; defaults to requestIdleCallback. */
   readonly whenIdle?: (callback: () => void) => void;
+  /**
+   * Downloaded bytes kept in memory for re-parsing (a level change rebuilds the kitchen
+   * from them). Past this, the least recently used unpinned files are dropped; asking for
+   * one again downloads it again (or reads it from the persistent store).
+   */
+  readonly maxRetainedBytes?: number;
+  readonly now?: () => number;
 }
+
+/** Default retention: a match's worth of models with room to spare. */
+const DEFAULT_RETAINED_BYTES = 96 * 1024 * 1024;
 
 /** Size assumed for a file whose headers have not arrived yet, for progress weighting. */
 const UNKNOWN_SIZE_GUESS = 256 * 1024;
@@ -101,10 +152,16 @@ export class AssetCache {
   private readonly retries: number;
   private readonly retryDelayMs: number;
   private readonly whenIdle: (callback: () => void) => void;
+  private readonly maxRetainedBytes: number;
+  private readonly now: () => number;
+  private readonly pinned = new Set<string>();
+  private persistent: PersistentBytes | null = null;
+  private resolveNetwork: NetworkResolver = (url) => ({ url, persistKey: null, cache: "default" });
   private active = 0;
   private sequence = 0;
   private idleScheduled = false;
   private notifyScheduled = false;
+  private evictedBytes = 0;
 
   constructor(options: AssetCacheOptions = {}) {
     this.fetchImpl = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
@@ -112,42 +169,85 @@ export class AssetCache {
     this.retries = Math.max(0, options.retries ?? 2);
     this.retryDelayMs = Math.max(0, options.retryDelayMs ?? 500);
     this.whenIdle = options.whenIdle ?? defaultWhenIdle;
+    this.maxRetainedBytes = Math.max(0, options.maxRetainedBytes ?? DEFAULT_RETAINED_BYTES);
+    this.now = options.now ?? (() => Date.now());
+  }
+
+  /** Persistent storage consulted before the network; see PersistentBytes. */
+  setPersistentStore(store: PersistentBytes | null): void {
+    this.persistent = store;
+  }
+
+  /** Maps a file to where it is downloaded from; see NetworkTarget. */
+  setNetworkResolver(resolver: NetworkResolver): void {
+    this.resolveNetwork = resolver;
   }
 
   /**
    * Resolves with the file's bytes. Asking again for a URL that is already queued, loading or
-   * loaded returns the same promise — a file is never downloaded twice. Asking with a higher
+   * loaded returns the same download — a file is never downloaded twice. Asking with a higher
    * priority than before promotes it.
+   *
+   * With a `signal`, the request can be cancelled: its promise rejects with an AbortError,
+   * and once every request for the file was cancelled the download itself stops (or never
+   * starts). A request without a signal keeps the download going whatever happens.
    */
-  fetch(url: string, priority: AssetPriority = "gameplay"): Promise<ArrayBuffer> {
+  fetch(url: string, priority: AssetPriority = "gameplay", options: { signal?: AbortSignal } = {}): Promise<ArrayBuffer> {
+    const { signal } = options;
+    if (signal?.aborted) return Promise.reject(abortError());
     const existing = this.entries.get(url);
-    if (existing) {
+    let entry: Entry;
+    if (existing && existing.state !== "failed") {
+      entry = existing;
+      this.promote(entry, priority);
+    } else if (existing) {
       // A later request for a failed file is an explicit retry.
-      if (existing.state === "failed") return this.requeue(existing, higherPriority(existing.priority, priority));
-      this.promote(existing, priority);
-      return existing.promise;
+      entry = this.requeueEntry(existing, higherPriority(existing.priority, priority));
+    } else {
+      entry = this.createEntry(url, priority);
     }
-
-    let resolve!: (buffer: ArrayBuffer) => void;
-    let reject!: (error: unknown) => void;
-    const promise = new Promise<ArrayBuffer>((res, rej) => { resolve = res; reject = rej; });
-    // Callers that only prefetch never attach a handler; the failure is reported through
-    // state() and the console instead of as an unhandled rejection.
-    promise.catch(() => undefined);
-    const entry: Entry = {
-      url, priority, state: "queued", promise, resolve, reject,
-      loaded: 0, total: null, attempts: 0, sequence: this.sequence++, buffer: null, error: null,
-      retryAt: 0,
-    };
-    this.entries.set(url, entry);
-    this.changed();
-    this.pump();
-    return promise;
+    entry.lastUsed = this.now();
+    if (!signal) {
+      entry.uncancellable = true;
+      return entry.promise;
+    }
+    return this.holdWithSignal(entry, signal);
   }
 
   /** Fire-and-forget download, for warming the cache ahead of need. */
-  prefetch(url: string, priority: AssetPriority = "background"): void {
-    void this.fetch(url, priority).catch(() => undefined);
+  prefetch(url: string, priority: AssetPriority = "background", signal?: AbortSignal): void {
+    void this.fetch(url, priority, { signal }).catch(() => undefined);
+  }
+
+  /**
+   * Keeps files' bytes in memory regardless of the retention budget, e.g. while a group
+   * of assets is in use. Returns the unpin.
+   */
+  pin(urls: Iterable<string>): () => void {
+    const list = [...urls];
+    for (const url of list) this.pinned.add(url);
+    return () => {
+      for (const url of list) this.pinned.delete(url);
+      this.trimToBudget();
+    };
+  }
+
+  /** Bytes currently held in memory. */
+  get retainedBytes(): number {
+    let total = 0;
+    for (const entry of this.entries.values()) if (entry.state === "loaded") total += entry.loaded;
+    return total;
+  }
+
+  /** Totals for the perf report. */
+  stats(): { files: number; retainedBytes: number; evictedBytes: number; fromPersistent: number; fromNetwork: number } {
+    let fromPersistent = 0;
+    let fromNetwork = 0;
+    for (const entry of this.entries.values()) {
+      if (entry.source === "persistent") fromPersistent += 1;
+      else if (entry.source === "network") fromNetwork += 1;
+    }
+    return { files: this.entries.size, retainedBytes: this.retainedBytes, evictedBytes: this.evictedBytes, fromPersistent, fromNetwork };
   }
 
   /** Raises every queued or loading entry at `from` or below to `to`. */
@@ -228,7 +328,10 @@ export class AssetCache {
   /** Re-queues every failed download. */
   retryFailed(): void {
     for (const entry of [...this.entries.values()]) {
-      if (entry.state === "failed") void this.requeue(entry, entry.priority).catch(() => undefined);
+      if (entry.state === "failed") {
+        const fresh = this.requeueEntry(entry, entry.priority);
+        fresh.uncancellable = true;
+      }
     }
   }
 
@@ -262,11 +365,86 @@ export class AssetCache {
     this.pump();
   }
 
-  private requeue(entry: Entry, priority: AssetPriority): Promise<ArrayBuffer> {
+  private createEntry(url: string, priority: AssetPriority): Entry {
+    let resolve!: (buffer: ArrayBuffer) => void;
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<ArrayBuffer>((res, rej) => { resolve = res; reject = rej; });
+    // Callers that only prefetch never attach a handler; the failure is reported through
+    // state() and the console instead of as an unhandled rejection.
+    promise.catch(() => undefined);
+    const entry: Entry = {
+      url, priority, state: "queued", promise, resolve, reject,
+      loaded: 0, total: null, attempts: 0, sequence: this.sequence++, buffer: null, error: null,
+      retryAt: 0, cancellableHolders: 0, uncancellable: false, controller: null,
+      lastUsed: this.now(), source: null,
+    };
+    this.entries.set(url, entry);
+    this.changed();
+    this.pump();
+    return entry;
+  }
+
+  private requeueEntry(entry: Entry, priority: AssetPriority): Entry {
     // The original promise was already rejected and cannot settle again. Replace the entry,
     // so new callers get a fresh promise while earlier callers keep their rejection.
     this.entries.delete(entry.url);
-    return this.fetch(entry.url, priority);
+    return this.createEntry(entry.url, priority);
+  }
+
+  /** A promise for one cancellable request; see `fetch`. */
+  private holdWithSignal(entry: Entry, signal: AbortSignal): Promise<ArrayBuffer> {
+    entry.cancellableHolders += 1;
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      let settled = false;
+      const release = (): void => {
+        if (settled) return;
+        settled = true;
+        signal.removeEventListener("abort", onAbort);
+        entry.cancellableHolders -= 1;
+      };
+      const onAbort = (): void => {
+        if (settled) return;
+        release();
+        reject(abortError());
+        this.cancelIfUnwanted(entry);
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      entry.promise.then(
+        (buffer) => { if (!settled) { release(); resolve(buffer); } },
+        (error: unknown) => { if (!settled) { release(); reject(error); } },
+      );
+    });
+  }
+
+  /** Drops a queued or running download that nobody wants any more. */
+  private cancelIfUnwanted(entry: Entry): void {
+    if (entry.uncancellable || entry.cancellableHolders > 0) return;
+    if (entry.state !== "queued" && entry.state !== "loading") return;
+    if (this.entries.get(entry.url) === entry) this.entries.delete(entry.url);
+    const wasLoading = entry.state === "loading";
+    entry.state = "failed";
+    entry.error = abortError();
+    // A running download is aborted here; start() notices and frees its slot itself.
+    entry.controller?.abort();
+    entry.reject(entry.error);
+    if (!wasLoading) this.changed();
+    this.pump();
+  }
+
+  /** Drops least recently used, unpinned bytes until the retention budget holds. */
+  private trimToBudget(): void {
+    let retained = this.retainedBytes;
+    if (retained <= this.maxRetainedBytes) return;
+    const candidates = [...this.entries.values()]
+      .filter((entry) => entry.state === "loaded" && !this.pinned.has(entry.url))
+      .sort((a, b) => a.lastUsed - b.lastUsed);
+    for (const entry of candidates) {
+      if (retained <= this.maxRetainedBytes) break;
+      this.entries.delete(entry.url);
+      retained -= entry.loaded;
+      this.evictedBytes += entry.loaded;
+    }
+    this.changed();
   }
 
   private hasPendingAt(priority: AssetPriority): boolean {
@@ -327,13 +505,23 @@ export class AssetCache {
     this.active += 1;
     this.changed();
     try {
-      const buffer = await this.download(entry);
+      const buffer = await this.load(entry);
+      if (entry.state !== "loading") throw abortError();
       entry.buffer = buffer;
       entry.loaded = buffer.byteLength;
       entry.total = Math.max(entry.total ?? 0, buffer.byteLength);
       entry.state = "loaded";
+      entry.lastUsed = this.now();
       entry.resolve(buffer);
+      this.trimToBudget();
     } catch (error: unknown) {
+      if (entry.state !== "loading") {
+        // Cancelled while downloading: its promise is already rejected.
+        this.active -= 1;
+        this.changed();
+        this.pump();
+        return;
+      }
       const retryable = !(error instanceof AssetLoadError) || error.retryable;
       if (retryable && entry.attempts <= this.retries) {
         const delay = this.retryDelayMs * entry.attempts;
@@ -357,11 +545,34 @@ export class AssetCache {
     this.pump();
   }
 
-  private async download(entry: Entry): Promise<ArrayBuffer> {
+  /**
+   * The bytes, from the persistent store when it has this exact version of the file, from
+   * the network otherwise (and then offered to the store for next time).
+   */
+  private async load(entry: Entry): Promise<ArrayBuffer> {
+    const target = await this.resolveNetwork(entry.url);
+    if (target.persistKey && this.persistent) {
+      const stored = await this.persistent.get(target.persistKey).catch(() => null);
+      if (stored) {
+        entry.source = "persistent";
+        entry.total = stored.byteLength;
+        return stored;
+      }
+    }
+    // Cancelled while the store was being read: do not start the download at all.
+    if (entry.state !== "loading") throw abortError();
+    const buffer = await this.download(entry, target);
+    entry.source = "network";
+    if (target.persistKey && this.persistent) this.persistent.put(target.persistKey, buffer);
+    return buffer;
+  }
+
+  private async download(entry: Entry, target: NetworkTarget): Promise<ArrayBuffer> {
     // A connection that stalls half-way never errors on its own: it would hold its download
     // slot and keep the match loader up forever. Abort after a stretch with no bytes at all —
     // not a total-time limit, so a large file on a slow line still gets through.
     const controller = new AbortController();
+    entry.controller = controller;
     let stallTimer: ReturnType<typeof setTimeout> | undefined;
     const armStallTimer = (): void => {
       clearTimeout(stallTimer);
@@ -371,11 +582,11 @@ export class AssetCache {
     try {
       let response: Response;
       try {
-        response = await this.fetchImpl(entry.url, { signal: controller.signal });
+        response = await this.fetchImpl(target.url, { signal: controller.signal, cache: target.cache });
       } catch (error: unknown) {
         throw new AssetLoadError(entry.url, null, true, controller.signal.aborted
-          ? `Sem resposta por ${STALL_TIMEOUT_MS / 1_000} s`
-          : `Rede indisponível: ${String(error)}`);
+          ? `No response for ${STALL_TIMEOUT_MS / 1_000} s`
+          : `Network unavailable: ${String(error)}`);
       }
       if (!response.ok) {
         // 404 will not fix itself; 5xx and 429 might.
@@ -397,8 +608,8 @@ export class AssetCache {
           chunk = await reader.read();
         } catch (error: unknown) {
           throw new AssetLoadError(entry.url, null, true, controller.signal.aborted
-            ? `Download parado por ${STALL_TIMEOUT_MS / 1_000} s`
-            : `Download interrompido: ${String(error)}`);
+            ? `Download stalled for ${STALL_TIMEOUT_MS / 1_000} s`
+            : `Download interrupted: ${String(error)}`);
         }
         const { done, value } = chunk;
         if (done) break;
@@ -416,6 +627,7 @@ export class AssetCache {
       return joined.buffer;
     } finally {
       clearTimeout(stallTimer);
+      entry.controller = null;
     }
   }
 
