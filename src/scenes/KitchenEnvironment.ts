@@ -100,7 +100,7 @@ export interface MechanismPlacement {
    */
   readonly originYaw: number;
   /** Everything it can ever cover, for the robots' navigation. */
-  readonly footprint: MechanismFootprint;
+  footprint: MechanismFootprint;
   /**
    * Height of the surface a passenger stands on, measured from the model.
    *
@@ -108,6 +108,15 @@ export interface MechanismPlacement {
    * nothing, since whatever rides it stands on its top.
    */
   topHeight: number;
+  /**
+   * The model's real size, in its own frame: half its extent along its own x and z, and
+   * where its centre sits relative to the node. Measured, because a belt is two metres by
+   * one and a fixed square around the node left both its ends dead.
+   */
+  halfExtentX: number;
+  halfExtentZ: number;
+  centerX: number;
+  centerZ: number;
 }
 
 export const KITCHEN_STATION_ANCHORS: readonly StationAnchor[] = [
@@ -713,8 +722,12 @@ export class KitchenEnvironment {
         config: placement.mechanism,
         origin: placement.position.clone(),
         originYaw: placement.rotation?.y ?? 0,
-        // Measured below, once the model is in the scene.
+        // Measured below, once the model is in the scene; these hold until then.
         topHeight: 0,
+        halfExtentX: Math.max(0.5, (placement.scale?.x ?? 1) * 0.6),
+        halfExtentZ: Math.max(0.5, (placement.scale?.z ?? 1) * 0.6),
+        centerX: 0,
+        centerZ: 0,
         footprint: footprintOf(
           placement.mechanism,
           { x: placement.position.x, z: placement.position.z },
@@ -779,10 +792,46 @@ export class KitchenEnvironment {
     }
   }
 
-  /** Records the surface a passenger of this mechanism stands on, once it has been measured. */
+  /**
+   * Records a mechanism's real shape once its model is in the scene: the surface a
+   * passenger stands on, and its size and centre in its own frame.
+   */
   private setMechanismTop(node: TransformNode, height: number): void {
     const mechanism = this.mechanismPlacements.find((entry) => entry.node === node);
-    if (mechanism) mechanism.topHeight = height;
+    if (!mechanism) return;
+    mechanism.topHeight = height;
+
+    // Measured with its own turn taken off, so the box lines up with its own axes.
+    const turn = node.rotation.y;
+    node.rotation.y = 0;
+    node.computeWorldMatrix(true);
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let minZ = Number.POSITIVE_INFINITY;
+    let maxZ = Number.NEGATIVE_INFINITY;
+    for (const mesh of node.getChildMeshes(false)) {
+      if (mesh.getTotalVertices() === 0) continue;
+      mesh.computeWorldMatrix(true);
+      const box = mesh.getBoundingInfo().boundingBox;
+      minX = Math.min(minX, box.minimumWorld.x);
+      maxX = Math.max(maxX, box.maximumWorld.x);
+      minZ = Math.min(minZ, box.minimumWorld.z);
+      maxZ = Math.max(maxZ, box.maximumWorld.z);
+    }
+    node.rotation.y = turn;
+    node.computeWorldMatrix(true);
+    if (!Number.isFinite(minX) || maxX <= minX || maxZ <= minZ) return;
+
+    mechanism.halfExtentX = Math.max(0.3, (maxX - minX) / 2);
+    mechanism.halfExtentZ = Math.max(0.3, (maxZ - minZ) / 2);
+    mechanism.centerX = (maxX + minX) / 2 - node.position.x;
+    mechanism.centerZ = (maxZ + minZ) / 2 - node.position.z;
+    // The robots keep clear of everywhere it can reach, whichever way it is turned.
+    mechanism.footprint = footprintOf(
+      mechanism.config,
+      { x: mechanism.origin.x, z: mechanism.origin.z },
+      Math.hypot(mechanism.halfExtentX, mechanism.halfExtentZ),
+    );
   }
 
   /**

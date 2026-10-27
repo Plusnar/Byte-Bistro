@@ -21,6 +21,7 @@ import type { KitchenStationKind } from "../types/game";
 import {
   DEFAULT_MECHANISM_CONFIG,
   MECHANISM_KIND_LABEL,
+  sanitizeMechanismConfig,
   type MechanismConfig,
 } from "../data/mechanismConfig";
 import { ROBOT_ASSET_ID, ROBOT_PRESETS, type RobotConfig } from "../data/robotConfig";
@@ -385,6 +386,10 @@ export const createPlacedObject = (asset: EditorAssetEntry, position: { x: numbe
   label: asset.label,
   color: asset.color,
   robot: asset.role === "robot" ? { ...(asset.robot ?? ROBOT_PRESETS[0]!.config) } : undefined,
+  // Without this a placed mechanism carried no config at all: "Save and play" ran it as
+  // static scenery, and a save and reload defaulted every kind to a conveyor. Sanitised
+  // rather than spread, so the copy is deep — two placed belts never share one route.
+  mechanism: asset.role === "mechanism" ? sanitizeMechanismConfig(asset.mechanism) : undefined,
 });
 
 export const cloneMapData = (data: MapData, name?: string): MapData => ({

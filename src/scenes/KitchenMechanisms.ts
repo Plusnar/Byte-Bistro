@@ -236,9 +236,13 @@ export class KitchenMechanisms {
     // On top of the yaw it was placed at, never instead of it: a belt the designer turned
     // in the editor has to stay turned.
     node.rotation.y = placement.originYaw + state.pose.yaw;
-    // A conveyor pulls relative to how it was placed, so rotating it is how it is aimed.
-    const cos = Math.cos(placement.originYaw);
-    const sin = Math.sin(placement.originYaw);
+    // A conveyor pulls along its own length, turned however it was placed — so rotating a
+    // belt is how it is aimed. Its length is whichever of its measured sides is longer:
+    // the stock belt runs along its x, and pulling along z shoved cooks sideways off it.
+    const along = placement.halfExtentX > placement.halfExtentZ ? Math.PI / 2 : 0;
+    const angle = placement.originYaw + along;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
     runtime.pushX = state.pushX * cos + state.pushZ * sin;
     runtime.pushZ = state.pushZ * cos - state.pushX * sin;
   }
@@ -316,13 +320,23 @@ export class KitchenMechanisms {
     }
   }
 
-  /** Whether `position` is over this mechanism and close enough to its top to be carried. */
+  /**
+   * Whether `position` is over this mechanism and close enough to its top to be carried.
+   *
+   * Tested in the mechanism's own frame, against its measured size: a belt is two metres
+   * long and one wide, and turning it turns the area it carries.
+   */
   private isRiding(placement: MechanismPlacement, position: Vector3): boolean {
     const node = placement.node;
-    const halfX = Math.max(0.5, node.scaling.x * 0.6);
-    const halfZ = Math.max(0.5, node.scaling.z * 0.6);
-    if (Math.abs(position.x - node.position.x) > halfX) return false;
-    if (Math.abs(position.z - node.position.z) > halfZ) return false;
+    const dx = position.x - node.position.x;
+    const dz = position.z - node.position.z;
+    // Into the node's frame: undo its yaw. Its local +z faces (sin, cos) in the world.
+    const cos = Math.cos(node.rotation.y);
+    const sin = Math.sin(node.rotation.y);
+    const localX = dx * cos - dz * sin;
+    const localZ = dx * sin + dz * cos;
+    if (Math.abs(localX - placement.centerX) > placement.halfExtentX) return false;
+    if (Math.abs(localZ - placement.centerZ) > placement.halfExtentZ) return false;
     // Measured against the surface a passenger actually stands on, not the node's base:
     // a platform is a solid box, and anything riding it is up on its lid. A flat belt
     // measures nearly zero, so this stays right for conveyors too.
