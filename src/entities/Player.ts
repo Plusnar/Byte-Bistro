@@ -330,6 +330,21 @@ export class Player {
     return this.downed || this.standUpTimer > 0 || this.abduction !== null;
   }
 
+  /**
+   * Moves the cook by `(dx, dz)` without them walking: a platform carrying them along, or
+   * a conveyor pushing them.
+   *
+   * Swept with collision rather than written into the position, so a belt that presses a
+   * cook into a counter stops at the counter instead of posting them through it. Called
+   * before `update`, so their own movement is still resolved against where they ended up.
+   */
+  applyCarry(dx: number, dz: number): void {
+    if (this.isDowned() || (dx === 0 && dz === 0)) return;
+    // A exactly-zero Y makes Babylon's collision sweep degenerate; see `update`.
+    this.displacement.set(dx, -1e-4, dz);
+    this.root.moveWithCollisions(this.displacement);
+  }
+
   /** Whether the cook is mid-burst, for the shove it gives and the sound it makes. */
   get isDashing(): boolean {
     return isDashing(this.dash);

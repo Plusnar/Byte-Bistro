@@ -70,6 +70,7 @@ export class EditorController implements ManagedScene {
         onRotate: (direction) => scene.rotateSelected(direction),
         onTransform: (group, axis, value) => scene.editSelected(group, axis, value),
         onRobotConfig: (patch) => scene.editSelectedRobots(patch),
+        onMechanismConfig: (patch) => scene.editSelectedMechanisms(patch),
         onColorPreview: (material, hex) => scene.previewSelectedColor(material, hex),
         onColorCommit: (material, hex) => scene.commitSelectedColor(material, hex),
         onResetColors: () => scene.resetSelectedColors(),

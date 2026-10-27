@@ -120,6 +120,16 @@ export class WeddingGuests {
     spawns: readonly RobotSpawn[] = [],
     /** Set when the room is already decorated: no carpet, and the sign hangs here. */
     banner: ReceptionBanner | null = null,
+    /**
+     * Everywhere the level's moving parts can ever reach. Taken once and treated as
+     * permanently blocked, which is what keeps the grid from needing a rebuild when a
+     * platform moves — see the mechanism exception in AGENTS.md. Robots mill about the
+     * reception and have no business riding the kitchen's machinery.
+     *
+     * Read lazily, not snapshotted: the environment places its mechanisms asynchronously,
+     * so at construction time there are none to take.
+     */
+    private readonly mechanismFootprints: () => readonly Rect[] = () => [],
   ) {
     if (area) {
       this.area = { ...area };
@@ -422,6 +432,9 @@ export class WeddingGuests {
       if (area > floorArea * 0.8) continue;
       rects.push(rect);
     }
+    // A mechanism's whole travel, not where it happens to be: the grid only rebuilds when
+    // the collider count changes, and a platform sliding along changes nothing.
+    rects.push(...this.mechanismFootprints());
     return rects;
   }
 

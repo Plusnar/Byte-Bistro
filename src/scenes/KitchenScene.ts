@@ -97,6 +97,8 @@ import {
 import { WaypointMarker } from "../stations/WaypointMarker";
 import { CHARGE_SECONDS, chargeFraction, landingPoint, throwLaunch } from "../gameplay/throwArc";
 import { starThresholdsFor } from "../data/levelGoals";
+import { KitchenMechanisms, type MechanismRider } from "./KitchenMechanisms";
+import { phasesReached } from "../gameplay/mechanisms/MechanismSystem";
 import {
   expireStreak,
   failOrder as tipFailOrder,
@@ -158,6 +160,10 @@ const {
   angularDamping: THROW_ANGULAR_DAMPING,
   impactRadius: THROW_IMPACT_RADIUS,
 } = BALANCE.throw;
+/** A fall through a vanished floor knocks a cook down about as hard as a dash shove. */
+const FALL_STUN_STRENGTH = 0.35;
+/** Long enough that coming out of a portal cannot send anything straight back in. */
+const PORTAL_COOLDOWN_SECONDS = 0.6;
 /** Stations whose vessel cooks: the stove and the oven both show a heat bar. */
 const HEATED_STATION_KINDS: ReadonlySet<string> = new Set(["stove", "oven"]);
 /** How long a fire has to burn unanswered before it counts as a meltdown. */
@@ -191,6 +197,8 @@ interface FloorItem {
   bounces: number;
   airborne: boolean;
   thrownBy: PlayerIndex | null;
+  /** Seconds before it may go through a portal again; unset until it first has. */
+  portalCooldown?: number;
 }
 
 type KitchenTarget =
@@ -225,6 +233,8 @@ interface CoopPlayerState {
   aimMarker: WaypointMarker | null;
   /** When this cook last called out, so the key cannot be spammed. */
   lastEmoteAt: number;
+  /** Seconds before this cook may go through a portal again. */
+  portalCooldown: number;
   lastNotifyAt: number;
 }
 
@@ -334,6 +344,16 @@ export class KitchenScene implements ManagedScene {
   private meltdownClock = 0;
   /** Coins this level wants for one, two and three stars. */
   private readonly starThresholds: StarThresholds;
+  /** Drives the level's moving parts; empty on a level that has none. */
+  private mechanisms: KitchenMechanisms | null = null;
+  /** Reused rider views, so carrying allocates nothing per frame. */
+  private mechanismRiders: readonly MechanismRider[] = [];
+  /** Reused every frame: where the shift is, for the layout phases. */
+  private readonly shiftClock = { progress: 0, duration: 0 };
+  /** How many layout phases have been announced this shift. */
+  private phasesAnnounced = 0;
+  /** Scratch vector for portal exits; reused so travel allocates nothing. */
+  private readonly portalExit = new Vector3();
   /** Scratch vector for the aiming markers; reused so aiming allocates nothing per frame. */
   private readonly aimPosition = new Vector3();
   private hudAccumulator = HUD_REFRESH_SECONDS;
@@ -420,6 +440,7 @@ export class KitchenScene implements ManagedScene {
       this.environment.receptionArea,
       options.map ? robotsFromMap(options.map) : [],
       options.map ? null : WEDDING_BANNER,
+      () => this.environment.mechanisms.map((mechanism) => mechanism.footprint),
     );
     const movementRotation = Math.atan2(
       -GAME_CONFIG.camera.offsetX,
@@ -452,12 +473,20 @@ export class KitchenScene implements ManagedScene {
       aimSeconds: null,
       aimMarker: null,
       lastEmoteAt: 0,
+      portalCooldown: 0,
       lastNotifyAt: 0,
     });
     this.players = [
       createPlayer(0, "P1", new InputManager(window, PLAYER_ONE_BINDINGS)),
       createPlayer(1, "P2", new InputManager(window, PLAYER_TWO_BINDINGS)),
     ];
+    // Built once: the cooks are the only passengers, and a mechanism asks each frame where
+    // they are rather than being told.
+    this.mechanismRiders = this.players.map((slot) => ({
+      position: slot.player.position,
+      carry: (x: number, z: number) => slot.player.applyCarry(x, z),
+      fell: () => this.fallFromFloor(slot),
+    }));
 
     const cameraOffset = new Vector3(
       GAME_CONFIG.camera.offsetX,
@@ -537,6 +566,11 @@ export class KitchenScene implements ManagedScene {
     const preparing = (async () => {
       await Promise.all([this.environment.ready, this.wedding.ready, this.assets.preloadAll()]);
       if (this.disposed) return;
+      // The level's moving parts exist only once the environment has finished placing them.
+      this.mechanisms = new KitchenMechanisms(
+        this.environment.mechanisms,
+        this.options.map?.meta?.layoutPhases,
+      );
       for (const mesh of this.environment.nonGlowingDecor()) this.glow.addExcludedMesh(mesh as Mesh);
       performance.mark("bb:kitchen-assets-loaded");
       // Station models instantiate synchronously from the preloaded containers — sliced
@@ -749,12 +783,19 @@ export class KitchenScene implements ManagedScene {
     this.updateOrders(delta);
     this.wedding.syncOrders(this.runtime.activeOrders, this.orderUrgencySeconds());
     this.wedding.update(delta);
+    // Moving parts first: a cook carried by a platform has to be where the platform put
+    // them before their own step is resolved, or they fight it every frame.
+    this.shiftClock.progress = shiftProgress(this.runtime.shiftTimeRemaining, this.runtime.shiftDuration);
+    this.shiftClock.duration = this.runtime.shiftDuration;
+    this.mechanisms?.update(this.kitchenClockMs / 1_000, this.mechanismRiders, this.shiftClock);
+    this.announceLayoutPhases();
     for (const slot of this.players) {
       slot.player.update(delta, slot.input, this.environment.bounds);
       this.updateTarget(slot);
       this.handleGameplayInput(slot, delta);
       this.playWorkSounds(slot, delta);
     }
+    this.travelThroughPortals(delta);
     this.kitchen.update(delta);
     this.updateSizzle();
     this.punishment.update(delta);
@@ -846,6 +887,8 @@ export class KitchenScene implements ManagedScene {
     }
     this.floorItems.length = 0;
     this.kitchen.reset();
+    this.mechanisms?.reset(this.kitchenClockMs / 1_000);
+    this.phasesAnnounced = 0;
     this.players[0].player.teleport(this.environment.playerSpawns[0]);
     this.players[1].player.teleport(this.environment.playerSpawns[1]);
     for (const slot of this.players) slot.player.setExpression("^_^");
@@ -1253,7 +1296,13 @@ export class KitchenScene implements ManagedScene {
 
     for (let index = this.floorItems.length - 1; index >= 0; index -= 1) {
       const entry = this.floorItems[index];
-      if (!entry || !entry.airborne) continue;
+      if (!entry) continue;
+      // An ingredient at rest on a belt still travels; this is the thing that most makes a
+      // kitchen feel like it is working against you.
+      if (!entry.airborne) {
+        this.mechanisms?.pushItem(entry.position, deltaSeconds, minX, maxX, minZ, maxZ);
+        continue;
+      }
       const { position, velocity } = entry;
       entry.previous.copyFrom(position);
       velocity.y -= THROW_GRAVITY * deltaSeconds;
@@ -1670,6 +1719,64 @@ export class KitchenScene implements ManagedScene {
     slot.player.playThrowGesture();
     slot.player.setExpression("O_O");
     this.sfx.play("hey");
+  }
+
+  /**
+   * A cook's floor vanished from under them: they go down and lose what they carried.
+   *
+   * There is no void to fall into here — the ground is solid at every height — so this is
+   * the Overcooked penalty rather than a respawn: knocked over, hands emptied, a few
+   * seconds lost. A raised floor still drops them to the level below, by plain gravity.
+   */
+  private fallFromFloor(slot: CoopPlayerState): void {
+    if (slot.player.isDowned()) return;
+    slot.player.stun(0, 1, FALL_STUN_STRENGTH);
+    this.scatterHeldOf(slot, 0, 0);
+    this.sfx.play("bonk", 0.8);
+    this.notify(t("kitchen.fell", { name: slot.label }), "warning", 2_000);
+  }
+
+  /**
+   * Announces each layout phase as the shift crosses it.
+   *
+   * The kitchen changing shape is the single biggest thing that can happen mid-shift, and
+   * it has to be impossible to miss: a notice, a sound and a jolt of the camera.
+   */
+  private announceLayoutPhases(): void {
+    const reached = phasesReached(this.options.map?.meta?.layoutPhases, this.shiftClock.progress);
+    if (reached <= this.phasesAnnounced) return;
+    this.phasesAnnounced = reached;
+    this.notify(t("kitchen.layoutChanged"), "warning", 3_200);
+    this.sfx.play("warning");
+    this.shake(0.12, 0.45);
+  }
+
+  /** Moves cooks and thrown items that have stepped into an open portal. */
+  private travelThroughPortals(deltaSeconds: number): void {
+    const mechanisms = this.mechanisms;
+    if (!mechanisms || mechanisms.isEmpty) return;
+    for (const slot of this.players) {
+      slot.portalCooldown = Math.max(0, slot.portalCooldown - deltaSeconds);
+      if (slot.portalCooldown > 0 || slot.player.isDowned()) continue;
+      if (!mechanisms.findPortalExit(slot.player.position, this.portalExit)) continue;
+      // A teleport, not a sweep: the whole point of a portal is to skip what lies between.
+      this.portalExit.y = slot.player.position.y;
+      slot.player.teleport(this.portalExit);
+      slot.portalCooldown = PORTAL_COOLDOWN_SECONDS;
+      this.sfx.play("zap", 0.6);
+    }
+    // A thrown ingredient goes through too, keeping its speed — that is what makes a
+    // portal a way to pass things across the kitchen, not just to walk.
+    for (const entry of this.floorItems) {
+      if (!entry.airborne) continue;
+      entry.portalCooldown = Math.max(0, (entry.portalCooldown ?? 0) - deltaSeconds);
+      if (entry.portalCooldown > 0) continue;
+      if (!mechanisms.findPortalExit(entry.position, this.portalExit)) continue;
+      entry.position.x = this.portalExit.x;
+      entry.position.z = this.portalExit.z;
+      entry.previous.copyFrom(entry.position);
+      entry.portalCooldown = PORTAL_COOLDOWN_SECONDS;
+    }
   }
 
   /** The other cook takes a thrown ingredient out of the air. */

@@ -7,6 +7,11 @@ import { getIngredient } from "../data/ingredients";
 import { DEFAULT_SCENARIO_ID, isScenarioId } from "../data/scenarios";
 import { isDifficultyId } from "../data/difficulty";
 import { sanitizeStarThresholds } from "../data/levelGoals";
+import {
+  MAX_MECHANISMS_PER_MAP,
+  sanitizeLayoutPhases,
+  sanitizeMechanismConfig,
+} from "../data/mechanismConfig";
 import { sanitizeRobotConfig } from "../data/robotConfig";
 
 const SLOT_PREFIX = "byte-bistro:map-slot:";
@@ -79,7 +84,7 @@ const KNOWN_STATION_IDS: ReadonlySet<string> = new Set([
   "serving_terminal",
 ]);
 
-const roleValues = new Set(["station", "dispenser", "spawn", "decor", "robot"]);
+const roleValues = new Set(["station", "dispenser", "spawn", "decor", "robot", "mechanism"]);
 const categoryValues = new Set([
   "room",
   "station",
@@ -93,6 +98,7 @@ const categoryValues = new Set([
   "spawn",
   "decor",
   "robot",
+  "mechanism",
 ]);
 
 const sanitizeVector = (value: unknown): { x: number; y: number; z: number } | null => {
@@ -117,6 +123,7 @@ export const sanitizeMapMeta = (value: unknown): MapMeta => {
     // Only kept when it is a sane ascending trio; a hand-edited file cannot ask for a star
     // at zero coins or put the second star below the first.
     starCoins: sanitizeStarThresholds(record.starCoins),
+    layoutPhases: sanitizeLayoutPhases(record.layoutPhases),
   };
 };
 
@@ -127,6 +134,7 @@ export const sanitizeMapData = (value: unknown): MapData | null => {
   if (!objects) return null;
   const sanitizedObjects = [];
   const usedIds = new Set<string>();
+  let mechanismCount = 0;
   for (const entry of objects) {
     if (!isRecord(entry)) continue;
     const position = sanitizeVector(entry.position);
@@ -152,6 +160,12 @@ export const sanitizeMapData = (value: unknown): MapData | null => {
     if (role === "dispenser" && !(ingredientId && getIngredient(ingredientId))) role = "decor";
     // Objects are keyed by id everywhere (visuals, selection, edits); a repeated or missing
     // id would merge two objects into one invisible twin.
+    // Past the cap a mechanism loads as plain scenery: a hand-edited file with a hundred
+    // moving parts must not be able to cost a player their frame rate.
+    if (role === "mechanism") {
+      if (mechanismCount >= MAX_MECHANISMS_PER_MAP) role = "decor";
+      else mechanismCount += 1;
+    }
     const rawId = typeof entry.id === "string" ? entry.id.trim() : "";
     const id = rawId && !usedIds.has(rawId) ? rawId : generateObjectId();
     usedIds.add(id);
@@ -172,6 +186,7 @@ export const sanitizeMapData = (value: unknown): MapData | null => {
       colors: sanitizeColorOverrides(entry.colors),
       // Only robots carry a config; giving every object one would bloat every saved map.
       robot: role === "robot" ? sanitizeRobotConfig(entry.robot) : undefined,
+      mechanism: role === "mechanism" ? sanitizeMechanismConfig(entry.mechanism) : undefined,
     });
   }
   const environment = isRecord(value.environment) ? value.environment : {};

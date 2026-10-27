@@ -32,6 +32,7 @@ import type { ManagedScene } from "../core/SceneManager";
 import { CHARACTERS, SCENARIO_ASSETS } from "../data";
 import { MANNEQUIN } from "../systems/WeddingGuests";
 import { sanitizeRobotConfig, type RobotConfig } from "../data/robotConfig";
+import { sanitizeMechanismConfig, type MechanismConfig } from "../data/mechanismConfig";
 import { hasColorChange, hasTransformChange, isVisualPreservingChange } from "../editor/objectDiff";
 import {
   createPlacedObject,
@@ -488,6 +489,7 @@ export class EditorScene implements ManagedScene {
       color: template.color,
       scale: template.scale,
       robot: template.robot,
+      mechanism: template.mechanism,
     };
     this.copyTemplate = template;
     this.placementRotation = template.rotation.y;
@@ -612,6 +614,23 @@ export class EditorScene implements ManagedScene {
     const patched = new Map(targets.map(object => [
       object.id,
       { ...object, robot: sanitizeRobotConfig({ ...(object.robot ?? {}), ...patch }) },
+    ]));
+    this.replaceObjects(patched);
+  }
+
+  /**
+   * Edits the config of every selected mechanism. Each one is re-sanitised whole, so a field
+   * typed into the inspector is clamped by exactly the rules a loaded map obeys.
+   */
+  editSelectedMechanisms(patch: Partial<MechanismConfig>): void {
+    const targets = this.currentMap.objects.filter(
+      object => this.selectionIds.has(object.id) && object.role === "mechanism",
+    );
+    if (targets.length === 0) return;
+    this.checkpoint();
+    const patched = new Map(targets.map(object => [
+      object.id,
+      { ...object, mechanism: sanitizeMechanismConfig({ ...(object.mechanism ?? {}), ...patch }) },
     ]));
     this.replaceObjects(patched);
   }

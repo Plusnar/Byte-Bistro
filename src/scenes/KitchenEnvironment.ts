@@ -20,6 +20,8 @@ import type { AssetManager, ModelInstance } from "../core/AssetManager";
 import type { MovementBounds } from "../entities/Player";
 import type { StationId } from "../types/game";
 import type { MapData, MapPlacedObject } from "../editor/MapData";
+import type { MechanismConfig } from "../data/mechanismConfig";
+import { footprintOf, type MechanismFootprint } from "../gameplay/mechanisms/MechanismSystem";
 import { wrapAngle } from "../editor/MapData";
 import {
   DEFAULT_KITCHEN_LAYOUT,
@@ -76,6 +78,36 @@ export interface ScenarioPlacement {
    * the camera and the kitchen never hides the front counters.
    */
   readonly clipBelowZ?: number;
+  /**
+   * Set only on a moving part. Its presence is what takes this placement out of the static
+   * batch and gives it a node of its own to travel in. See AGENTS.md.
+   */
+  readonly mechanism?: MechanismConfig;
+  /** The map object's own id; layout phases name mechanisms by it. */
+  readonly objectId?: string;
+}
+
+/** One placed moving part: the node that travels, what it does, and where it started. */
+export interface MechanismPlacement {
+  /** The map object's id, which is how layout phases refer to it. */
+  readonly id: string;
+  readonly node: TransformNode;
+  readonly config: MechanismConfig;
+  readonly origin: Vector3;
+  /**
+   * The yaw the designer placed it at. A turntable spins on top of it and a conveyor pushes
+   * relative to it, so rotating a belt in the editor is all it takes to aim it.
+   */
+  readonly originYaw: number;
+  /** Everything it can ever cover, for the robots' navigation. */
+  readonly footprint: MechanismFootprint;
+  /**
+   * Height of the surface a passenger stands on, measured from the model.
+   *
+   * Without it a platform would only carry something level with its base — which is
+   * nothing, since whatever rides it stands on its top.
+   */
+  topHeight: number;
 }
 
 export const KITCHEN_STATION_ANCHORS: readonly StationAnchor[] = [
@@ -377,7 +409,9 @@ const nudged = (object: MapPlacedObject): Vector3 => {
 
 /** Stations and dispensers are drawn by WorkstationView, so only decor is placed here. */
 export const placementsFromMap = (map: MapData, cutaway?: MapCutaway): readonly ScenarioPlacement[] =>
-  map.objects.filter(object => object.role === "decor").map((object, index) => ({
+  map.objects.filter(object => object.role === "decor" || object.role === "mechanism").map((object, index) => ({
+    mechanism: object.mechanism,
+    objectId: object.id,
     name: `custom-${object.role}-${index}`,
     assetId: object.assetId,
     position: nudged(object),
@@ -538,6 +572,12 @@ export class KitchenEnvironment {
   private readonly colorCache = new MaterialOverrideCache();
   /** Meshes drawn with their own clip plane; batching would lose the per-mesh switch. */
   private readonly clippedMeshes = new Set<Mesh>();
+  /**
+   * The level's moving parts. They are deliberately outside `placementRoots`, which is
+   * what keeps them out of the static batch and out of `freezeWorldMatrix` — see the
+   * mechanism exception in AGENTS.md.
+   */
+  private readonly mechanismPlacements: MechanismPlacement[] = [];
   private disposed = false;
 
   constructor(
@@ -615,8 +655,22 @@ export class KitchenEnvironment {
    * of each frame. Collision is untouched: solid pieces stay as invisible colliders, so the
    * cooks, the ground probe and the robots' navigation see exactly the same obstacles.
    */
+  /** The level's moving parts, for `KitchenMechanisms` to drive and the robots to avoid. */
+  get mechanisms(): readonly MechanismPlacement[] {
+    return this.mechanismPlacements;
+  }
+
   private async batchStaticDecor(): Promise<void> {
     if (this.disposed) return;
+    // Each mechanism is batched inside its own node: it leaves the static batch, but it
+    // still travels as one or two draw calls rather than one per plank. See AGENTS.md.
+    for (const mechanism of this.mechanismPlacements) {
+      await batchStaticMeshes(mechanism.node.getChildMeshes(false), mechanism.node, {
+        skip: (mesh) => this.clippedMeshes.has(mesh),
+        shouldStop: () => this.disposed,
+      });
+      if (this.disposed) return;
+    }
     const decor = this.placementRoots.flatMap((placementRoot) => placementRoot.getChildMeshes(false));
     await batchStaticMeshes(decor, this.root, {
       skip: (mesh) => this.clippedMeshes.has(mesh),
@@ -652,7 +706,24 @@ export class KitchenEnvironment {
     placementRoot.position.copyFrom(placement.position);
     placementRoot.rotation.copyFrom(placement.rotation ?? Vector3.Zero());
     placementRoot.scaling.copyFrom(placement.scale ?? Vector3.One());
-    this.placementRoots.push(placementRoot);
+    if (placement.mechanism) {
+      this.mechanismPlacements.push({
+        id: placement.objectId ?? placement.name,
+        node: placementRoot,
+        config: placement.mechanism,
+        origin: placement.position.clone(),
+        originYaw: placement.rotation?.y ?? 0,
+        // Measured below, once the model is in the scene.
+        topHeight: 0,
+        footprint: footprintOf(
+          placement.mechanism,
+          { x: placement.position.x, z: placement.position.z },
+          Math.max(0.5, (placement.scale?.x ?? 1) * 0.6),
+        ),
+      });
+    } else {
+      this.placementRoots.push(placementRoot);
+    }
 
     const authoredSolid = placement.collides !== false;
 
@@ -662,12 +733,11 @@ export class KitchenEnvironment {
       building.receiveShadows = true;
       building.computeWorldMatrix(true);
       const box = building.getBoundingInfo().boundingBox;
-      applyPlacementCollision(
-        [building],
-        placement.assetId,
-        authoredSolid,
-        measuredHeight(box.minimumWorld.y, box.maximumWorld.y),
-      );
+      const height = measuredHeight(box.minimumWorld.y, box.maximumWorld.y);
+      applyPlacementCollision([building], placement.assetId, authoredSolid, height);
+      // The editor's own floor tile is the natural vanishing floor, and it is built here
+      // rather than loaded, so its top has to be measured here too.
+      if (placement.mechanism) this.setMechanismTop(placementRoot, height);
       return;
     }
     const instance = await this.assets.instantiateModel(placement.assetId, {
@@ -693,7 +763,9 @@ export class KitchenEnvironment {
     const meshes = instance.rootNodes
       .flatMap((rootNode) => [rootNode, ...rootNode.getDescendants()])
       .filter((node): node is AbstractMesh => node instanceof AbstractMesh);
-    applyPlacementCollision(meshes, placement.assetId, authoredSolid, this.measureModelHeight(instance.rootNodes));
+    const modelHeight = this.measureModelHeight(instance.rootNodes);
+    applyPlacementCollision(meshes, placement.assetId, authoredSolid, modelHeight);
+    if (placement.mechanism) this.setMechanismTop(placementRoot, modelHeight);
     for (const rootNode of instance.rootNodes) {
       for (const node of [rootNode, ...rootNode.getDescendants()]) {
         if (!(node instanceof AbstractMesh)) continue;
@@ -705,6 +777,12 @@ export class KitchenEnvironment {
         if (node.checkCollisions && needsPartitioning(node)) createPartitionedCollider(node);
       }
     }
+  }
+
+  /** Records the surface a passenger of this mechanism stands on, once it has been measured. */
+  private setMechanismTop(node: TransformNode, height: number): void {
+    const mechanism = this.mechanismPlacements.find((entry) => entry.node === node);
+    if (mechanism) mechanism.topHeight = height;
   }
 
   /**

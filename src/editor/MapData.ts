@@ -1,13 +1,16 @@
 import type { StarThresholds, StationId } from "../types/game";
 import type { DifficultyId } from "../data/difficulty";
 import type { RobotConfig } from "../data/robotConfig";
+import type { LayoutPhase, MechanismConfig } from "../data/mechanismConfig";
 
 export type PlacedObjectRole =
   | "station"
   | "dispenser"
   | "spawn"
   | "decor"
-  | "robot";
+  | "robot"
+  /** Moves during a shift; the one exception to the static-scenery rule. See AGENTS.md. */
+  | "mechanism";
 
 export type PlacedObjectCategory =
   | "room"
@@ -21,7 +24,8 @@ export type PlacedObjectCategory =
   | "supply"
   | "spawn"
   | "decor"
-  | "robot";
+  | "robot"
+  | "mechanism";
 
 export interface MapPlacedObject {
   readonly id: string;
@@ -44,6 +48,8 @@ export interface MapPlacedObject {
   readonly colors?: Readonly<Record<string, string>>;
   /** Only on `role === "robot"`; see `src/data/robotConfig.ts`. */
   readonly robot?: RobotConfig;
+  /** Only on `role === "mechanism"`; see `src/data/mechanismConfig.ts`. */
+  readonly mechanism?: MechanismConfig;
 }
 
 /** Smallest scale an axis may have; below it a model vanishes and cannot be clicked. */
@@ -99,6 +105,11 @@ export interface MapMeta {
    * default and keeps re-balancing automatic.
    */
   readonly starCoins?: StarThresholds;
+  /**
+   * When the kitchen changes shape during a shift: which mechanisms switch on and off, and
+   * at what point. See `src/data/mechanismConfig.ts`.
+   */
+  readonly layoutPhases?: readonly LayoutPhase[];
 }
 
 export interface MapData {

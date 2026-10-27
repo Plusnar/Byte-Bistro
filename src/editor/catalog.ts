@@ -18,6 +18,11 @@ import {
   type KitchenModelName,
 } from "../data/kitchen";
 import type { KitchenStationKind } from "../types/game";
+import {
+  DEFAULT_MECHANISM_CONFIG,
+  MECHANISM_KIND_LABEL,
+  type MechanismConfig,
+} from "../data/mechanismConfig";
 import { ROBOT_ASSET_ID, ROBOT_PRESETS, type RobotConfig } from "../data/robotConfig";
 import { getIngredient } from "../data/ingredients";
 
@@ -94,7 +99,7 @@ export interface EditorAssetEntry {
   /** In the current language: entries read it from the catalogues each time. */
   readonly label: string;
   readonly category: PlacedObjectCategory;
-  readonly role: "decor" | "station" | "dispenser" | "spawn" | "robot";
+  readonly role: "decor" | "station" | "dispenser" | "spawn" | "robot" | "mechanism";
   readonly stationId?: string;
   readonly ingredientId?: string;
   readonly playerIndex?: 1 | 2;
@@ -104,6 +109,8 @@ export interface EditorAssetEntry {
   readonly scale?: { x: number; y: number; z: number };
   /** Starting config for `role === "robot"` entries. */
   readonly robot?: RobotConfig;
+  /** Starting config for `role === "mechanism"` entries. */
+  readonly mechanism?: MechanismConfig;
 }
 
 const TILE_SCALE = { x: 0.6, y: 0.9, z: 0.6 } as const;
@@ -123,6 +130,74 @@ const KITCHEN_STATION_MODEL: Readonly<Record<KitchenStationKind, KitchenModelNam
   delivery: "kitchencounter_straight_B",
   extinguisher_stand: "kitchencounter_straight_A",
 };
+
+
+/**
+ * The level's moving parts, as the catalogue offers them.
+ *
+ * One entry per kind, each with a sane starting config the inspector then tunes. A
+ * platform ships with one waypoint, so dropping one already gives a there-and-back rather
+ * than a block that sits still and looks broken.
+ */
+const PLATFORMER_BASE =
+  "Scenario/KayKit_Platformer_Pack_1.0_FREE/KayKit_Platformer_Pack_1.0_FREE/Assets/gltf";
+
+const MECHANISM_PRESETS: readonly EditorAssetEntry[] = [
+  {
+    assetId: "scenario-conveyor-long",
+    get label() { return t("editor.mechanismPrefix", { name: MECHANISM_KIND_LABEL.conveyor }); },
+    category: "mechanism",
+    role: "mechanism",
+    color: "#59E6FF",
+    mechanism: { ...DEFAULT_MECHANISM_CONFIG, kind: "conveyor" },
+  },
+  {
+    assetId: "scenario-box-large",
+    get label() { return t("editor.mechanismPrefix", { name: MECHANISM_KIND_LABEL.platform }); },
+    category: "mechanism",
+    role: "mechanism",
+    color: "#FFC95E",
+    mechanism: {
+      ...DEFAULT_MECHANISM_CONFIG,
+      kind: "platform",
+      waypoints: [{ x: 0, y: 0, z: 3.6 }],
+    },
+  },
+  {
+    assetId: "scenario-scanner-low",
+    get label() { return t("editor.mechanismPrefix", { name: MECHANISM_KIND_LABEL.turntable }); },
+    category: "mechanism",
+    role: "mechanism",
+    color: "#C79BFF",
+    mechanism: { ...DEFAULT_MECHANISM_CONFIG, kind: "turntable", speed: 0.25 },
+  },
+  {
+    // The editor's own floor tile: flat, so a cook walks onto it. A platformer block was
+    // tried first and stood a metre tall, well past the 0.58 m a cook can step up.
+    assetId: "build-floor",
+    get label() { return t("editor.mechanismPrefix", { name: MECHANISM_KIND_LABEL.vanishing_floor }); },
+    category: "mechanism",
+    role: "mechanism",
+    color: "#7FD7FF",
+    // Off as long as it is on, so dropping one already shows the whole cycle — warning
+    // blink included — without touching the inspector.
+    mechanism: {
+      ...DEFAULT_MECHANISM_CONFIG,
+      kind: "vanishing_floor",
+      activation: { mode: "interval", onSeconds: 6, offSeconds: 4 },
+    },
+  },
+  {
+    assetId: `library:${PLATFORMER_BASE}/blue/arch_blue.gltf`,
+    get label() { return t("editor.mechanismPrefix", { name: MECHANISM_KIND_LABEL.portal }); },
+    category: "mechanism",
+    role: "mechanism",
+    color: "#9F8BFF",
+    // Two dropped from the catalogue already pair up. A third would not, and the editor
+    // says so: rename its pair in the inspector.
+    mechanism: { ...DEFAULT_MECHANISM_CONFIG, kind: "portal", portalPairId: "A" },
+  },
+];
 
 export const kitchenStationEntry = (kind: KitchenStationKind): EditorAssetEntry => ({
   assetId: kitchenAssetId(KITCHEN_STATION_MODEL[kind]),
@@ -166,6 +241,9 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
       color: "#9FE8FF",
       robot: preset.config,
     })),
+    // Moving parts. The conveyor model was already in the catalogue as a parked delivery
+    // counter; it finally moves. See the mechanism exception in AGENTS.md.
+    ...MECHANISM_PRESETS,
   ];
   const seen = new Set<string>();
 

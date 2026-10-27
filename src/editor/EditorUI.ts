@@ -10,6 +10,11 @@ import { EDITOR_ASSET_CATALOG, objectLabel, type EditorAssetEntry } from "./cata
 import { ASSET_LIBRARY_BY_ID } from "../data/assetLibrary";
 import { sanitizeMapData } from "./MapStore";
 import { DIFFICULTY_IDS, DIFFICULTY_PROFILES, isDifficultyId } from "../data/difficulty";
+import {
+  MECHANISM_KIND_LABEL,
+  type MechanismConfig,
+  type MechanismKind,
+} from "../data/mechanismConfig";
 import { ROBOT_CLIPS, type RobotConfig } from "../data/robotConfig";
 import { isFloorAsset, isWallAsset } from "../physics/collisionPolicy";
 
@@ -36,6 +41,7 @@ export interface EditorUIHandlers {
   onTransform(group: "position" | "rotation" | "scale", axis: "x" | "y" | "z", value: number): void;
   /** Patches the config of every selected robot. */
   onRobotConfig(patch: Partial<RobotConfig>): void;
+  onMechanismConfig(patch: Partial<MechanismConfig>): void;
   /** A colour being dragged in a picker: shown, not saved. */
   onColorPreview(material: string, hex: string | null): void;
   /** A colour chosen: saved as one undo step. Null restores the model's own. */
@@ -729,6 +735,8 @@ export class EditorUI {
     }
 
     if (selection.some(object => object.role === "robot")) body.append(this.renderRobotFields());
+    const mechanism = selection.find(object => object.role === "mechanism")?.mechanism;
+    if (mechanism) body.append(this.renderMechanismFields(mechanism.kind));
 
     const actions = createElement("div", "bm-actions");
     const action = (label: string, iconName: string, handler: () => void, danger = false): HTMLButtonElement => {
@@ -828,6 +836,53 @@ export class EditorUI {
     return section;
   }
 
+  /**
+   * The moving part's own settings. Only the fields its kind uses are shown: a portal has
+   * no speed, a conveyor no pair. Its direction is not here — a belt is aimed by rotating
+   * it, like any other object.
+   */
+  private renderMechanismFields(kind: MechanismKind): HTMLElement {
+    const section = createElement("section", "bm-section");
+    const moves = kind === "conveyor" || kind === "platform" || kind === "turntable";
+    section.innerHTML = `
+      <h3>${MECHANISM_KIND_LABEL[kind]}</h3>
+      ${moves ? `<label class="bm-field">${t("editor.mechanismSpeed")}<input type="number" data-mechanism="speed" min="0.1" max="6" step="0.1"></label>` : ""}
+      ${kind === "platform" ? `<label class="bm-field">${t("editor.mechanismPause")}<input type="number" data-mechanism="pauseSeconds" min="0" max="10" step="0.1"></label>` : ""}
+      ${kind === "portal" ? `<label class="bm-field">${t("editor.mechanismPairId")}<input type="text" data-mechanism="portalPairId" maxlength="24"></label>` : ""}
+      <label class="bm-field">${t("editor.mechanismPhase")}<input type="number" data-mechanism="phase" min="0" step="0.1"></label>
+      <label class="bm-field">${t("editor.mechanismActivation")}<select data-mechanism-activation="mode">
+        <option value="always">${t("editor.mechanismAlways")}</option>
+        <option value="interval">${t("editor.mechanismInterval")}</option>
+      </select></label>
+      <label class="bm-field">${t("editor.mechanismOnSeconds")}<input type="number" data-mechanism-activation="onSeconds" min="0.5" max="60" step="0.5"></label>
+      <label class="bm-field">${t("editor.mechanismOffSeconds")}<input type="number" data-mechanism-activation="offSeconds" min="0.5" max="60" step="0.5"></label>`;
+
+    for (const field of section.querySelectorAll<HTMLInputElement>("[data-mechanism]")) {
+      const key = field.dataset.mechanism as keyof MechanismConfig;
+      field.addEventListener("change", () => {
+        if (field.type === "number") {
+          if (field.value !== "") this.handlers.onMechanismConfig({ [key]: Number(field.value) } as Partial<MechanismConfig>);
+        } else {
+          this.handlers.onMechanismConfig({ [key]: field.value } as Partial<MechanismConfig>);
+        }
+      });
+    }
+    // The activation is one sub-object, so its three fields are sent together: an interval
+    // needs both durations, and sending one alone would let the sanitiser default the other.
+    const activationFields = [...section.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-mechanism-activation]")];
+    const sendActivation = (): void => {
+      const read = (name: string): string =>
+        activationFields.find((field) => field.dataset.mechanismActivation === name)?.value ?? "";
+      this.handlers.onMechanismConfig({
+        activation: read("mode") === "interval"
+          ? { mode: "interval", onSeconds: Number(read("onSeconds")), offSeconds: Number(read("offSeconds")) }
+          : { mode: "always" },
+      });
+    };
+    for (const field of activationFields) field.addEventListener("change", sendActivation);
+    return section;
+  }
+
   /** Writes current values into the inspector without fighting the field being edited. */
   private fillInspector(state: EditorViewState): void {
     const first = state.selection[0];
@@ -843,6 +898,8 @@ export class EditorUI {
       if (document.activeElement === input) continue;
       input.value = state.colors?.colors[input.dataset.colorSlot ?? ""] ?? input.dataset.default ?? "#ffffff";
     }
+    const mechanism = state.selection.find(object => object.role === "mechanism")?.mechanism;
+    if (mechanism) this.fillMechanismFields(mechanism);
     const robot = state.selection.find(object => object.role === "robot")?.robot;
     if (!robot) return;
     for (const field of this.inspectorBody.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-robot]")) {
@@ -850,6 +907,27 @@ export class EditorUI {
       const value = robot[field.dataset.robot as keyof RobotConfig];
       if (field instanceof HTMLInputElement && field.type === "checkbox") field.checked = value === true;
       else field.value = String(value);
+    }
+  }
+
+  private fillMechanismFields(mechanism: MechanismConfig): void {
+    for (const field of this.inspectorBody.querySelectorAll<HTMLInputElement>("[data-mechanism]")) {
+      if (document.activeElement === field) continue;
+      field.value = String(mechanism[field.dataset.mechanism as keyof MechanismConfig] ?? "");
+    }
+    const activation = mechanism.activation;
+    for (const field of this.inspectorBody.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-mechanism-activation]")) {
+      if (document.activeElement === field) continue;
+      const name = field.dataset.mechanismActivation;
+      if (name === "mode") field.value = activation.mode;
+      else if (activation.mode === "interval") {
+        field.value = String(name === "onSeconds" ? activation.onSeconds : activation.offSeconds);
+      } else {
+        field.value = "4";
+      }
+      // Durations mean nothing to an always-on mechanism; greyed rather than hidden, so the
+      // layout of the panel does not jump when the mode changes.
+      if (name !== "mode") field.disabled = activation.mode !== "interval";
     }
   }
 
