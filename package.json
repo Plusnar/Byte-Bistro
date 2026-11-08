@@ -6,6 +6,8 @@
   "scripts": {
     "assets:scenario": "node scripts/embed-scenario-glb-textures.mjs",
     "dev": "vite",
+    "api": "node --disable-warning=ExperimentalWarning api/server.mjs",
+    "test:api": "vitest run api",
     "prebuild": "npm run check:perf",
     "build": "tsc -b && vite build && node scripts/perf/check-bundle-budget.mjs",
     "preview": "vite preview",

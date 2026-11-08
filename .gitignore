@@ -14,6 +14,10 @@
 !/public/
 # Dev/preview middleware imported by vite.config.ts
 !/server/
+# REST API (Model / DAO); the local database and the delivered documentation stay out
+!/api/
+/api/data/
+/api/docs/
 
 # Asset pipeline output and performance gates: `npm run build` needs all of these
 # (the registry imports optimized/, vite.config.ts and prebuild run the scripts).
@@ -64,6 +68,9 @@
 __tests__/
 *.test.ts
 *.test.mjs
+# Except the REST API's own guide and tests: they are part of its delivered sources
+!/api/README.md
+!/api/test/*.test.mjs
 .env*
 *.log
 node_modules/
