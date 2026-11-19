@@ -35,14 +35,12 @@
     <style>
       html, body { margin: 0; height: 100%; background: #050b27; }
       .boot-loader {
-        --ink: #102445; --cyan: #1bdcff; --amber: #ffc35b; --green: #66f4cf; --red: #ff688d;
-        --panel: #102654; --text: #edfaff; --muted: #acc6ed;
+        --ink: #102445; --cyan: #1bdcff; --green: #66f4cf; --red: #ff688d;
+        --text: #edfaff;
         position: fixed; inset: 0; z-index: 2147483000;
         display: grid; place-items: center;
-        background:
-          radial-gradient(ellipse at 50% 38%, #1bdcff18, transparent 60%),
-          radial-gradient(ellipse at 90% 95%, #7544c34d, transparent 50%),
-          #050b27;
+        overflow: hidden;
+        background: #03142d url("/assets/ui/loading-circuit.webp") no-repeat center / 100% 100%;
         font-family: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
         color: var(--text);
         transition: opacity 0.45s ease, visibility 0s linear 0.45s;
@@ -50,61 +48,49 @@
       .boot-loader[data-state="done"] { opacity: 0; visibility: hidden; pointer-events: none; }
       .boot-loader[hidden] { display: none; }
       .bl-card {
-        width: min(440px, calc(100vw - 32px));
-        box-sizing: border-box;
-        padding: 26px 26px 22px;
-        border: 2px solid #57dfff;
-        border-radius: 22px;
-        background: linear-gradient(145deg, #1b3d73, #102654 45%, #091838);
-        box-shadow: 0 0 0 4px #173b74, 0 0 32px #1bdcff33, inset 0 0 0 5px #0b1b42;
+        position: relative;
+        width: min(1000px, calc(100vw - 8px));
         text-align: center;
       }
-      .boot-loader[data-mode="match"] .bl-card { width: min(380px, calc(100vw - 32px)); }
       .bl-logo {
-        margin: 0 0 6px; font-size: 30px; font-weight: 700; letter-spacing: 0.06em;
-        text-shadow: 0 3px 0 var(--ink);
+        display: block;
+        width: min(48vw, 300px);
+        height: clamp(54px, 18vh, 150px);
+        margin: 0 auto 6px;
+        object-fit: contain;
       }
-      .bl-logo span { color: var(--cyan); }
-      .boot-loader[data-mode="match"] .bl-logo { font-size: 20px; }
 
-      /* The pan: it tosses an ingredient chip while the steam rises. */
-      .bl-stage { position: relative; height: 104px; margin: 4px auto 14px; width: 150px; }
-      .bl-pan {
-        position: absolute; left: 50%; bottom: 10px; width: 112px; height: 30px; margin-left: -56px;
-        transform-origin: 30% 50%; animation: bl-rock 0.9s ease-in-out infinite; will-change: transform;
+      .bl-stage {
+        display: flex; justify-content: center; margin: 8px auto 12px;
+        width: min(100%, 105vh);
       }
-      .bl-pan::before {
-        content: ""; position: absolute; left: 0; top: 0; width: 76px; height: 26px;
-        border: 4px solid var(--ink); border-top: 0; border-radius: 0 0 38px 38px;
-        background: #3a4b63; box-sizing: border-box;
+      .bl-cook {
+        position: relative; flex: 1 1 0; min-width: 0;
+        aspect-ratio: 140 / 200; overflow: hidden;
       }
-      .bl-pan::after {
-        content: ""; position: absolute; left: 68px; top: 5px; width: 44px; height: 10px;
-        border: 4px solid var(--ink); border-radius: 6px; background: #c77b3b; box-sizing: border-box;
+      /* Four poses per row, aligned to the same character scale and anchor. */
+      .bl-cook::before {
+        content: ""; position: absolute; top: var(--row, 0%); left: 0;
+        width: 400%; height: 400%;
+        background: url("/assets/ui/loading-cooks.webp") no-repeat 0 0 / 100% 100%;
+        animation: bl-run 0.72s steps(4, end) infinite;
+        animation-delay: var(--phase, 0s);
       }
-      .bl-food {
-        position: absolute; left: 50%; bottom: 36px; width: 26px; height: 26px; margin-left: -30px;
-        border: 4px solid var(--ink); border-radius: 8px; background: var(--amber); box-sizing: border-box;
-        animation: bl-toss 0.9s ease-in-out infinite; will-change: transform;
-      }
-      .bl-steam { position: absolute; left: 50%; bottom: 40px; margin-left: -38px; width: 60px; height: 60px; }
-      .bl-steam i {
-        position: absolute; bottom: 0; width: 8px; height: 22px; border-radius: 8px;
-        background: rgba(234, 242, 255, 0.55); opacity: 0;
-        animation: bl-steam 1.8s ease-out infinite; will-change: transform, opacity;
-      }
-      .bl-steam i:nth-child(1) { left: 6px; animation-delay: 0s; }
-      .bl-steam i:nth-child(2) { left: 26px; animation-delay: 0.6s; }
-      .bl-steam i:nth-child(3) { left: 46px; animation-delay: 1.2s; }
-      .boot-loader[data-mode="match"] .bl-stage { height: 84px; transform: scale(0.8); margin-bottom: 6px; }
+      .bl-cook:nth-child(2) { --row: -100%; --phase: -0.18s; }
+      .bl-cook:nth-child(3) { --row: -200%; --phase: -0.54s; }
+      .bl-cook:nth-child(4) { --row: -300%; --phase: -0.36s; }
 
+      .bl-bar, .bl-row { width: min(760px, calc(100vw - 16px)); margin-inline: auto; }
       .bl-bar {
-        position: relative; height: 22px; overflow: hidden;
-        border: 1px solid #4f9cdc; border-radius: 999px; background: #081938;
+        display: grid; grid-template-columns: minmax(0, 1fr) 5ch; align-items: center;
+        min-height: 28px; padding: 3px; box-sizing: border-box;
+        border: 2px solid #d9f8ff; border-radius: 999px; background: #0a4fb3;
+        box-shadow: inset 0 2px 5px #03142d;
       }
+      .bl-track { position: relative; align-self: stretch; border-radius: 999px; overflow: hidden; background: #081938; }
       .bl-fill {
         position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(0);
-        background: linear-gradient(#7cf2ff, #13d0f2 55%, #1385d2); will-change: transform;
+        border-radius: inherit; background: linear-gradient(#ffdf54, #ffb400 55%, #e96600); will-change: transform;
       }
       /* A moving sheen, so the bar reads as alive even between progress updates. */
       .bl-fill::after {
@@ -116,15 +102,13 @@
         display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
         margin-top: 10px; font-size: 14px; font-weight: 600;
       }
-      .bl-status { color: var(--muted); text-align: left; }
-      .bl-pct { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 700; min-width: 3.5ch; text-align: right; }
+      .bl-status { text-align: left; overflow-wrap: anywhere; }
+      .bl-pct { font-variant-numeric: tabular-nums; font-weight: 800; text-align: center; }
       .bl-actions { display: none; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
       .boot-loader[data-state="error"] .bl-actions { display: flex; }
       .boot-loader[data-state="error"] .bl-fill { background: var(--red); }
-      .boot-loader[data-state="error"] .bl-fill::after,
-      .boot-loader[data-state="error"] .bl-pan,
-      .boot-loader[data-state="error"] .bl-food,
-      .boot-loader[data-state="error"] .bl-steam i { animation-play-state: paused; }
+      .boot-loader:is([data-state="error"], [data-state="done"]) .bl-cook::before,
+      .boot-loader:is([data-state="error"], [data-state="done"]) .bl-fill::after { animation-play-state: paused; }
       .bl-actions button {
         padding: 9px 16px; border: 3px solid var(--ink); border-radius: 12px;
         box-shadow: 0 3px 0 var(--ink); font: inherit; font-weight: 700; cursor: pointer;
@@ -133,21 +117,11 @@
       .bl-actions button[data-primary] { background: var(--green); color: var(--ink); }
       .bl-actions button[hidden] { display: none; }
 
-      @keyframes bl-rock { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(5deg); } }
-      @keyframes bl-toss {
-        0%, 100% { transform: translateY(0) rotate(0deg); }
-        50% { transform: translateY(-46px) rotate(180deg); }
-      }
-      @keyframes bl-steam {
-        0% { transform: translateY(0) scaleY(0.6); opacity: 0; }
-        30% { opacity: 1; }
-        100% { transform: translateY(-40px) scaleY(1.1); opacity: 0; }
-      }
+      @keyframes bl-run { to { transform: translateX(-100%); } }
       @keyframes bl-sheen { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
 
       @media (prefers-reduced-motion: reduce) {
-        .bl-pan, .bl-food, .bl-steam i, .bl-fill::after { animation-duration: 3s; }
-        .bl-food { animation-name: none; }
+        .bl-cook::before, .bl-fill::after { animation: none; }
       }
     </style>
   </head>
@@ -158,16 +132,19 @@
       <div id="boot-loader" class="boot-loader" data-ui="boot-loader" data-state="loading" data-mode="boot"
         role="progressbar" aria-label="Carregando Byte Bistro" data-i18n-attr="aria-label:boot.aria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="bl-card">
-          <p class="bl-logo">BYTE <span>BISTRO</span></p>
+          <img class="bl-logo" src="/assets/ui/play-menu-logo.webp" alt="Byte Bistro" fetchpriority="high">
           <div class="bl-stage" aria-hidden="true">
-            <div class="bl-steam"><i></i><i></i><i></i></div>
-            <div class="bl-food"></div>
-            <div class="bl-pan"></div>
+            <div class="bl-cook"></div>
+            <div class="bl-cook"></div>
+            <div class="bl-cook"></div>
+            <div class="bl-cook"></div>
           </div>
-          <div class="bl-bar"><div class="bl-fill"></div></div>
+          <div class="bl-bar">
+            <div class="bl-track"><div class="bl-fill"></div></div>
+            <span class="bl-pct">0%</span>
+          </div>
           <div class="bl-row">
             <span class="bl-status" aria-live="polite">Carregando o jogo...</span>
-            <span class="bl-pct">0%</span>
           </div>
           <div class="bl-actions">
             <button type="button" data-action="boot-retry" data-primary data-i18n="boot.retry">Tentar novamente</button>
@@ -177,6 +154,7 @@
       </div>
     </div>
     <script>
+      performance.mark("bb:loading-shown");
       // The loader shows before the game's code arrives, so it picks its language itself: the
       // save's choice, else the browser's, as src/i18n does. Keep the texts in step with
       // boot.* in src/i18n/en.ts.

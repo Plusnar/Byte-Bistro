@@ -329,3 +329,70 @@
     animation: none;
   }
 }
+
+.level-window-rank[hidden], .level-window-play[hidden] { display: none !important; }
+
+/* The level map fills the viewport while its navigation floats over the artwork. */
+.game-ui .selection-screen[data-step="level"] {
+  max-width: none;
+  width: 100%;
+  min-height: 100%;
+}
+.game-ui .selection-screen[data-step="level"] .selection-header {
+  display: none;
+}
+.game-ui .selection-screen[data-step="level"] .level-select {
+  position: static;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+.game-ui .selection-screen[data-step="level"] .level-map-stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.game-ui .selection-screen[data-step="level"] .level-map-stage::before { content: none; }
+.game-ui .selection-screen[data-step="level"] .level-select > [data-action="back-home"] {
+  position: fixed;
+  z-index: 4;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+}
+.game-ui .selection-screen[data-step="level"] .level-select > h2 {
+  position: fixed;
+  z-index: 2;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 55vw;
+  padding: 8px 20px;
+  border: 1px solid #64e8ff;
+  border-radius: 999px;
+  background: linear-gradient(#0963ba, #063979);
+  box-shadow: 0 0 14px #00c8ff88;
+  text-align: center;
+  font-size: clamp(14px, 2vw, 23px);
+  letter-spacing: .03em;
+}
+.game-ui .selection-screen[data-step="level"] .level-select > h2::before { display: none; }
+.game-ui .level-window { color: #f2fbff; }
+.game-ui .level-window-description, .game-ui .level-window-best { color: #d7efff; }
+.game-ui .level-window-title { color: #fff; }
+.game-ui .level-window-close { color: #fff; background: #075396; border-color: #8feaff; }
+.game-ui .level-window-close:hover, .game-ui .level-window-close:focus-visible { color: #06336b; background: #fff; }
+@media (max-width: 720px) {
+  .game-ui .selection-screen[data-step="level"] .level-map-stage { border-radius: 0; }
+  .game-ui .selection-screen[data-step="level"] .level-select > h2 { top: 64px; max-width: 80vw; }
+}
+
+/* Keep the map hidden until all of its geometry and textures are available. */
+.level-map-loading { position:absolute; inset:0; z-index:3; display:grid; place-content:center; gap:14px; text-align:center; color:#fff; font-weight:800; background:#082c5b; }
+.level-map-stage[data-map-state="ready"] .level-map-loading { display:none; }
+.level-map-stage[data-map-state="loading"] .level-map-error { display:none; }
+.level-map-stage[data-map-state="error"] .level-map-loading-label { display:none; }
+.level-map-error { display:flex; flex-direction:column; align-items:center; gap:14px; }

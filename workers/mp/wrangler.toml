@@ -1,0 +1,62 @@
+# Byte Bistro multiplayer Worker (rooms + quota guard). Deploy: `npm run mp:deploy`.
+# Everything here fits the Workers Free plan: SQLite-backed Durable Objects only.
+name = "byte-bistro-mp"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+# No routes: the Pages project reaches it through its Durable Object bindings, and
+# workers.dev stays available for direct use and debugging.
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomDO"
+
+[[durable_objects.bindings]]
+name = "QUOTA"
+class_name = "QuotaDO"
+
+# `new_sqlite_classes` is what makes them SQLite-backed (the only kind Workers Free allows).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomDO", "QuotaDO"]
+
+[vars]
+# STRICT_FREE_MODE (default): STUN + WebSocket/HTTPS fallbacks within the Free quotas only.
+# TURN_FREE_TIER: also issues Cloudflare TURN credentials. Requires TURN_KEY_ID and
+# TURN_KEY_API_TOKEN secrets AND TURN_ACK_NO_HARD_CAP = "yes" — Cloudflare has no hard
+# spending cap for TURN, so this mode can bill. Read docs/MULTIPLAYER.md first.
+MP_MODE = "STRICT_FREE_MODE"
+# The Pages site and its preview deployments. Requests from the page's own origin (through
+# the Pages Function) are always allowed.
+ALLOWED_ORIGINS = "https://byte-bistro.pages.dev,https://*.byte-bistro.pages.dev"
+MP_MAX_PLAYERS = "4"
+# Fraction of each daily Free quota this app may use; the rest is margin (and room for the
+# site's other Functions, which share the Workers request quota).
+SAFETY_RATIO = "0.6"
+MAX_ROOMS_PER_DAY = "400"
+RELAY_ENABLED = "true"
+HTTPS_FALLBACK_ENABLED = "true"
+TURN_ACK_NO_HARD_CAP = "no"
+TURN_MONTHLY_GB_BUDGET = "50"
+TURN_PLANNED_MB_PER_SESSION = "200"
+TURN_MAX_SESSIONS_PER_DAY = "40"
+TURN_CREDENTIAL_TTL_SECONDS = "3600"
+
+# Local development (`npm run mp:dev`) also accepts the Vite dev and preview servers.
+[env.dev.vars]
+MP_MODE = "STRICT_FREE_MODE"
+ALLOWED_ORIGINS = "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5191,http://localhost:5191"
+MP_MAX_PLAYERS = "4"
+SAFETY_RATIO = "0.6"
+MAX_ROOMS_PER_DAY = "400"
+RELAY_ENABLED = "true"
+HTTPS_FALLBACK_ENABLED = "true"
+TURN_ACK_NO_HARD_CAP = "no"
+
+[[env.dev.durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomDO"
+
+[[env.dev.durable_objects.bindings]]
+name = "QUOTA"
+class_name = "QuotaDO"

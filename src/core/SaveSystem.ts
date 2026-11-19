@@ -95,7 +95,7 @@ const numberRecord = (value: unknown, maximum = Number.MAX_SAFE_INTEGER): Record
   return entries;
 };
 
-const sanitizePersistentState = (
+export const sanitizePersistentState = (
   value: unknown,
   fallback: PersistentGameState,
 ): PersistentGameState => {
@@ -107,6 +107,12 @@ const sanitizePersistentState = (
   return {
     version: SAVE_VERSION,
     credits: Math.max(0, Math.floor(finiteNumber(value.credits, fallback.credits))),
+    ...(Array.isArray(value.discoveries)
+      ? { discoveries: [...new Set(value.discoveries.filter((entry): entry is string => typeof entry === "string"))] }
+      : {}),
+    ...(typeof value.lifetimeOrders === "number"
+      ? { lifetimeOrders: Math.max(0, Math.floor(finiteNumber(value.lifetimeOrders, 0))) }
+      : {}),
     unlockedRecipes: stringArray(value.unlockedRecipes, fallback.unlockedRecipes),
     unlockedStations: stationArray(value.unlockedStations, fallback.unlockedStations),
     highestRank: rankValue(value.highestRank, fallback.highestRank),

@@ -10,8 +10,8 @@ import type {
   ShiftResult,
 } from "./game";
 
-/** Which cook something happened to: 0 for player one, 1 for player two. */
-export type PlayerIndex = 0 | 1;
+/** Which cook something happened to: 0 for player one, up to 3 for player four. */
+export type PlayerIndex = 0 | 1 | 2 | 3;
 
 /** What a cook is doing with their hands at a station. */
 export type StationWorkKind = "chopping" | "mixing" | "washing" | "extinguishing";
@@ -19,6 +19,7 @@ export type StationWorkKind = "chopping" | "mixing" | "washing" | "extinguishing
 export interface GameEvents {
   "ingredient:picked": { item: KitchenItem; playerIndex: PlayerIndex };
   "ingredient:dropped": { item: KitchenItem; playerIndex: PlayerIndex };
+  "station:used": { stationKind: KitchenStationKind };
   "station:started": {
     stationKind: KitchenStationKind;
     work: StationWorkKind;

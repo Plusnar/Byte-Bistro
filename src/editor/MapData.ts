@@ -38,7 +38,7 @@ export interface MapPlacedObject {
   readonly collides: boolean;
   readonly stationId?: StationId;
   readonly ingredientId?: string;
-  readonly playerIndex?: 1 | 2;
+  readonly playerIndex?: 1 | 2 | 3 | 4;
   readonly label?: string;
   readonly color?: string;
   /**

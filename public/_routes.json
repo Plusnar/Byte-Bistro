@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "include": [
+    "/assets/ui/cinematic/chase-landscape-hq-v1.mp4",
+    "/assets/ui/cinematic/chase-landscape-hq-v1.webm",
+    "/assets/ui/cinematic/chase-portrait-hq-v1.mp4",
+    "/assets/ui/cinematic/chase-portrait-hq-v1.webm",
+    "/api/mp/*"
+  ],
+  "exclude": []
+}

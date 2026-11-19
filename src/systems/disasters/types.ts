@@ -1,3 +1,4 @@
+import type { PlayerIndex } from "../../types/events";
 import type { BaseTexture, Scene, TransformNode, Vector3 } from "@babylonjs/core";
 import type { AssetManager } from "../../core/AssetManager";
 import type { InputManager } from "../../core/InputManager";
@@ -16,7 +17,7 @@ export type DisasterTone = "info" | "success" | "warning" | "error";
 
 /** A cook as the disasters see them. */
 export interface DisasterCook {
-  readonly index: 0 | 1;
+  readonly index: PlayerIndex;
   /** How messages name them: the player's label. */
   readonly label: string;
   readonly player: Player;

@@ -58,6 +58,8 @@ The game is set in **São Bento do Sul, Santa Catarina, Brazil**, as a way to sh
 | Recipe book | `Tab` | — |
 | Pause | `Esc` | — |
 
+From **1 to 4 people play, each with their own phone as the controller**, no install needed: the game opens on a QR code (or a code to type at `byte-bistro.pages.dev/controller`). The first phone in is **P1**, who drives the menus with the arrows (**A** confirms, **B** goes back) and presses A to go on once everyone has joined. On the cook selection each player picks theirs on their own phone; in a match the phone becomes an analog stick plus **A** (grab), **X** (use), **B** (dash), **Y** (call), with Recipes and Pause in the middle. Gamepads still work in a match (the first drives Player 1, and so on). “Players” on the menu goes back to the QR code for someone to join or leave.
+
 ## Build mode
 
 In the menu, **Create map** opens the editor, inspired by *The Sims 4*'s build mode. A finished map can be played right away.

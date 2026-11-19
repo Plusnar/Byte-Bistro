@@ -12,6 +12,10 @@
 !/vite.config.ts
 !/src/
 !/public/
+!/functions/
+# Multiplayer Worker (rooms, Durable Objects) and the phone controller page
+!/workers/
+!/controller.html
 # Dev/preview middleware imported by vite.config.ts
 !/server/
 # REST API (Model / DAO); the local database and the delivered documentation stay out
@@ -75,3 +79,19 @@ __tests__/
 *.log
 node_modules/
 dist/
+
+!/supabase/
+!/supabase/migrations/
+!/.env.example
+!/supabase/README.md
+
+# Regression coverage for Pages video range responses.
+!/src/ui/__tests__/
+/src/ui/__tests__/*
+!/src/ui/__tests__/cinematicRange.test.mjs
+
+!/src/ui/__tests__/mapRoute.test.mjs
+
+# Room Worker: local wrangler state and its tests stay out, like every other test.
+/workers/mp/.wrangler/
+/workers/mp/test/

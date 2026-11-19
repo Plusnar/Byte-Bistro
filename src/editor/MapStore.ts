@@ -180,7 +180,7 @@ export const sanitizeMapData = (value: unknown): MapData | null => {
       collides: typeof entry.collides === "boolean" ? entry.collides : false,
       stationId: stationId as MapData["objects"][number]["stationId"],
       ingredientId,
-      playerIndex: entry.playerIndex === 1 ? 1 as const : entry.playerIndex === 2 ? 2 as const : undefined,
+      playerIndex: entry.playerIndex === 1 || entry.playerIndex === 2 || entry.playerIndex === 3 || entry.playerIndex === 4 ? entry.playerIndex as 1 | 2 | 3 | 4 : undefined,
       label: typeof entry.label === "string" ? entry.label : undefined,
       color: typeof entry.color === "string" ? entry.color : undefined,
       colors: sanitizeColorOverrides(entry.colors),

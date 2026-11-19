@@ -23,7 +23,18 @@ export interface LevelGoalInput {
   /** The recipes on this level's menu. */
   readonly recipes: readonly RecipeData[];
   readonly tuning?: DifficultyTuning;
+  /** Cooks in the kitchen, 1 to 4; the goals were set for two. Defaults to 2. */
+  readonly cooks?: number;
 }
+
+/**
+ * Tickets a kitchen of `cooks` can work on at once. One cook works alone; past two, extra
+ * hands help less and less (one hob, one sink, a queue that only holds so many tickets).
+ */
+export const parallelHands = (cooks = 2): number => {
+  const count = Math.max(1, Math.min(4, Math.round(cooks)));
+  return [1, 2, 2.5, 3][count - 1]!;
+};
 
 /**
  * Share of a flawless shift each star asks for. Three stars is deliberately short of a
@@ -35,10 +46,11 @@ const STAR_SHARES: StarThresholds = { one: 0.3, two: 0.55, three: 0.78 };
 const roundCoins = (value: number): number => Math.max(1, Math.round(value / 50) * 50);
 
 /**
- * What a pair that never wastes a second would take home.
+ * What a kitchen that never wastes a second would take home.
  *
- * Two cooks working in parallel, each ticket costing its own ideal seconds and paying its
- * reward plus the dish score's own share, scaled by the difficulty's payout.
+ * The cooks working in parallel (`parallelHands`), each ticket costing its own ideal
+ * seconds and paying its reward plus the dish score's own share, scaled by the difficulty's
+ * payout.
  */
 export const flawlessScore = (input: LevelGoalInput): number => {
   const tuning = input.tuning ?? STANDARD_DIFFICULTY;
@@ -50,9 +62,9 @@ export const flawlessScore = (input: LevelGoalInput): number => {
   const averageReward = menu.reduce((sum, recipe) => sum + recipe.reward, 0) / menu.length;
   if (averageWork <= 0) return 0;
 
-  // Two cooks, so two tickets can be in flight at once — capped by how many the queue
-  // would ever let them have.
-  const hands = 2;
+  // Several cooks, so several tickets can be in flight at once — capped by how many the
+  // queue would ever let them have.
+  const hands = parallelHands(input.cooks);
   const deliveries = (input.shiftDurationSeconds / averageWork) * hands;
   // A delivered dish pays its reward scaled by how well it scored; a flawless run is the
   // whole of it, plus the per-order bonus the shift score adds.

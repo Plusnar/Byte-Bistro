@@ -9,10 +9,29 @@
 /vendor/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Versioned cinematic files can be reused across menu visits and deployments.
+/assets/ui/cinematic/chase-landscape-hq-v1.mp4
+  Cache-Control: public, max-age=31536000, immutable
+/assets/ui/cinematic/chase-landscape-hq-v1.webm
+  Cache-Control: public, max-age=31536000, immutable
+/assets/ui/cinematic/chase-portrait-hq-v1.mp4
+  Cache-Control: public, max-age=31536000, immutable
+/assets/ui/cinematic/chase-portrait-hq-v1.webm
+  Cache-Control: public, max-age=31536000, immutable
+
 # Must always be fresh: they name everything else.
 /
   Cache-Control: no-cache
 /index.html
   Cache-Control: no-cache
+# The phone controller page: always fresh, never framed by another site.
+/controller
+  Cache-Control: no-cache
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+/controller.html
+  Cache-Control: no-cache
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
 /asset-manifest.json
   Cache-Control: no-cache

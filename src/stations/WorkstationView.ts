@@ -1,3 +1,4 @@
+import type { PlayerIndex } from "../types/events";
 import {
   AbstractMesh,
   Color3,
@@ -79,7 +80,7 @@ const TOP_HEIGHT: Readonly<Record<KitchenStationKind, number>> = {
 
 /** Shared materials/textures for every workstation in a scene. */
 export class WorkstationResources {
-  readonly highlight: readonly [StandardMaterial, StandardMaterial];
+  readonly highlight: readonly StandardMaterial[];
   readonly barBackground: StandardMaterial;
   readonly barFill: Readonly<Record<ProgressTone, StandardMaterial>>;
   readonly warning: StandardMaterial;
@@ -92,8 +93,8 @@ export class WorkstationResources {
   private readonly keyPrompts = new Map<string, StandardMaterial>();
   private readonly keyTextures: DynamicTexture[] = [];
 
-  constructor(private readonly scene: Scene, playerColors: readonly [Color3, Color3]) {
-    this.highlight = [this.flat("ws-highlight-p1", playerColors[0], 0.45), this.flat("ws-highlight-p2", playerColors[1], 0.45)];
+  constructor(private readonly scene: Scene, playerColors: readonly Color3[]) {
+    this.highlight = playerColors.map((color, index) => this.flat(`ws-highlight-p${index + 1}`, color, 0.45));
     this.barBackground = this.flat("ws-bar-bg", Color3.FromHexString("#0B1620"), 0.85);
     this.barFill = {
       work: this.flat("ws-bar-work", Color3.FromHexString("#5CFF9D"), 1),
@@ -300,10 +301,10 @@ export class WorkstationView {
     return this.placement.kind;
   }
 
-  setHighlighted(playerIndex: 0 | 1, highlighted: boolean): void {
+  setHighlighted(playerIndex: PlayerIndex, highlighted: boolean): void {
     const bit = 1 << playerIndex;
     this.highlightOwners = highlighted ? this.highlightOwners | bit : this.highlightOwners & ~bit;
-    if (highlighted) this.highlight.material = this.resources.highlight[playerIndex];
+    if (highlighted) this.highlight.material = this.resources.highlight[playerIndex] ?? null;
     this.highlight.setEnabled(this.highlightOwners !== 0);
   }
 

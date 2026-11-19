@@ -1,3 +1,4 @@
+import type { PlayerIndex } from "../../types/events";
 import { t } from "../../i18n";
 import { MIX_RECIPES, getFoodDefinition, plateableState } from "../../data/kitchen";
 import { getIngredient } from "../../data/ingredients";
@@ -7,7 +8,7 @@ import { isCookware, type FoodItem, type KitchenItem } from "./KitchenItems";
 /** Where a top-level item currently is; held items carry the player index. */
 export interface ItemLocation {
   readonly item: KitchenItem;
-  readonly holder: 0 | 1 | null;
+  readonly holder: PlayerIndex | null;
 }
 
 export interface GuideTask {
@@ -53,7 +54,7 @@ type Stage = "fetch" | "mix" | "chop" | "cook" | "cooking" | "plate" | "plated";
 
 interface TrackedFood {
   readonly food: FoodItem;
-  readonly holder: 0 | 1 | null;
+  readonly holder: PlayerIndex | null;
   readonly inCookware: boolean;
   readonly onPlate: boolean;
 }

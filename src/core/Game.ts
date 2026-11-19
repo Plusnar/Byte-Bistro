@@ -1,7 +1,7 @@
 import { applyTranslations, initLanguage, onLanguageChange, t } from "../i18n";
 import type { AbstractEngine, Scene as BabylonScene } from "@babylonjs/core";
 import { createGameEngine, rendererName } from "./render/createGameEngine";
-import { getShiftDuration } from "../config";
+import { getShiftDuration, isDevelopmentMode } from "../config";
 import { CHARACTERS, DEFAULT_CHARACTER_ID, RECIPES, getCharacter } from "../data";
 import type { CharacterDefinition } from "../data/characters";
 import { CHARACTER_ANIMATION_ASSETS } from "../data/characters";
@@ -13,6 +13,7 @@ import { GameUI } from "../ui/GameUI";
 import { CharacterPreview } from "../ui/CharacterPreview";
 import { LevelMapView } from "../ui/LevelMapView";
 import { RANK_ORDER, recordLevelRank } from "../data/levelRanks";
+import { achievementProgress, openCollection } from "../ui/Collection";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { SCENARIOS, getScenario } from "../data/scenarios";
 import { buildLevelCatalog, type LevelEntry } from "../data/levelCatalog";
@@ -31,11 +32,20 @@ import { qualityManager } from "./perf/QualityManager";
 import { assetStreaming } from "./assets/AssetStreamingManager";
 import { SaveSystem } from "./SaveSystem";
 import { SceneManager } from "./SceneManager";
+import { GamepadBinder } from "./GamepadBinder";
+import type { PhoneHub } from "../net/mp/PhoneHub";
+import type { PadState } from "../net/mp/HostSession";
+import { MenuNavigator } from "../ui/MenuNavigator";
+import type { MenuCommand } from "../ui/menuInput";
+import { MAX_PLAYERS } from "../data/players";
 
-const DEFAULT_COOP_CHARACTERS: readonly [string, string] = [
+/** A different cook for each player, the default one first. */
+const DEFAULT_COOP_CHARACTERS: readonly string[] = [
   DEFAULT_CHARACTER_ID,
-  CHARACTERS.find(({ id }) => id !== DEFAULT_CHARACTER_ID)?.id ?? DEFAULT_CHARACTER_ID,
-];
+  ...CHARACTERS.filter(({ id }) => id !== DEFAULT_CHARACTER_ID).map(({ id }) => id),
+].slice(0, MAX_PLAYERS);
+/** The player-one pad while a menu is up; everyone else waits for it. */
+const WAITING: PadState = { layout: "wait", leader: false };
 /** Past this, the loader offers to continue into the menu while loading carries on. */
 const SLOW_BOOT_MS = 45_000;
 /** How often the loading bar re-reads progress; build steps do not emit cache events. */
@@ -94,11 +104,13 @@ export class Game {
   private editor: EditorController | null = null;
   private openingEditor = false;
   private persistentState: PersistentGameState;
+  private account?: import("../ui/AccountPanel").AccountPanel;
+  private accountPanel?: Promise<import("../ui/AccountPanel").AccountPanel>;
   private disposed = false;
   private activeMap: MapData | null = null;
   private editorDraft: MapData | null = null;
   private editorSlotId = "";
-  private selectedCharacters: readonly [string, string] = DEFAULT_COOP_CHARACTERS;
+  private selectedCharacters: readonly string[] = DEFAULT_COOP_CHARACTERS;
   private loadingMap = false;
   /** Lists saved slots for the level picker; the editor keeps its own store. */
   private readonly mapStore = new MapStore();
@@ -109,6 +121,13 @@ export class Game {
   private kitchenNeedsRebuild = false;
   private menuReady = false;
   private cookPreloadTimer = 0;
+  /** Gamepads drive the cooks alongside the keyboard. */
+  private readonly gamepads = new GamepadBinder();
+  /** Phone controllers: the room opens as soon as the menu is up. */
+  private phoneHub: PhoneHub | null = null;
+  private phoneHubLoading: Promise<PhoneHub> | null = null;
+  /** Player one's D-pad through the menus. */
+  private readonly navigator: MenuNavigator;
 
   /**
    * Starts the game. The menu's files are requested first: creating the engine blocks the
@@ -117,8 +136,7 @@ export class Game {
    */
   static async create(canvas: HTMLCanvasElement, uiRoot: HTMLElement): Promise<Game> {
     performance.mark("bb:game-start");
-    assetCache.prefetch(absoluteUrl(LevelMapView.assetUrl), "critical");
-    const defaultCooks = DEFAULT_COOP_CHARACTERS
+    const defaultCooks = DEFAULT_COOP_CHARACTERS.slice(0, 1)
       .map((id) => getCharacter(id))
       .filter((character): character is CharacterDefinition => character !== undefined);
     for (const url of CharacterPreview.criticalUrls(defaultCooks)) {
@@ -135,7 +153,7 @@ export class Game {
         ...this.persistentState,
         settings: { ...this.persistentState.settings, language },
       };
-      this.saveSystem.save(this.persistentState);
+      this.saveProgress();
     });
     this.engine = engine;
     this.sceneManager = new SceneManager(this.engine);
@@ -163,16 +181,22 @@ export class Game {
       onStart: (characterIds) => this.startShift(characterIds),
       onCharacterChange: (characterIds) => this.onCooksChanged(characterIds),
       onRestart: () => this.kitchenScene?.restartShift(),
+      onPause: () => this.kitchenScene?.setManualPaused(true),
       onResume: () => this.kitchenScene?.setManualPaused(false),
       onQuitToMenu: () => this.quitToMenu(),
       onCookbookVisibilityChange: (visible) => this.kitchenScene?.setCookbookOpen(visible),
+      onOpenAccount: () => void this.openAccount(),
+      onOpenPhones: () => this.openPairing(),
+      onPairSkip: () => this.settlePairing(true),
+      onOpenCollection: (view) => openCollection(view, this.persistentState),
       onOpenEditor: () => { void this.openEditor(); },
       onLevelChange: (entry) => this.onLevelChosen(entry),
       onDeleteLevel: (entry) => this.deleteSavedLevel(entry),
-      onCharacterPreview: (playerOneId, playerTwoId) => {
-        for (const [slot, id] of ([playerOneId, playerTwoId] as const).entries()) {
+      onCharacterPreview: (characterIds) => {
+        this.characterPreview?.setSlotCount(characterIds.length);
+        for (const [slot, id] of characterIds.entries()) {
           const character = id ? getCharacter(id) : undefined;
-          if (character) void this.characterPreview?.showSlot(slot as 0 | 1, character);
+          if (character) void this.characterPreview?.showSlot(slot, character);
         }
       },
       onPreviewActiveChange: (active) => this.characterPreview?.setActive(active),
@@ -181,6 +205,15 @@ export class Game {
       },
     });
     performance.mark("bb:ui-created");
+    this.navigator = new MenuNavigator({
+      root: this.ui.root(),
+      splashStep: () => (this.ui.isSplashVisible && !this.editor ? this.ui.splashStep : null),
+    });
+    // Phones are the controllers: the session starts by pairing them. Automated runs
+    // (`?autostart`) go straight to a shift; development builds may skip with the keyboard.
+    const autostarting = new URLSearchParams(window.location.search).has("autostart");
+    if (!autostarting) this.ui.setSplashStep("pair");
+    this.ui.setPairSkipVisible(isDevelopmentMode());
     // Priority 1: only what the menu shows. The kitchen scene is not built yet.
     this.characterPreview = new CharacterPreview(this.ui.characterPreviewCanvas(), {
       characters: CHARACTERS,
@@ -213,6 +246,10 @@ export class Game {
     if (this.disposed) return;
     this.disposed = true;
     this.stopLanguage();
+    this.gamepads.dispose();
+    this.phoneHub?.dispose();
+    this.phoneHub = null;
+    void this.accountPanel?.then((panel) => panel.dispose());
     window.clearTimeout(this.cookPreloadTimer);
     window.removeEventListener("resize", this.handleResize);
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
@@ -272,7 +309,6 @@ export class Game {
     }
     const urls = preview.menuAssetUrls(this.cooks());
     const groups: LoadGroup[] = [
-      { status: t("boot.openingMap"), urls: [absoluteUrl(LevelMapView.assetUrl)] },
       { status: t("boot.loadingScenery"), urls: urls.scenery },
       { status: t("boot.loadingCooks"), urls: urls.cooks },
       { status: t("boot.loadingAnimations"), urls: urls.animations },
@@ -281,11 +317,8 @@ export class Game {
       assetCache, groups, { done: preview.stagesDone, total: preview.stageCount }, t("boot.almostReady"),
     ));
 
-    // The map is the first screen, so the loader waits for it along with the cooks.
-    const mapReady = this.levelMapView?.whenReady() ?? Promise.resolve(true);
-    const ready = Promise.all([preview.whenReady(), mapReady]).then(([readiness, map]) => ({
-      failed: map ? readiness.failed : [t("boot.levelMap"), ...readiness.failed],
-    }));
+    // The map belongs to the level-selection screen and starts loading only when opened.
+    const ready = preview.whenReady();
     const slow = window.setTimeout(() => {
       if (this.menuReady) return;
       this.loading?.fail({
@@ -308,8 +341,7 @@ export class Game {
       message: t("boot.couldNotLoad", { items: readiness.failed.join(", ") }),
       onRetry: () => {
         assetCache.retryFailed();
-        const [one, two] = this.cooks();
-        if (one && two) preview.retry([one, two]);
+        preview.retry(this.cooks());
         void this.bootMenu();
       },
       onContinue: () => this.finishBoot(),
@@ -322,8 +354,15 @@ export class Game {
     performance.mark("bb:menu-ready");
     void this.loading?.hide();
     this.unloadUnusedAssets();
+    // The QR code is the first thing the players need.
+    void this.ensurePhoneHub();
     // Priority 2 starts only now, so it never competed with the menu for bandwidth.
-    whenIdle(() => { void this.preloadGameplay(); });
+    whenIdle(() => {
+      void this.preloadGameplay();
+      if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY && !this.disposed) {
+        void this.getAccountPanel().then((panel) => panel.resume()).catch(() => undefined);
+      }
+    });
   }
 
   /**
@@ -390,7 +429,7 @@ export class Game {
   }
 
   /** Parses the picked cooks into the kitchen shortly after the picks stop changing. */
-  private onCooksChanged(characterIds: readonly [string, string]): void {
+  private onCooksChanged(characterIds: readonly string[]): void {
     this.selectedCharacters = characterIds;
     window.clearTimeout(this.cookPreloadTimer);
     this.cookPreloadTimer = window.setTimeout(() => {
@@ -426,8 +465,12 @@ export class Game {
     this.sceneManager.dispose();
     this.activeMap = levelMap;
     const kitchen = this.createKitchen(this.persistentState, levelMap, entry?.scenarioId);
+    kitchen.setCookCount(this.ui.players);
     this.kitchenScene = kitchen;
     this.sceneManager.set(kitchen);
+    // Phones and gamepads move to the new kitchen's cooks.
+    this.gamepads.attachKitchen(kitchen.cookInputs);
+    this.phoneHub?.attachKitchen(kitchen.cookInputs);
     this.performanceManager.attachScene(kitchen.scene);
     this.activeLevelKey = entry?.key ?? "";
     this.engine.runRenderLoop(this.frame);
@@ -457,7 +500,7 @@ export class Game {
       const { [entry.key]: _removedStars, ...levelStars } = this.persistentState.levelStars;
       const { [entry.key]: _removedCoins, ...levelBestScore } = this.persistentState.levelBestScore;
       this.persistentState = { ...this.persistentState, levelRanks, levelStars, levelBestScore };
-      this.saveSystem.save(this.persistentState);
+      this.saveProgress();
       this.ui.setLevelRanks(levelRanks, levelStars);
     }
     // refreshLevels falls back to the first level when the pick no longer exists.
@@ -518,7 +561,7 @@ export class Game {
     this.menuReady = true;
     this.ui.showSplash(false);
     try {
-      await this.startShift(DEFAULT_COOP_CHARACTERS);
+      await this.startShift(DEFAULT_COOP_CHARACTERS.slice(0, this.ui.players));
     } catch (error: unknown) {
       console.error("Autostart character initialization failed.", error);
       this.ui.showSplash(true);
@@ -538,11 +581,10 @@ export class Game {
     this.ui.showSplash(true);
   }
 
-  private async startShift(characterIds: readonly [string, string]): Promise<void> {
-    const cookIds: readonly [string, string] = [
-      characterIds[0] || DEFAULT_COOP_CHARACTERS[0],
-      characterIds[1] || DEFAULT_COOP_CHARACTERS[1],
-    ];
+  private async startShift(characterIds: readonly string[]): Promise<void> {
+    // One cook per player: the picks the menu sent, any missing filled with the defaults.
+    const cookIds = Array.from({ length: this.ui.players }, (_, index) =>
+      characterIds[index] || DEFAULT_COOP_CHARACTERS[index] || DEFAULT_COOP_CHARACTERS[0]!);
     this.selectedCharacters = cookIds;
     if (this.kitchenNeedsRebuild) {
       // The last attempt failed somewhere inside the kitchen (a room model, the guests, a
@@ -556,6 +598,7 @@ export class Game {
     // one to play, so the menu's pick must not replace it.
     if (this.pendingLevel || this.activeLevelKey) await this.applyLevel(this.pendingLevel);
     const kitchen = this.ensureKitchen();
+    kitchen.setCookCount(cookIds.length);
 
     const cookUrls = this.cooks(cookIds).map((character) => absoluteUrl(character.modelUrl));
     const ready = kitchen.isReadyFor(cookIds);
@@ -597,7 +640,151 @@ export class Game {
     kitchen.startShift();
   }
 
+  /** Loads the phone feature and opens the room on the pairing panel. */
+  private async ensurePhoneHub(): Promise<PhoneHub | null> {
+    try {
+      this.phoneHubLoading ??= import("../net/mp/PhoneHub").then(({ PhoneHub }) => {
+        const hub = new PhoneHub({
+          panel: this.ui.pairPanel(),
+          characters: () => CHARACTERS.map((character) => ({ id: character.id, name: character.displayName })),
+          notify: (message, tone) => this.ui.notify(message, tone),
+          phase: () => (this.ui.isSplashVisible ? "lobby" : this.kitchenScene?.shiftPhase ?? "lobby"),
+          padFor: (slot) => this.padFor(slot),
+          onMenuCommand: (slot, command) => this.onMenuCommand(slot, command),
+        });
+        if (this.kitchenScene) hub.attachKitchen(this.kitchenScene.cookInputs);
+        return hub;
+      });
+      const hub = await this.phoneHubLoading;
+      if (this.disposed) {
+        hub.dispose();
+        return null;
+      }
+      this.phoneHub = hub;
+      await hub.open();
+      // A reloaded page takes its room back, possibly locked from an earlier pairing.
+      if (this.ui.isSplashVisible && this.ui.splashStep === "pair") hub.unlock();
+      return hub;
+    } catch (error: unknown) {
+      this.phoneHubLoading = null;
+      console.error("Phone controllers could not be opened.", error);
+      this.ui.notify(t("mp.failed"), "error");
+      return null;
+    }
+  }
+
+  /** "Players" on the menu: back to the QR code, where phones may join or leave. */
+  private openPairing(): void {
+    if (this.editor) return;
+    this.ui.setSplashStep("pair");
+    if (this.phoneHub) this.phoneHub.reopenPairing();
+    else void this.ensurePhoneHub();
+  }
+
+  /**
+   * Player one pressed A on the pairing screen: the phones connected now are the players.
+   * `keyboard` (development only) continues without phones, as two keyboard players.
+   */
+  private settlePairing(keyboard = false): void {
+    const players = keyboard ? 2 : this.phoneHub?.settlePlayers() ?? 0;
+    if (players === 0) {
+      this.ui.notify(t("pair.needOne"), "warning");
+      return;
+    }
+    this.ui.setPlayerCount(players);
+    this.kitchenScene?.setCookCount(players);
+    this.navigator.clearFocus();
+    this.ui.setSplashStep("home");
+    this.phoneHub?.refreshPads();
+  }
+
+  /** What each player's phone shows: their cook's stick in play, else player one's D-pad. */
+  private padFor(slot: number): PadState {
+    const leader = slot === 0;
+    if (this.editor) return WAITING;
+    const menu: PadState = leader ? { layout: "menu", leader } : WAITING;
+    if (this.ui.isSplashVisible) {
+      const step = this.ui.splashStep;
+      if (step === "characters" && !this.overlayOpen()) return slot < this.ui.players ? { layout: "select", leader } : WAITING;
+      return menu;
+    }
+    const kitchen = this.kitchenScene;
+    if (!kitchen || kitchen.shiftPhase !== "playing" || this.overlayOpen()) return menu;
+    return slot < kitchen.cookCount ? { layout: "game", leader } : WAITING;
+  }
+
+  /** A dialog (account, collection, confirm box) is open over the game. */
+  private overlayOpen(): boolean {
+    return document.querySelector("dialog[open], .confirm-dialog-backdrop") !== null;
+  }
+
+  /** A player pressed something on their D-pad. */
+  private onMenuCommand(slot: number, command: MenuCommand): void {
+    if (this.editor) return;
+    if (this.ui.isSplashVisible && !this.overlayOpen()) {
+      if (this.ui.splashStep === "pair") {
+        if (slot === 0 && command === "confirm") this.settlePairing();
+        return;
+      }
+      if (this.ui.splashStep === "characters") {
+        this.ui.selectionCommand(slot, command);
+        return;
+      }
+    }
+    if (slot !== 0) return;
+    this.navigator.command(command);
+  }
+
+  private getAccountPanel() {
+    return this.accountPanel ??= import("../ui/AccountPanel").then(({ AccountPanel }) => {
+      const panel = new AccountPanel(
+        () => this.saveSystem.load(),
+        (state) => {
+          if (this.disposed) return;
+          this.persistentState = state ?? this.saveSystem.load();
+          this.ui.setLevelRanks(this.persistentState.levelRanks, this.persistentState.levelStars);
+        },
+      );
+      this.account = panel;
+      return panel;
+    });
+  }
+
+  private async openAccount(): Promise<void> {
+    try {
+      const panel = await this.getAccountPanel();
+      await panel.resume();
+      if (!this.disposed) panel.show();
+    } catch {
+      this.ui.notify(t("account.failed"), "warning");
+    }
+  }
+
+  private saveProgress(): boolean {
+    return this.account?.update(this.persistentState) || this.saveSystem.save(this.persistentState);
+  }
+
+  private updateCollection(update: Partial<PersistentGameState>): void {
+    const previous = achievementProgress(this.persistentState);
+    this.persistentState = { ...this.persistentState, ...update };
+    if (!this.saveProgress()) {
+      this.ui.notify(t("game.saveFailed"), "warning");
+    }
+    for (const [index, entry] of achievementProgress(this.persistentState).entries()) {
+      if (entry.count >= entry.goal && previous[index]!.count < entry.goal) {
+        this.ui.notify(`${t("collection.unlocked")} · ${t(entry.key)}`, "success");
+      }
+    }
+  }
+
+  private discover(id: string): void {
+    const discoveries = this.persistentState.discoveries ?? [];
+    if (!discoveries.includes(id)) this.updateCollection({ discoveries: [...discoveries, id] });
+  }
+
   private saveShiftResult(result: ShiftResult): void {
+    const before = achievementProgress(this.persistentState)[1]!;
+
     const currentRankIndex = this.persistentState.highestRank
       ? RANK_ORDER.indexOf(this.persistentState.highestRank)
       : Number.POSITIVE_INFINITY;
@@ -620,10 +807,14 @@ export class Game {
           ? result.rank
           : this.persistentState.highestRank,
     };
-    if (!this.saveSystem.save(this.persistentState)) {
+    if (!this.saveProgress()) {
       this.ui.notify(t("game.saveFailed"), "warning");
     }
     this.ui.setLevelRanks(this.persistentState.levelRanks, this.persistentState.levelStars);
+    const after = achievementProgress(this.persistentState)[1]!;
+    if (before.count < after.goal && after.count >= after.goal) {
+      this.ui.notify(`${t("collection.unlocked")} · ${t(after.key)}`, "success");
+    }
   }
 
   // ---------------------------------------------------------------------------------------
@@ -751,7 +942,7 @@ export class Game {
     // A map carries its own level settings, so a level built in the editor plays by its
     // own rules rather than the global defaults.
     const scenario = getScenario(scenarioId ?? map?.scenarioId);
-    return new KitchenScene(this.engine, this.ui, {
+    const kitchen = new KitchenScene(this.engine, this.ui, {
       shiftDuration: map?.meta?.shiftDurationSeconds ?? scenario.shiftDurationSeconds ?? getShiftDuration(),
       tuning: getDifficulty(map?.meta?.difficultyId ?? scenario.difficultyId),
       scenario,
@@ -759,6 +950,16 @@ export class Game {
       map: map ?? undefined,
       onShiftComplete: (result) => this.saveShiftResult(result),
     });
+    kitchen.events.on("ingredient:picked", ({ item }) => {
+      if (item.kind === "food") this.discover(item.ingredientId);
+    });
+    kitchen.events.on("station:used", ({ stationKind }) => this.discover(`station:${stationKind}`));
+    kitchen.events.on("station:started", ({ stationKind }) => this.discover(`station:${stationKind}`));
+    kitchen.events.on("station:completed", ({ stationKind }) => this.discover(`station:${stationKind}`));
+    kitchen.events.on("order:completed", () => this.updateCollection({
+      lifetimeOrders: (this.persistentState.lifetimeOrders ?? 0) + 1,
+    }));
+    return kitchen;
   }
 }
 

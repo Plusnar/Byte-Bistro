@@ -1,3 +1,4 @@
+import type { PlayerIndex } from "../types/events";
 import {
   Color3,
   Mesh,
@@ -11,7 +12,7 @@ import {
 export interface WaypointMarkerOptions {
   readonly label: string;
   readonly color: string;
-  readonly playerIndex: 0 | 1;
+  readonly playerIndex: PlayerIndex;
   /**
    * Whether to draw the column and the beam above the ring. A marker that says "go here"
    * wants them; one that says "it lands here" does not, and leaving them out is two fewer

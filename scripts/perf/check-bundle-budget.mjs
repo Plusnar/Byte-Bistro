@@ -25,7 +25,11 @@ const sizeOf = async (file) => {
 
 const problems = [];
 const initialSizes = await Promise.all(initial.map(sizeOf));
-const entry = initialSizes.find((size) => /\/index-[^/]+\.js$/.test(`/${size.file}`)) ?? initialSizes[0];
+// The entry is the page's module <script>; the rest are its modulepreloads. (Matching a
+// file name broke when controller.html made the build multi-page: entries are now named
+// after their input, and a shared chunk can be the one called `index-*`.)
+const entryFile = /<script[^>]+type="module"[^>]+src="\/?([^"]+\.js)"/.exec(html)?.[1];
+const entry = initialSizes.find((size) => size.file === entryFile) ?? initialSizes[0];
 const initialGzip = initialSizes.reduce((sum, size) => sum + size.gzip, 0);
 if (entry && kb(entry.gzip) > budget.maxMainChunkGzipKb) {
   problems.push(`main chunk ${entry.file}: ${kb(entry.gzip).toFixed(0)} kB gzip, over ${budget.maxMainChunkGzipKb} kB`);

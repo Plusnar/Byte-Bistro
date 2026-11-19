@@ -1,0 +1,148 @@
+/*
+ * One to four players: the pairing step (QR code and the four slots), the HUD cards and
+ * the selection-street plates for players three and four, and the D-pad cursor.
+ * Imported last, after the themes, so these rules settle what the themes leave open.
+ */
+
+/* ------------------------------------------------------------------ pairing step */
+
+.game-ui .pair-select { display: none; }
+.game-ui .selection-screen[data-step="pair"] :is(.selection-arena, .level-select, .selection-footer, .selection-header, .bistro-home-actions) {
+  display: none;
+}
+.game-ui .selection-screen[data-step="pair"] .pair-select {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1rem max(1.25rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse at 50% -10%, #1a5cc4aa 0%, transparent 60%),
+    linear-gradient(#082456, #061a3d);
+}
+.game-ui .pair-select h2 {
+  margin: 0;
+  color: #fff;
+  font: 900 clamp(1.4rem, 3.2vw, 2.4rem)/1.1 var(--bistro-font, Nunito, system-ui, sans-serif);
+  text-align: center;
+  text-shadow: 0 .2rem 0 #0006;
+}
+.game-ui .pair-select .pair-skip { font-size: .85rem; }
+
+.game-ui .pair-panel.phone-room {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) minmax(16rem, 30rem);
+  gap: 1.5rem;
+  inline-size: min(56rem, 100%);
+  max-block-size: none;
+  padding: 1.25rem;
+  overflow: visible;
+}
+.game-ui .pair-panel .phone-room-diag { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 760px) {
+  .game-ui .pair-panel.phone-room { grid-template-columns: 1fr; justify-items: center; }
+  .game-ui .pair-panel .phone-room-players { inline-size: 100%; }
+}
+
+.game-ui .phone-room-slots { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; }
+.game-ui .phone-room-slot {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .7rem;
+  min-block-size: 3.6rem;
+  padding: .5rem .7rem;
+  border-radius: .9rem;
+  background: #04122d;
+  border: 2px solid color-mix(in srgb, var(--player, #74f4ff) 70%, transparent);
+  box-shadow: 0 0 1.2rem color-mix(in srgb, var(--player, #74f4ff) 18%, transparent);
+}
+.game-ui .phone-room-slot[data-state="empty"] { border-style: dashed; border-color: #ffffff30; box-shadow: none; }
+.game-ui .phone-room-slot[data-state="empty"] .phone-room-badge { background: #ffffff1c; color: #c8f2ff; }
+.game-ui .phone-room-slot[data-state="offline"] { opacity: .55; }
+.game-ui .phone-room-kick {
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  border-radius: 50%;
+  border: 2px solid #ff9fbf88;
+  background: #6e0d33;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+.game-ui .phone-room-continue {
+  margin: .4rem 0 0;
+  padding: .7rem .9rem;
+  border-radius: .9rem;
+  background: #ffffff10;
+  color: #c8f2ff;
+  font-weight: 900;
+  text-align: center;
+}
+.game-ui .phone-room-continue[data-ready="true"] {
+  background: linear-gradient(#8cf6ef, #28b9b2);
+  color: #062a2a;
+  animation: pair-ready 1.6s ease-in-out infinite;
+}
+@keyframes pair-ready { 50% { transform: scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { .game-ui .phone-room-continue[data-ready="true"] { animation: none; } }
+.game-ui .phone-room-tools { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; }
+.game-ui .phone-room-tools button, .game-ui .phone-room-join [data-act="retry"] {
+  min-block-size: 2.4rem;
+  padding: .3rem .9rem;
+  border-radius: 999px;
+  border: 2px solid #bffaff66;
+  background: #0a4fb3;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+.game-ui .phone-room-join [data-act="retry"][hidden] { display: none; }
+
+/* ------------------------------------------------------------------ HUD cards */
+
+.game-ui .player-status[hidden] { display: none; }
+.game-ui .coop-player-status[data-count="1"] { grid-template-columns: minmax(0, 300px); }
+.game-ui .coop-player-status[data-count="3"] { grid-template-columns: repeat(3, minmax(0, 250px)); gap: 14px; }
+.game-ui .coop-player-status[data-count="4"] { grid-template-columns: repeat(4, minmax(0, 230px)); gap: 12px; }
+.game-ui .player-status.player-three,
+.game-ui .player-status.player-four { border-color: color-mix(in srgb, var(--player-color) 60%, transparent); }
+.game-ui .player-status.player-three header strong,
+.game-ui .player-status.player-four header strong { color: var(--player-color); }
+@media (max-width: 900px) {
+  .game-ui .coop-player-status:is([data-count="3"], [data-count="4"]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ------------------------------------------------------------------ selection street */
+
+.game-ui .pick-hint[hidden] { display: none; }
+/* Three and four stand further up the street, between one and two: their plates float
+   over their heads, clear of the front pair and of the buttons below. */
+.game-ui .selection-screen[data-step="characters"] .pick-hint-p3 { left: 31%; bottom: 47%; }
+.game-ui .selection-screen[data-step="characters"] .pick-hint-p4 { left: 51%; bottom: 47%; }
+.game-ui .pick-hint-p3, .game-ui .pick-hint-p4 { border-color: color-mix(in srgb, var(--player-color) 70%, #102445); }
+.game-ui .pick-hint-p3 .pick-badge, .game-ui .pick-hint-p4 .pick-badge { background: var(--player-color); }
+.game-ui .pick-hint .pick-ready {
+  display: none;
+  place-items: center;
+  inline-size: 1.6rem;
+  block-size: 1.6rem;
+  border-radius: 50%;
+  background: #28b9b2;
+  color: #fff;
+  font-weight: 900;
+}
+.game-ui .pick-hint[data-ready="true"] { box-shadow: 0 4px 0 var(--order-ink, #102445), 0 0 0 4px #8cf6ef; }
+.game-ui .pick-hint[data-ready="true"] .pick-ready { display: grid; }
+
+/* ------------------------------------------------------------------ D-pad cursor */
+
+.game-ui .nav-focus,
+.nav-focus {
+  outline: 4px solid #74f4ff !important;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 8px #74f4ff40;
+}

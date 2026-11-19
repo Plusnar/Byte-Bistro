@@ -180,6 +180,8 @@ export interface PersistentGameState {
   version: number;
   credits: number;
   unlockedRecipes: string[];
+  discoveries?: string[];
+  lifetimeOrders?: number;
   unlockedStations: StationId[];
   highestRank: ShiftRank | null;
   /** Best rank reached on each level, keyed by the level picker's entry key. */

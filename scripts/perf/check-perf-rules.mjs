@@ -128,7 +128,8 @@ for (const full of await walk(path.join(root, "src"))) {
   if (isTest(file)) continue;
   const raw = await readFile(full, "utf8");
   const text = stripComments(raw);
-  const lines = raw.split("\n");
+  // CRLF too: with core.autocrlf a Windows checkout has it, and `(.+)$` stops at the \r.
+  const lines = raw.split(/\r?\n/);
   for (const rule of RULES) {
     if (rule.skip?.(file)) continue;
     for (const match of text.matchAll(rule.pattern)) {

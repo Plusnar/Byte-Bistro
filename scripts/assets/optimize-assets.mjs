@@ -258,7 +258,7 @@ for (const input of imageConfig.inputs) {
   if (upToDate && !FORCE) { manifest.images[file] = known; continue; }
   const entry = { profileKey: key, sourceHash, sourceBytes: source.length };
   const image = tools.sharp(source).resize(input.maxSize, input.maxSize, { fit: "inside", withoutEnlargement: true });
-  const output = await image.clone().toFormat(input.format, { quality: input.quality }).toBuffer();
+  const output = await image.clone().toFormat(input.format, { quality: input.quality, ...(input.lossless ? { lossless: true } : {}) }).toBuffer();
   const { width, height } = await tools.sharp(output).metadata();
   const [a, b] = await Promise.all([
     tools.sharp(source).resize(width, height, { fit: "fill" }).removeAlpha().raw().toBuffer(),

@@ -45,26 +45,134 @@
     }
   },
   "inputs": [
-    { "path": "public/asset-library/Char/Characters/William .glb", "profile": "character" },
-    { "path": "public/asset-library/Char/Characters/Sandy.glb", "profile": "character" },
-    { "path": "public/asset-library/Char/Characters/Milena.glb", "profile": "character" },
-    { "path": "public/asset-library/Char/Characters/Jean.glb", "profile": "character" },
-    { "path": "Anim/Mannequin Character/characters/Mannequin_Medium.glb", "profile": "character" },
-    { "path": "Anim/Animations/gltf/Rig_Medium/Rig_Medium_General.glb", "profile": "animation" },
-    { "path": "Anim/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb", "profile": "animation" },
-    { "path": "Anim/Animations/gltf/Rig_Medium/Rig_Medium_Simulation.glb", "profile": "animation" },
-    { "glob": "src/assets/ingredients/*.glb", "profile": "staticProp" },
-    { "glob": "src/assets/scenario/*.glb", "profile": "staticProp" },
-    { "glob": "src/assets/disasters/*.glb", "profile": "prop" },
-    { "path": "src/assets/selection-street/Selection Street.glb", "profile": "staticScene" },
-    { "path": "Scenario/sao_bento_do_sul.glb", "profile": "staticScene" },
-    { "path": "public/assets/environment/cidade_fundo.glb", "profile": "staticScene" }
+    {
+      "path": "public/asset-library/Char/Characters/William .glb",
+      "profile": "character"
+    },
+    {
+      "path": "public/asset-library/Char/Characters/Sandy.glb",
+      "profile": "character"
+    },
+    {
+      "path": "public/asset-library/Char/Characters/Milena.glb",
+      "profile": "character"
+    },
+    {
+      "path": "public/asset-library/Char/Characters/Jean.glb",
+      "profile": "character"
+    },
+    {
+      "path": "public/asset-library/Char/Characters/SchlachtfestRobot.glb",
+      "profile": "character"
+    },
+    {
+      "path": "Anim/Mannequin Character/characters/Mannequin_Medium.glb",
+      "profile": "character"
+    },
+    {
+      "path": "Anim/Animations/gltf/Rig_Medium/Rig_Medium_General.glb",
+      "profile": "animation"
+    },
+    {
+      "path": "Anim/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb",
+      "profile": "animation"
+    },
+    {
+      "path": "Anim/Animations/gltf/Rig_Medium/Rig_Medium_Simulation.glb",
+      "profile": "animation"
+    },
+    {
+      "glob": "src/assets/ingredients/*.glb",
+      "profile": "staticProp"
+    },
+    {
+      "glob": "src/assets/scenario/*.glb",
+      "profile": "staticProp"
+    },
+    {
+      "glob": "src/assets/disasters/*.glb",
+      "profile": "prop"
+    },
+    {
+      "path": "src/assets/selection-street/Selection Street.glb",
+      "profile": "staticScene"
+    },
+    {
+      "path": "Scenario/sao_bento_do_sul.glb",
+      "profile": "staticScene"
+    },
+    {
+      "path": "public/assets/environment/cidade_fundo.glb",
+      "profile": "staticScene"
+    },
+    {
+      "path": "public/asset-library/Scenario/Praca/araucaria.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Praca/coreto.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Praca/banco_praca.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Praca/poste_globo.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "src/assets/map-vehicles/city-bus.glb",
+      "profile": "prop"
+    },
+    {
+      "path": "src/assets/map-town/timber-house-medium.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "src/assets/map-town/timber-house-large.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Praca/canteiro_flores.glb",
+      "profile": "staticProp"
+    }
   ],
   "images": {
     "$comment": "Standalone images (CSS backgrounds, UI art): re-encoded to WebP and kept only when the result measures at least minPsnrDb against the original. Referenced from CSS by their optimized path, so Vite hashes them.",
     "minPsnrDb": 38,
     "inputs": [
-      { "path": "public/assets/ui/cosmic/space-backdrop.png", "format": "webp", "quality": 86, "maxSize": 2048 }
+      {
+        "path": "public/assets/ui/cosmic/space-backdrop.png",
+        "format": "webp",
+        "quality": 86,
+        "maxSize": 2048
+      },
+      {
+        "path": "src/assets/map-textures/cobblestone.png",
+        "format": "webp",
+        "quality": 94,
+        "maxSize": 1024
+      },
+      {
+        "path": "src/assets/map-textures/grass-painted.png",
+        "format": "webp",
+        "quality": 90,
+        "maxSize": 1024
+      },
+      {
+        "path": "src/assets/map-textures/grass-natural.png",
+        "format": "webp",
+        "quality": 100,
+        "maxSize": 1024,
+        "lossless": true
+      },
+      {
+        "path": "src/assets/map-textures/hills.png",
+        "format": "webp",
+        "quality": 94,
+        "maxSize": 2048
+      }
     ]
   }
 }

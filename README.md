@@ -58,6 +58,8 @@ O jogo é ambientado em **São Bento do Sul (SC)** como forma de divulgar a cida
 | Livro de receitas | `Tab` | — |
 | Pausar | `Esc` | — |
 
+Joga-se de **1 a 4 pessoas, cada uma com o próprio celular como controle**, sem instalar nada: ao abrir o jogo aparece um QR Code (ou o código para digitar em `byte-bistro.pages.dev/controller`). O primeiro celular a entrar é o **P1**, que comanda os menus com as setas (**A** confirma, **B** volta) e aperta A para seguir quando todos tiverem entrado. Na seleção de personagens cada um escolhe o seu cozinheiro no próprio celular; na partida o celular vira analógico + **A** (pegar), **X** (usar), **B** (dash), **Y** (chamar), com Receitas e Pausa no centro. Gamepads continuam funcionando na partida (o 1º no Jogador 1, e assim por diante). O botão “Jogadores” no menu volta ao QR Code para alguém entrar ou sair.
+
 ## Modo construção
 
 No menu, **Criar mapa** abre o editor, inspirado no modo construção do *The Sims 4*. O mapa pronto pode ser jogado na hora.

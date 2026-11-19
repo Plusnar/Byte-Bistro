@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- No zoom, no bounce: the whole screen is a gamepad. viewport-fit covers the notch. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#061a3d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/assets/ui/byte-bistro-mark.svg" />
+    <title>Byte Bistro</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #061a3d; color: #edfaff; }
+    </style>
+  </head>
+  <body>
+    <main id="pad-app" aria-live="polite"></main>
+    <script type="module" src="/src/controller/main.ts"></script>
+  </body>
+</html>

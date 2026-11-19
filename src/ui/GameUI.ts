@@ -1,3 +1,4 @@
+import { ingredientIllustration } from "./illustrations";
 import type {
   AIState,
   FoodState,
@@ -8,6 +9,9 @@ import type {
   StarThresholds,
   StationId,
 } from "../types/game";
+import type { PlayerIndex } from "../types/events";
+import { MAX_PLAYERS, PLAYER_COLORS, clampPlayerCount, playerLabel } from "../data/players";
+import type { MenuCommand } from "./menuInput";
 import type { CharacterDefinition } from "../data/characters";
 import { formatShiftDuration, type LevelEntry } from "../data/levelCatalog";
 import { mapLevels } from "../data/levelMap";
@@ -31,6 +35,7 @@ import { publicUrl } from "../utils/assetUrl";
 import { qualityManager } from "../core/perf/QualityManager";
 import { QUALITY_MODES, isQualityMode } from "../core/perf/qualityProfiles";
 import "../styles/game.css";
+import "../styles/phones.css";
 import "../styles/tech-theme.css";
 // Imported last: the order queue deliberately overrides the older HUD-card styling.
 import "../styles/orders.css";
@@ -42,6 +47,8 @@ import "../styles/cartoon.css";
 import "../styles/cosmic.css";
 import "../styles/level-map.css";
 import "../styles/disaster.css";
+import "../styles/bistro-theme.css";
+import "../styles/players.css";
 
 export type NotificationTone = "info" | "success" | "warning" | "error";
 export type StationProgressTone = "active" | "ideal" | "warning" | "danger";
@@ -106,7 +113,7 @@ export interface OrderTicketInfo {
   /** Every component is plated — the dish just needs carrying to the pass. */
   readyToDeliver: boolean;
   components: readonly OrderTicketComponent[];
-  assignedTo: 0 | 1 | null;
+  assignedTo: PlayerIndex | null;
 }
 
 /** Cached DOM for one ticket row, plus the last values written, to skip no-op writes. */
@@ -173,21 +180,32 @@ export const chipState = (
   }
 };
 
+/** The menu's steps, in the order a session goes through them. */
+export type SplashStep = "pair" | "home" | "level" | "characters";
+
 export interface GameUICallbacks {
-  onStart?: (characterIds: readonly [string, string]) => void | Promise<void>;
-  onCharacterChange?: (characterIds: readonly [string, string]) => void;
+  /** One character id per player, in player order. */
+  onStart?: (characterIds: readonly string[]) => void | Promise<void>;
+  onCharacterChange?: (characterIds: readonly string[]) => void;
   onRestart?: () => void;
   onResume?: () => void;
+  onPause?: () => void;
   /** Leaves the running shift for the level and cook picker. */
   onQuitToMenu?: () => void;
   onCookbookVisibilityChange?: (visible: boolean) => void;
   onOpenEditor?: () => void;
+  onOpenAccount?: () => void;
+  /** Back to the phone pairing screen, to add or remove players. */
+  onOpenPhones?: () => void;
+  /** Development only: leave the pairing screen without phones, as two keyboard players. */
+  onPairSkip?: () => void;
+  onOpenCollection?: (view: "items" | "achievements") => void;
   /** Fires when a level card is chosen, before the cooks are picked. */
   onLevelChange?: (entry: LevelEntry) => void;
   /** Deletes one of the player's saved maps, after they confirmed; false if it failed. */
   onDeleteLevel?: (entry: LevelEntry) => boolean;
   /** Fires with the character that should be shown live in the menu preview. */
-  onCharacterPreview?: (playerOneId: string | null, playerTwoId: string | null) => void;
+  onCharacterPreview?: (characterIds: readonly (string | null)[]) => void;
   /** Tells the preview whether the start menu is currently on screen. */
   onPreviewActiveChange?: (active: boolean) => void;
   /** Plays the "walk together" set piece; resolves when the cooks have met. */
@@ -204,11 +222,13 @@ export interface LevelMapPort {
   /** The star an arrow key leads to from `key`, or null when none lies that way. */
   neighbour(key: string | null, dx: number, dy: number): string | null;
   setActive(active: boolean): void;
+  isMoving(): boolean;
+  retry(): void;
 }
 
 export interface GameUIOptions extends GameUICallbacks {
   characters?: readonly CharacterDefinition[];
-  selectedCharacterIds?: readonly [string, string];
+  selectedCharacterIds?: readonly string[];
   /** @deprecated Use selectedCharacterIds. */
   selectedCharacterId?: string;
   recipes?: readonly RecipeData[];
@@ -253,11 +273,23 @@ export class GameUI {
   private readonly shell: HTMLElement;
   private readonly callbacks: GameUICallbacks;
   private readonly listenerController = new AbortController();
+  private readonly menuVideo: HTMLVideoElement;
+  private readonly menuPortrait = window.matchMedia("(max-aspect-ratio: 4/3)");
+  private readonly menuReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  private readonly menuNetwork = (navigator as Navigator & {
+    connection?: EventTarget & { saveData?: boolean; effectiveType?: string };
+  }).connection;
+  private menuBootObserver?: MutationObserver;
   private readonly notifications = new Map<number, NotificationEntry>();
   private readonly recipeById = new Map<string, RecipeData>();
 
   private characters: readonly CharacterDefinition[] = [];
-  private selectedCharacterIds: [string | null, string | null] = [null, null];
+  /** One pick per player slot (all `MAX_PLAYERS`, so a returning player keeps theirs). */
+  private selectedCharacterIds: (string | null)[] = Array.from({ length: MAX_PLAYERS }, () => null);
+  /** How many players this session has: set on the pairing screen. */
+  private playerCount = 2;
+  /** Players who confirmed their cook on the selection screen. */
+  private readonly readySlots: boolean[] = Array.from({ length: MAX_PLAYERS }, () => false);
   private recipes: readonly RecipeData[] = [];
   private selectedRecipeId: string | null = null;
   private cookbookVisible = false;
@@ -320,17 +352,17 @@ export class GameUI {
   private readonly scoreValue: HTMLElement;
   private readonly comboValue: HTMLElement;
   private readonly comboChip: HTMLElement;
-  private readonly playerStatusPanels: readonly [HTMLElement, HTMLElement];
+  private readonly playerStatusPanels: readonly HTMLElement[];
   /** Dismissal timers for the per-player speech bubbles, one slot each. */
-  private readonly calloutTimers: [number | undefined, number | undefined] = [undefined, undefined];
+  private readonly calloutTimers: (number | undefined)[] = Array.from({ length: MAX_PLAYERS }, () => undefined);
   private readonly splitDivider: HTMLElement;
   private readonly debugPanel: HTMLElement;
   private readonly debugRows: HTMLElement;
   private readonly previewCanvas: HTMLCanvasElement;
   private readonly previewName: HTMLElement;
   private readonly previewRole: HTMLElement;
-  private readonly previewName2: HTMLElement;
-  private readonly previewRole2: HTMLElement;
+  /** The name plate beside each player's cook on the selection street. */
+  private readonly pickHints: readonly HTMLElement[];
 
   constructor(root: HTMLElement, options: GameUIOptions = {}) {
     this.host = root;
@@ -338,6 +370,8 @@ export class GameUI {
     this.shell = createElement("div", "game-ui");
     this.shell.dataset.gameVisible = "true";
     this.shell.innerHTML = this.createMarkup();
+    this.menuVideo = this.requireElement<HTMLVideoElement>(".bistro-home-video");
+    this.menuVideo.muted = true;
     this.host.append(this.shell);
 
     this.splash = this.requireElement("[data-ui='splash']");
@@ -373,23 +407,19 @@ export class GameUI {
     this.scoreValue = this.requireElement("[data-ui='score']");
     this.comboValue = this.requireElement("[data-ui='combo']");
     this.comboChip = this.requireElement(".combo-chip");
-    this.playerStatusPanels = [
-      this.requireElement("[data-player-status='0']"),
-      this.requireElement("[data-player-status='1']"),
-    ];
+    this.playerStatusPanels = Array.from({ length: MAX_PLAYERS }, (_, index) => this.requireElement(`[data-player-status='${index}']`));
     this.splitDivider = this.requireElement("[data-ui='split-divider']");
     this.debugPanel = this.requireElement("[data-ui='debug']");
     this.debugRows = this.requireElement("[data-ui='debug-rows']");
     this.previewCanvas = this.requireElement<HTMLCanvasElement>("[data-ui='preview-canvas']");
     this.previewName = this.requireElement("[data-ui='preview-name']");
     this.previewRole = this.requireElement("[data-ui='preview-role']");
-    this.previewName2 = this.requireElement("[data-ui='preview-name-2']");
-    this.previewRole2 = this.requireElement("[data-ui='preview-role-2']");
+    this.pickHints = Array.from({ length: MAX_PLAYERS }, (_, index) => this.requireElement(`[data-pick-slot='${index}']`));
 
     this.setCharacters(
       options.characters ?? [],
       options.selectedCharacterIds ?? (options.selectedCharacterId
-        ? [options.selectedCharacterId, options.selectedCharacterId]
+        ? [options.selectedCharacterId]
         : undefined),
     );
     applyTranslations(this.shell);
@@ -400,7 +430,8 @@ export class GameUI {
     this.showSplash(options.startVisible ?? true);
     // The stage is chosen before the cooks. Set once here rather than on every
     // showSplash, so using the splash as a loading veil cannot flash the level list.
-    this.setSplashStep("level");
+    this.setSplashStep("home");
+    this.bindMenuVideo();
   }
 
   update(state: Readonly<RuntimeGameState>): void {
@@ -416,9 +447,10 @@ export class GameUI {
     this.shell.dataset.shiftEnded = state.shiftEnded ? "true" : "false";
   }
 
-  setPlayerStatus(index: 0 | 1, info: Readonly<PlayerStatusInfo>): void {
+  setPlayerStatus(index: PlayerIndex, info: Readonly<PlayerStatusInfo>): void {
     if (this.destroyed) return;
     const panel = this.playerStatusPanels[index];
+    if (!panel) return;
     const prompt = panel.querySelector<HTMLElement>("[data-player-prompt]");
     const key = panel.querySelector<HTMLElement>("[data-player-key]");
     const carrying = panel.querySelector<HTMLElement>("[data-player-carrying]");
@@ -505,7 +537,7 @@ export class GameUI {
    * Floats the tip a delivery earned over the cook who served it, so the reward for the
    * run and the reward for the plate read as two different things.
    */
-  showTip(index: 0 | 1, amount: number, streak: number): void {
+  showTip(index: PlayerIndex, amount: number, streak: number): void {
     if (this.destroyed) return;
     const text = streak >= 2
       ? t("hud.tipWithStreak", { coins: formatNumber(amount), streak: String(streak) })
@@ -517,9 +549,9 @@ export class GameUI {
    * Pops a speech bubble over one cook's status card: the "Hey!" emote, and anything else
    * a cook says to their partner. Retriggering restarts the timer instead of stacking.
    */
-  showPlayerCallout(index: 0 | 1, text: string, duration = 1_800): void {
+  showPlayerCallout(index: PlayerIndex, text: string, duration = 1_800): void {
     if (this.destroyed) return;
-    const bubble = this.playerStatusPanels[index].querySelector<HTMLElement>("[data-player-callout]");
+    const bubble = this.playerStatusPanels[index]?.querySelector<HTMLElement>("[data-player-callout]");
     if (!bubble) return;
     const previous = this.calloutTimers[index];
     if (previous !== undefined) window.clearTimeout(previous);
@@ -591,18 +623,40 @@ export class GameUI {
 
   setCharacters(
     characters: readonly CharacterDefinition[],
-    selectedCharacterIds?: readonly [string, string],
+    selectedCharacterIds?: readonly string[],
   ): void {
     this.characters = [...characters];
-    const resolve = (index: 0 | 1): string | null => {
+    const resolve = (index: number): string | null => {
       const requested = selectedCharacterIds?.[index];
       if (requested && this.characters.some(({ id }) => id === requested)) return requested;
       const current = this.selectedCharacterIds[index];
       if (current && this.characters.some(({ id }) => id === current)) return current;
-      return this.characters[index]?.id ?? this.characters[0]?.id ?? null;
+      // Each player starts on a different cook where there are enough of them.
+      return this.characters[index % Math.max(1, this.characters.length)]?.id ?? null;
     };
-    this.selectedCharacterIds = [resolve(0), resolve(1)];
-    this.startButton.disabled = this.characters.length > 0 && this.selectedCharacterIds.some((id) => !id);
+    this.selectedCharacterIds = this.selectedCharacterIds.map((_, index) => resolve(index));
+    this.renderCharacterSelector();
+  }
+
+  /** The picks of the players in this session, one per player. */
+  private activePicks(): (string | null)[] {
+    return this.selectedCharacterIds.slice(0, this.playerCount);
+  }
+
+  get players(): number {
+    return this.playerCount;
+  }
+
+  /**
+   * How many people play (one per paired phone): the selection street shows that many
+   * cooks, the HUD that many cards. Clears everyone's "ready".
+   */
+  setPlayerCount(count: number): void {
+    const next = clampPlayerCount(count);
+    this.readySlots.fill(false);
+    this.playerCount = next;
+    this.playerStatusPanels.forEach((panel, index) => { panel.hidden = index >= next; });
+    this.requireElement("[data-ui='coop-player-status']").dataset.count = String(next);
     this.renderCharacterSelector();
   }
 
@@ -783,6 +837,11 @@ export class GameUI {
       this.splash.contains(document.activeElement)) document.activeElement.blur();
     this.setGameVisible(!visible);
     this.shell.dataset.modalOpen = visible ? "true" : "false";
+    // Back from a shift, everyone confirms their cook again before the next one.
+    if (visible && this.readySlots.some(Boolean)) {
+      this.readySlots.fill(false);
+      this.renderCharacterSelector();
+    }
     this.updateLevelMapActivity();
     if (visible) this.focusSplash();
   }
@@ -793,6 +852,8 @@ export class GameUI {
     this.stopLanguage();
     window.clearTimeout(this.levelWindowTimer);
     this.listenerController.abort();
+    this.menuBootObserver?.disconnect();
+    this.menuVideo.pause();
     if (this.dialogueTimeoutId !== null) window.clearTimeout(this.dialogueTimeoutId);
     for (const timer of this.calloutTimers) if (timer !== undefined) window.clearTimeout(timer);
     for (const entry of this.notifications.values()) window.clearTimeout(entry.timeoutId);
@@ -824,8 +885,9 @@ export class GameUI {
   markLevelSelected(key: string): void {
     if (!this.levels.some((entry) => entry.key === key)) return;
     this.selectedLevelKey = key;
+    this.selectedMapKey = mapLevels(this.levels).some((entry) => entry.key === key) ? key : "";
     this.renderLevels();
-    this.levelMap?.select(mapLevels(this.levels).some((entry) => entry.key === key) ? key : null);
+    this.levelMap?.select(this.selectedMapKey || null);
   }
 
   /** Best rank per level, for the stars in the level window. */
@@ -854,19 +916,29 @@ export class GameUI {
   }
 
   private updatePreview(): void {
-    const plates: readonly [HTMLElement, HTMLElement] = [this.previewName, this.previewName2];
-    const roles: readonly [HTMLElement, HTMLElement] = [this.previewRole, this.previewRole2];
-    for (const slot of [0, 1] as const) {
+    for (let slot = 0; slot < MAX_PLAYERS; slot++) {
+      const active = slot < this.playerCount;
+      const hint = this.pickHints[slot]!;
+      hint.hidden = !active;
+      hint.dataset.ready = String(active && this.readySlots[slot] === true);
       const character = this.characters.find((entry) => entry.id === this.selectedCharacterIds[slot]) ?? null;
-      plates[slot].textContent = character
+      const plate = hint.querySelector<HTMLElement>("[data-pick-name]")!;
+      plate.textContent = character
         ? character.variant
           ? `${character.displayName} · ${character.variant}`
           : character.displayName
         : "—";
-      roles[slot].textContent = character?.role ?? "";
+      if (slot === 0) {
+        this.previewName.textContent = plate.textContent;
+        this.previewRole.textContent = character?.role ?? "";
+      }
+      const portrait = this.shell.querySelector<HTMLImageElement>(`[data-player-portrait="${slot}"]`);
+      if (portrait) {
+        portrait.hidden = !character || !active;
+        if (character) portrait.src = publicUrl(`assets/ui/avatar-${character.id}.webp`);
+      }
     }
-    const [p1, p2] = this.selectedCharacterIds;
-    this.callbacks.onCharacterPreview?.(p1, p2);
+    this.callbacks.onCharacterPreview?.(this.activePicks());
   }
 
 
@@ -1069,7 +1141,7 @@ export class GameUI {
       root.dataset.fallback = "1";
       img.hidden = true;
     }, { once: true });
-    img.src = publicUrl(`images/ingredients/${ingredientId}.png`);
+    img.src = publicUrl(ingredientIllustration(ingredientId));
     root.append(img);
     return { root, img };
   }
@@ -1210,17 +1282,83 @@ export class GameUI {
     }
   }
 
-  /** `level` picks the stage, `characters` picks the cooks. */
-  private setSplashStep(step: "level" | "characters"): void {
+  /**
+   * `pair` connects the phones (and so the players), `home` is the menu, `level` picks the
+   * stage, `characters` picks the cooks.
+   */
+  setSplashStep(step: SplashStep): void {
+    const previous = this.selectionScreen.dataset.step;
     this.selectionScreen.dataset.step = step;
     this.requireElement<HTMLButtonElement>("[data-action='back-level']").hidden = step !== "characters";
     if (step === "characters") {
       this.closeLevelWindow(true);
+      // Everyone confirms their cook afresh each time the street opens.
+      if (previous !== "characters") this.readySlots.fill(false);
+      this.renderCharacterSelector();
       this.startButton.focus();
     } else {
       this.focusSplash();
     }
     this.updateLevelMapActivity();
+  }
+
+  get splashStep(): SplashStep {
+    return (this.selectionScreen.dataset.step as SplashStep | undefined) ?? "home";
+  }
+
+  setPairSkipVisible(visible: boolean): void {
+    this.requireElement<HTMLButtonElement>("[data-action='pair-skip']").hidden = !visible;
+  }
+
+  /** Where the phone pairing panel (QR code and player slots) is drawn. */
+  pairPanel(): HTMLElement {
+    return this.requireElement("[data-ui='pair-panel']");
+  }
+
+  /** Whether a player has confirmed their cook on the selection street. */
+  isReady(slot: number): boolean {
+    return this.readySlots[slot] === true;
+  }
+
+  /**
+   * A player's own command on the selection street: left/right browse their cook, A
+   * confirms it (and, once everyone has, player one's A starts), B takes the confirmation
+   * back or, for player one with nothing to take back, returns to the levels.
+   */
+  selectionCommand(slot: number, command: MenuCommand): void {
+    if (this.splash.hidden || this.splashStep !== "characters" || slot >= this.playerCount) return;
+    if (this.startButton.dataset.loading === "true") return;
+    switch (command) {
+      case "left":
+      case "right":
+        if (this.readySlots[slot]) return;
+        this.browseCharacter(slot, command === "left" ? -1 : 1);
+        return;
+      case "confirm":
+        if (!this.readySlots[slot]) {
+          if (!this.selectedCharacterIds[slot]) return;
+          this.readySlots[slot] = true;
+          this.renderCharacterSelector();
+          return;
+        }
+        if (slot === 0 && this.allReady()) this.startButton.click();
+        return;
+      case "back":
+        if (this.readySlots[slot]) {
+          this.readySlots[slot] = false;
+          this.renderCharacterSelector();
+        } else if (slot === 0) {
+          this.requireElement<HTMLButtonElement>("[data-action='back-level']").click();
+        }
+        return;
+      default:
+        return;
+    }
+  }
+
+  private allReady(): boolean {
+    for (let slot = 0; slot < this.playerCount; slot++) if (!this.readySlots[slot]) return false;
+    return true;
   }
 
   private chooseLevel(key: string): void {
@@ -1233,12 +1371,65 @@ export class GameUI {
     this.setSplashStep("characters");
   }
 
+  private bindMenuVideo(): void {
+    const signal = this.listenerController.signal;
+    document.addEventListener("visibilitychange", this.syncMenuVideo, { signal });
+    this.menuPortrait.addEventListener("change", this.syncMenuVideo, { signal });
+    this.menuReducedMotion.addEventListener("change", this.syncMenuVideo, { signal });
+    this.menuNetwork?.addEventListener("change", this.syncMenuVideo, { signal });
+    this.menuVideo.addEventListener("playing", () => { this.menuVideo.dataset.playing = "true"; }, { signal });
+    const clearPlaying = () => { delete this.menuVideo.dataset.playing; };
+    this.menuVideo.addEventListener("pause", clearPlaying, { signal });
+    this.menuVideo.addEventListener("error", clearPlaying, { signal });
+    const loader = document.getElementById("boot-loader");
+    if (loader && loader.dataset.state !== "done") {
+      this.menuBootObserver = new MutationObserver(() => {
+        if (loader.dataset.state !== "done") return;
+        this.menuBootObserver?.disconnect();
+        this.syncMenuVideo();
+      });
+      this.menuBootObserver.observe(loader, { attributes: true, attributeFilter: ["data-state"] });
+    }
+    this.syncMenuVideo();
+  }
+
+  private readonly syncMenuVideo = (): void => {
+    const loader = document.getElementById("boot-loader");
+    const play = !this.destroyed && !document.hidden && !this.menuReducedMotion.matches
+      && !this.splash.hidden && !this.editorVisible && this.selectionScreen.dataset.step === "home"
+      && (!loader || loader.hidden || loader.dataset.state === "done");
+    if (!play) {
+      delete this.menuVideo.dataset.playing;
+      this.menuVideo.pause();
+      return;
+    }
+    const orientation = this.menuPortrait.matches ? "portrait" : "landscape";
+    const constrained = this.menuNetwork?.saveData === true
+      || ["slow-2g", "2g", "3g"].includes(this.menuNetwork?.effectiveType ?? "");
+    const quality = constrained ? "lite" : "hq";
+    if (this.menuVideo.dataset.orientation !== orientation || this.menuVideo.dataset.quality !== quality) {
+      this.menuVideo.dataset.orientation = orientation;
+      this.menuVideo.dataset.quality = quality;
+      delete this.menuVideo.dataset.playing;
+      const variants = constrained ? [""] : ["-hq-v1", ""];
+      this.menuVideo.replaceChildren(...variants.flatMap((variant) => (["webm", "mp4"] as const).map((format) => {
+        const source = document.createElement("source");
+        source.type = format === "webm" ? 'video/webm; codecs="vp9"' : 'video/mp4; codecs="avc1.640028"';
+        source.src = publicUrl(`assets/ui/cinematic/chase-${orientation}${variant}.${format}`);
+        return source;
+      })));
+      this.menuVideo.load();
+    }
+    if (this.menuVideo.paused) void this.menuVideo.play().catch(() => undefined);
+  };
+
   /**
    * Each menu canvas draws only while its step is on screen: the map on the level step, the
    * cook street on the cook step. The street used to keep drawing — soft shadows, two
    * skinned cooks, walking robots — behind the map, into a canvas set to display: none.
    */
   private updateLevelMapActivity(): void {
+    this.syncMenuVideo();
     const menuShown = !this.splash.hidden && !this.editorVisible;
     this.levelMap?.setActive(menuShown && this.selectionScreen.dataset.step === "level");
     const previewActive = menuShown && this.selectionScreen.dataset.step === "characters";
@@ -1250,15 +1441,22 @@ export class GameUI {
 
   /** On the level step the map takes the keyboard, so Enter opens a star, not a button. */
   private focusSplash(): void {
-    if (this.selectionScreen.dataset.step === "level") {
+    const step = this.selectionScreen.dataset.step;
+    if (step === "home") {
+      const play = this.requireElement<HTMLButtonElement>("[data-action='home-play']");
+      window.requestAnimationFrame(() => play.focus({ preventScroll: true }));
+    } else if (step === "level") {
       window.requestAnimationFrame(() => this.levelMapCanvas.focus({ preventScroll: true }));
     } else {
       this.focusFirst(this.splash);
     }
   }
 
+  private selectedMapKey = "";
+
   private selectMapLevel(key: string): void {
-    this.selectedLevelKey = key;
+    this.selectedMapKey = key;
+    if (!key.startsWith("future:")) this.selectedLevelKey = key;
     this.levelMap?.select(key);
   }
 
@@ -1287,6 +1485,20 @@ export class GameUI {
 
   /** Writes a level's details into the window; false when the level no longer exists. */
   private fillLevelWindow(key: string): boolean {
+    const future = { "future:univille": "level.mapUniville", "future:pauli": "level.mapPauli", "future:schlachtfest": "level.mapSchlachtfest" } as const;
+    const futureTitle = future[key as keyof typeof future];
+    const play = this.requireElement<HTMLButtonElement>("[data-action='play-level']");
+    play.hidden = Boolean(futureTitle);
+    if (futureTitle) {
+      this.requireElement("[data-ui='level-window-kind']").textContent = t("level.comingSoon");
+      this.requireElement("[data-ui='level-window-title']").textContent = t(futureTitle);
+      this.requireElement("[data-ui='level-window-description']").textContent = t("level.comingSoonDescription");
+      this.requireElement("[data-ui='level-window-best']").textContent = "";
+      this.requireElement("[data-ui='level-window-meta']").replaceChildren();
+      this.requireElement("[data-ui='level-window-rank']").hidden = true;
+      return true;
+    }
+    this.requireElement("[data-ui='level-window-rank']").hidden = false;
     const levels = mapLevels(this.levels);
     const index = levels.findIndex((level) => level.key === key);
     const entry = levels[index];
@@ -1325,10 +1537,10 @@ export class GameUI {
       || (event.target instanceof Element && event.target.closest("summary, details[open]"));
     if (direction && !onControl) {
       event.preventDefault();
-      const next = this.levelMap?.neighbour(this.selectedLevelKey || null, direction[0], direction[1]);
+      const next = this.levelMap?.neighbour(this.levelWindowKey || this.selectedMapKey || this.selectedLevelKey || null, direction[0], direction[1]);
       if (!next) return;
+      this.closeLevelWindow(true);
       this.selectMapLevel(next);
-      if (this.levelWindowKey) this.openLevelWindow(next);
       return;
     }
     if (key === "Escape" && this.levelWindowKey) {
@@ -1339,20 +1551,29 @@ export class GameUI {
     }
     if ((key === "Enter" || key === " ") && !onControl && !event.repeat) {
       event.preventDefault();
-      if (!this.selectedLevelKey) return;
-      if (this.levelWindowKey === this.selectedLevelKey) this.chooseLevel(this.selectedLevelKey);
-      else this.openLevelWindow(this.selectedLevelKey);
+      const mapKey = this.selectedMapKey || this.selectedLevelKey;
+      if (!mapKey || this.levelMap?.isMoving()) return;
+      if (this.levelWindowKey === mapKey && !mapKey.startsWith("future:")) this.chooseLevel(mapKey);
+      else if (this.levelWindowKey !== mapKey) this.openLevelWindow(mapKey);
     }
   }
 
   private bindActions(): void {
     const signal = this.listenerController.signal;
+    this.requireElement<HTMLButtonElement>("[data-action='home-play']").addEventListener("click", () => {
+      const key = this.selectedLevelKey || this.levels[0]?.key;
+      if (key) this.chooseLevel(key);
+      else this.setSplashStep("level");
+    }, { signal });
+    this.requireElement<HTMLButtonElement>("[data-action='retry-level-map']").addEventListener("click", () => this.levelMap?.retry(), { signal });
+    this.requireElement<HTMLButtonElement>("[data-action='home-levels']").addEventListener("click", () => this.setSplashStep("level"), { signal });
+    this.requireElement<HTMLButtonElement>("[data-action='back-home']").addEventListener("click", () => {
+      this.closeLevelWindow(true);
+      this.setSplashStep("home");
+    }, { signal });
     this.startButton.addEventListener("click", async () => {
       if (this.startButton.disabled) return;
-      const characterIds: readonly [string, string] = [
-        this.selectedCharacterIds[0] ?? "",
-        this.selectedCharacterIds[1] ?? "",
-      ];
+      const characterIds = this.activePicks().map((id) => id ?? this.characters[0]?.id ?? "");
       this.setStartLoading(true);
       // The pair walks together, the stage blurs, and only then does the shift load.
       this.selectionScreen.dataset.confirming = "1";
@@ -1376,14 +1597,14 @@ export class GameUI {
       if (this.splash.hidden || event.altKey || event.ctrlKey || event.metaKey) return;
       // On the level step the arrow keys belong to the map, not to the cook carousel.
       if (this.selectionScreen.dataset.step !== "characters") {
-        this.handleLevelKey(event);
+        if (this.selectionScreen.dataset.step === "level") this.handleLevelKey(event);
         return;
       }
       const key = event.key;
       if (key === "a" || key === "A" || key === "d" || key === "D") {
         event.preventDefault();
         this.browseCharacter(0, key === "a" || key === "A" ? -1 : 1);
-      } else if (key === "ArrowLeft" || key === "ArrowRight") {
+      } else if ((key === "ArrowLeft" || key === "ArrowRight") && this.playerCount > 1) {
         event.preventDefault();
         this.browseCharacter(1, key === "ArrowLeft" ? -1 : 1);
       } else if (key === "Enter" && !(event.target instanceof HTMLButtonElement)
@@ -1398,6 +1619,9 @@ export class GameUI {
       this.startButton.focus();
     }, { signal });
 
+    this.requireElement<HTMLButtonElement>("[data-action='pause-shift']").addEventListener(
+      "click", () => this.callbacks.onPause?.(), { signal },
+    );
     this.requireElement<HTMLButtonElement>("[data-action='resume']").addEventListener("click", () => {
       this.callbacks.onResume?.();
     }, { signal });
@@ -1415,6 +1639,15 @@ export class GameUI {
       button.addEventListener("click", () => this.callbacks.onQuitToMenu?.(), { signal });
     });
 
+    this.requireElement<HTMLButtonElement>("[data-action=menu-recipes]").addEventListener("click", () => this.toggleCookbook(true), { signal });
+    this.requireElement<HTMLButtonElement>("[data-action=account]").addEventListener("click", () => this.callbacks.onOpenAccount?.());
+    this.requireElement<HTMLButtonElement>("[data-action=phones]").addEventListener("click", () => this.callbacks.onOpenPhones?.(), { signal });
+    this.requireElement<HTMLButtonElement>("[data-action='pair-skip']").addEventListener("click", () => this.callbacks.onPairSkip?.(), { signal });
+    this.shell.querySelectorAll<HTMLButtonElement>("[data-collection]").forEach((button) => {
+      button.addEventListener("click", () => this.callbacks.onOpenCollection?.(
+        button.dataset.collection === "items" ? "items" : "achievements",
+      ));
+    });
     this.requireElement<HTMLButtonElement>("[data-action='open-editor']").addEventListener("click", () => {
       this.callbacks.onOpenEditor?.();
     }, { signal });
@@ -1497,7 +1730,19 @@ export class GameUI {
     }
   }
 
-  private browseCharacter(slot: 0 | 1, direction: number): void {
+  /**
+   * Picks a cook for a slot from outside the menu (a phone controller). Same effects as
+   * browsing to it with the arrows; ignored while a match is being prepared.
+   */
+  selectCharacter(slot: number, characterId: string): void {
+    if (this.startButton.dataset.loading === "true" || slot < 0 || slot >= MAX_PLAYERS) return;
+    if (!this.characters.some(({ id }) => id === characterId) || this.selectedCharacterIds[slot] === characterId) return;
+    this.selectedCharacterIds[slot] = characterId;
+    this.renderCharacterSelector();
+    this.emitPicks();
+  }
+
+  private browseCharacter(slot: number, direction: number): void {
     if (!this.characters.length || this.startButton.dataset.loading === "true") return;
     const current = this.characters.findIndex(({ id }) => id === this.selectedCharacterIds[slot]);
     const next = (Math.max(0, current) + direction + this.characters.length) % this.characters.length;
@@ -1505,13 +1750,17 @@ export class GameUI {
     if (!nextCharacter || nextCharacter.id === this.selectedCharacterIds[slot]) return;
     this.selectedCharacterIds[slot] = nextCharacter.id;
     this.renderCharacterSelector();
-    const [p1, p2] = this.selectedCharacterIds;
-    if (p1 && p2) this.callbacks.onCharacterChange?.([p1, p2]);
+    this.emitPicks();
+  }
+
+  private emitPicks(): void {
+    const picks = this.activePicks();
+    if (picks.every((id): id is string => Boolean(id))) this.callbacks.onCharacterChange?.(picks as string[]);
   }
 
 
   private renderCharacterSelector(): void {
-    const both = this.selectedCharacterIds.every((id) => Boolean(id));
+    const both = this.activePicks().every((id) => Boolean(id));
     this.requireElement("[data-ui='selection-step']").textContent = t("menu.players");
     this.requireElement("[data-ui='character-count']").textContent = this.characters.length
       ? t("menu.cookCount", { count: this.characters.length })
@@ -1520,7 +1769,7 @@ export class GameUI {
     this.characterStatus.dataset.state = "ready";
     this.characterStatus.textContent = !this.characters.length
       ? t("menu.noCooks")
-      : t("menu.pickHelp");
+      : this.allReady() ? t("menu.allReady") : t("menu.pickHelp");
     this.startButton.disabled = this.characters.length > 0 && !both;
     this.setStartLoading(false);
     this.updatePreview();
@@ -1529,7 +1778,7 @@ export class GameUI {
 
   private setStartLoading(loading: boolean): void {
     this.startButton.disabled = loading ||
-      (this.characters.length > 0 && this.selectedCharacterIds.some((id) => !id));
+      (this.characters.length > 0 && this.activePicks().some((id) => !id));
     this.startButton.dataset.loading = loading ? "true" : "false";
     const label = this.startButton.querySelector("span");
     if (label) label.textContent = loading ? t("menu.preparing") : t("menu.startCooking");
@@ -1566,7 +1815,16 @@ export class GameUI {
         createElement("strong", undefined, recipe.displayName),
         createElement("small", undefined, t("cookbook.tabMeta", { components: recipe.ingredients.length, steps: recipe.steps.length })),
       );
-      button.append(indexLabel, copy, createElement("span", "recipe-tab-arrow", "›"));
+      const illustration = document.createElement("img");
+      illustration.className = "recipe-illustration";
+      illustration.alt = "";
+      illustration.width = illustration.height = 48;
+      illustration.loading = "lazy";
+      illustration.src = publicUrl(`images/dishes/${recipe.id}.png`);
+      illustration.addEventListener("error", () => {
+        illustration.src = publicUrl("assets/ui/bistro-recipes.webp");
+      }, { once: true });
+      button.append(illustration, indexLabel, copy, createElement("span", "recipe-tab-arrow", "›"));
       this.cookbookNavigation.append(button);
     });
 
@@ -1723,6 +1981,29 @@ export class GameUI {
   }
 
   /** Auto | Low | Medium | High, beside the language toggle; see QualityManager. */
+  /** One HUD card per possible player; `setPlayerCount` shows the ones in play. */
+  private static playerStatusCards(): string {
+    const classes = ["player-one", "player-two", "player-three", "player-four"];
+    return classes.map((name, index) => `
+          <section class="player-status ${name}" data-player-status="${index}"${index >= 2 ? " hidden" : ""} style="--player-color: ${PLAYER_COLORS[index]}">
+            <p class="player-callout" data-player-callout hidden aria-live="polite"></p>
+            <header><img data-player-portrait="${index}" class="hud-portrait" width="32" height="32" alt="" hidden /><strong>${playerLabel(index)}</strong><span data-i18n="hud.phoneKeys"></span></header>
+            <div><kbd data-player-key hidden>A</kbd><span data-player-prompt data-i18n="hud.goToStation"></span></div>
+            <small data-player-carrying data-i18n="hud.handsFree"></small>
+            <span class="player-next-step" data-player-step hidden></span>
+          </section>`).join("");
+  }
+
+  /** One name plate per possible player on the selection street. */
+  private static pickHintCards(): string {
+    return Array.from({ length: MAX_PLAYERS }, (_, index) => `
+              <div class="pick-hint pick-hint-p${index + 1}" data-player="p${index + 1}" data-pick-slot="${index}" data-ready="false"${index >= 2 ? " hidden" : ""} style="--player-color: ${PLAYER_COLORS[index]}">
+                <span class="pick-badge">${playerLabel(index)}</span>
+                <strong data-pick-name>—</strong>
+                <span class="pick-ready" aria-hidden="true">&#10003;</span>
+              </div>`).join("");
+  }
+
   private static qualitySwitch(): string {
     const buttons = QUALITY_MODES.map((mode) =>
       `<button type="button" data-quality="${mode}" data-i18n="graphics.${mode}" data-i18n-attr="title:graphics.${mode}Hint"></button>`,
@@ -1733,8 +2014,10 @@ export class GameUI {
   private createMarkup(): string {
     return `
       <div class="hud-layer" data-ui="hud" aria-hidden="false">
+        <div class="bistro-hud-top">
         <div class="shift-cluster" data-i18n-attr="aria-label:hud.shiftAria">
-          <div class="shift-chip">
+          <button class="shift-pause" type="button" data-action="pause-shift" data-i18n-attr="aria-label:hud.pauseAction"></button>
+          <div class="shift-chip time-chip">
             <span><small data-i18n="hud.time"></small><strong data-ui="shift-timer">00:00</strong></span>
           </div>
           <div class="shift-chip score-chip">
@@ -1759,6 +2042,8 @@ export class GameUI {
           <span class="order-overflow" data-ui="wedding-guest" hidden></span>
         </section>
 
+        </div>
+
         <section class="station-progress" data-ui="station-progress" data-tone="active" hidden aria-live="polite">
           <header><span data-ui="station-progress-label" data-i18n="hud.station"></span><strong data-ui="station-progress-status" data-i18n="hud.working"></strong></header>
           <div class="station-progress-track" data-ui="station-progress-bar" role="progressbar" data-i18n-attr="aria-label:hud.stationProgressAria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -1767,21 +2052,8 @@ export class GameUI {
           <footer><span data-ui="station-progress-detail"></span><strong data-ui="station-progress-value">0%</strong></footer>
         </section>
 
-        <div class="coop-player-status" data-i18n-attr="aria-label:hud.playersAria">
-          <section class="player-status player-one" data-player-status="0">
-            <p class="player-callout" data-player-callout hidden aria-live="polite"></p>
-            <header><strong>P1</strong><span data-i18n="hud.p1Keys"></span></header>
-            <div><kbd data-player-key hidden>E</kbd><span data-player-prompt data-i18n="hud.goToStation"></span></div>
-            <small data-player-carrying data-i18n="hud.handsFree"></small>
-            <span class="player-next-step" data-player-step hidden></span>
-          </section>
-          <section class="player-status player-two" data-player-status="1">
-            <p class="player-callout" data-player-callout hidden aria-live="polite"></p>
-            <header><strong>P2</strong><span data-i18n="hud.p2Keys"></span></header>
-            <div><kbd data-player-key hidden>ENTER</kbd><span data-player-prompt data-i18n="hud.goToStation"></span></div>
-            <small data-player-carrying data-i18n="hud.handsFree"></small>
-            <span class="player-next-step" data-player-step hidden></span>
-          </section>
+        <div class="coop-player-status" data-ui="coop-player-status" data-count="2" data-i18n-attr="aria-label:hud.playersAria">
+          ${GameUI.playerStatusCards()}
         </div>
         <div class="split-screen-divider" data-ui="split-divider" hidden aria-hidden="true"></div>
 
@@ -1796,21 +2068,41 @@ export class GameUI {
 
       <section class="full-overlay splash-overlay" data-ui="splash" role="dialog" aria-modal="true" aria-labelledby="splash-title" tabindex="-1">
         <div class="selection-screen">
+          <video class="bistro-home-video" muted loop playsinline preload="none" aria-hidden="true"></video>
+          <div class="bistro-home-scrim" aria-hidden="true"></div>
           <header class="selection-header">
             <h1 id="splash-title">BYTE <span>BISTRO</span></h1>
-            <div class="selection-header-actions">
-              ${GameUI.qualitySwitch()}
+            <div class="selection-header-actions bistro-home-actions">
+              <button class="secondary-action bistro-home-icon bistro-home-levels" type="button" data-action="home-levels" data-i18n-attr="aria-label:menu.selectPhase;title:menu.selectPhase"></button>
+              <button class="secondary-action bistro-home-icon menu-map-action" type="button" data-action="open-editor" data-i18n-attr="aria-label:menu.createMap;title:menu.createMap"></button>
+              <button class="secondary-action bistro-home-icon" type="button" data-action="menu-recipes" data-i18n-attr="aria-label:menu.homeRecipes;title:menu.homeRecipes"></button>
+              <button class="primary-action bistro-home-play" type="button" data-action="home-play" data-i18n="menu.homePlay"></button>
+              <button class="secondary-action bistro-home-icon" type="button" data-collection="items" data-i18n-attr="aria-label:collection.items;title:collection.items"></button>
+              <button class="secondary-action bistro-home-icon" type="button" data-collection="achievements" data-i18n-attr="aria-label:collection.achievements;title:collection.achievements"></button>
+              <details class="bistro-home-settings">
+                <summary class="secondary-action bistro-home-icon" data-i18n-attr="aria-label:menu.settings;title:menu.settings"></summary>
+                ${GameUI.qualitySwitch()}
+              </details>
+              <button class="secondary-action bistro-home-icon bistro-account-action" type="button" data-action="account" data-i18n-attr="aria-label:account.title;title:account.title"></button>
+              <button class="secondary-action bistro-home-icon bistro-phones-action" type="button" data-action="phones" data-i18n-attr="aria-label:pair.players;title:pair.players"></button>
               ${GameUI.languageSwitch()}
-              <button class="secondary-action menu-map-action" type="button" data-action="open-editor" data-i18n="menu.createMap"></button>
             </div>
           </header>
+          <section class="pair-select" data-ui="pair-select" aria-labelledby="pair-title">
+            <h2 id="pair-title" data-i18n="pair.title"></h2>
+            <div class="pair-panel" data-ui="pair-panel"></div>
+            <button class="secondary-action pair-skip" type="button" data-action="pair-skip" hidden data-i18n="pair.skip"></button>
+          </section>
           <section class="level-select" data-ui="level-select">
+            <button class="secondary-action" type="button" data-action="back-home" data-i18n="common.back"></button>
             <h2 data-i18n="menu.chooseLevel"></h2>
-            <div class="level-map-stage" data-ui="level-map-stage">
+            <div class="level-map-stage" data-ui="level-map-stage" data-map-state="loading">
+              <div class="level-map-loading" role="status" aria-live="polite">
+                <span class="level-map-loading-label" data-i18n="boot.openingMap"></span>
+                <div class="level-map-error"><span data-i18n="level.mapLoadFailed"></span><button type="button" class="secondary-action" data-action="retry-level-map" data-i18n="common.retry"></button></div>
+              </div>
               <canvas class="level-map-canvas" data-ui="level-map-canvas" tabindex="0" data-i18n-attr="aria-label:menu.mapAria"></canvas>
               <p class="level-map-hint" aria-hidden="true">
-                <span data-i18n="menu.dragToRotate"></span>
-                <span data-i18n="menu.wheelToZoom"></span>
                 <span><kbd>&#8592;</kbd><kbd>&#8594;</kbd><kbd>&#8593;</kbd><kbd>&#8595;</kbd> <span data-i18n="menu.changeLevel"></span></span>
                 <span><kbd>Enter</kbd> <span data-i18n="menu.open"></span></span>
               </p>
@@ -1836,22 +2128,13 @@ export class GameUI {
             <div class="character-preview-stage" data-ui="preview-stage">
               <canvas class="character-preview-canvas" data-ui="preview-canvas" width="900" height="650" data-i18n-attr="aria-label:menu.cooksAria"></canvas>
               <span class="character-preview-player" data-ui="preview-player" data-player="p1" hidden>P1</span>
-              <!-- Keys sit beside each cook, so the control is read where it applies. -->
-              <div class="pick-hint pick-hint-p1" data-player="p1">
-                <span class="pick-badge">P1</span>
-                <span class="pick-keys"><kbd>A</kbd><kbd>D</kbd></span>
-                <strong data-ui="preview-name">—</strong>
-              </div>
-              <div class="pick-hint pick-hint-p2" data-player="p2">
-                <span class="pick-badge">P2</span>
-                <span class="pick-keys"><kbd>&#8592;</kbd><kbd>&#8594;</kbd></span>
-                <strong data-ui="preview-name-2">—</strong>
-              </div>
+              <!-- Each player's plate sits beside their cook; a tick shows they confirmed it. -->
+              ${GameUI.pickHintCards()}
             </div>
             <span class="character-count" data-ui="character-count" hidden></span>
             <span data-ui="selection-step" hidden></span>
+            <span data-ui="preview-name" hidden></span>
             <span data-ui="preview-role" hidden></span>
-            <span data-ui="preview-role-2" hidden></span>
           </section>
           <footer class="selection-footer">
             <p class="character-status" aria-live="polite" data-ui="character-status" hidden></p>

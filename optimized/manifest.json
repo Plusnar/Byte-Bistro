@@ -193,6 +193,27 @@
         ]
       }
     },
+    "public/asset-library/Char/Characters/SchlachtfestRobot.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "c6c38723bd11cc94c4c0a5b7c4e9e7e26b0c49606ab34fbcee27d1ce68453d58",
+      "sourceBytes": 844540,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Char/Characters/SchlachtfestRobot.glb",
+      "outputHash": "169a400985ad457cd65769e34a0db60bf5b689dc5199c639a465956f6374a370",
+      "outputBytes": 485492,
+      "meshopt": false,
+      "before": {
+        "meshes": 86,
+        "primitives": 87,
+        "textures": []
+      },
+      "after": {
+        "meshes": 71,
+        "primitives": 72,
+        "textures": []
+      }
+    },
     "Anim/Mannequin Character/characters/Mannequin_Medium.glb": {
       "profile": "character",
       "profileKey": "1710c01a31c6",
@@ -1553,6 +1574,174 @@
         "primitives": 4,
         "textures": []
       }
+    },
+    "public/asset-library/Scenario/Praca/araucaria.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "9952d5afc31fdc5ad8820f01b8cf98ebcd92cf3588d443b88d1fd2a08aae7258",
+      "sourceBytes": 334568,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Praca/araucaria.glb",
+      "outputHash": "49e590578ed5fe062154143249a36bfa738f5cd88e3e961c7171efbab59a5508",
+      "outputBytes": 116820,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 4,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 4,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Praca/coreto.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "6a46e6a0c6368d9f765f2d7b32553244476c41518f75a1361e26ac15376caee4",
+      "sourceBytes": 139020,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Praca/coreto.glb",
+      "outputHash": "0c4dd3c21cab91184354dfd1a2b6f10e54585026bde9c86de5778f6dc2fc7577",
+      "outputBytes": 46136,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 10,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 10,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Praca/banco_praca.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "750b34b640975c6e7b741cb435364a9c73b5f6540329af679a1a59af9621e217",
+      "sourceBytes": 39092,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Praca/banco_praca.glb",
+      "outputHash": "fcff4935e44a40259ab8a396d1c41c25a81804ae9450e8270e871b57b89a4693",
+      "outputBytes": 12860,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 2,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Praca/poste_globo.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "0012756bbe771119db9edfe988b15f013b1e160703e35bda21694731680d282b",
+      "sourceBytes": 28356,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Praca/poste_globo.glb",
+      "outputHash": "9c7ecd0b44eb8052f616342ed4862239abf888bc685c2fb307800d974a64f305",
+      "outputBytes": 10924,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 2,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "src/assets/map-vehicles/city-bus.glb": {
+      "profile": "prop",
+      "profileKey": "4a040b359e47",
+      "sourceHash": "b8e683b075a1ddc3d065a25a9516186e7df31f54c107bc9688bc7b3402dd2225",
+      "sourceBytes": 43360,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-vehicles/city-bus.glb",
+      "outputHash": "091a12aa475d2d5455d3cc2080b095395291efba9e0dd11d735f7d53a8d0aac7",
+      "outputBytes": 26808,
+      "meshopt": true,
+      "before": {
+        "meshes": 12,
+        "primitives": 12,
+        "textures": []
+      },
+      "after": {
+        "meshes": 10,
+        "primitives": 10,
+        "textures": []
+      }
+    },
+    "src/assets/map-town/timber-house-medium.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "6a92dc00f3c9c09bf29895923c48c7773154c1eb4d69848d88e38af11f8cc971",
+      "sourceBytes": 188012,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-town/timber-house-medium.glb",
+      "outputHash": "a68d459e682c74869c80332cd2faf0ff9358a08b2b78fa92cb12d662684c379d",
+      "outputBytes": 74904,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      }
+    },
+    "src/assets/map-town/timber-house-large.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "972a8766de4572c8ea5b44b94dcb6ec50824b3d0b67592152d10aa15466235c2",
+      "sourceBytes": 291056,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-town/timber-house-large.glb",
+      "outputHash": "49957c8fdc1956516df913c00597a913e10bda2a22e673a1630299a3776796f1",
+      "outputBytes": 110580,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Praca/canteiro_flores.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "ccb0422f54ec8d7d87be3e0b20d83bf109a6e76f0fc08cfe0b13d27787a169e1",
+      "sourceBytes": 130660,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Praca/canteiro_flores.glb",
+      "outputHash": "3949ddc042f465b3c74dffd9f6c2d6599a81d153f512dfb5327e53d2134315cf",
+      "outputBytes": 55532,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 9,
+        "textures": []
+      }
     }
   },
   "images": {
@@ -1564,6 +1753,42 @@
       "output": "optimized/public/assets/ui/cosmic/space-backdrop.webp",
       "outputBytes": 117606,
       "psnrDb": 39.6
+    },
+    "src/assets/map-textures/cobblestone.png": {
+      "profileKey": "736827443d2c",
+      "sourceHash": "e3ea37ab22a32bbb6e053d3cc806515f208d38e729c97bb9cdc2623943e303a6",
+      "sourceBytes": 3795443,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-textures/cobblestone.webp",
+      "outputBytes": 532588,
+      "psnrDb": 40.7
+    },
+    "src/assets/map-textures/grass-painted.png": {
+      "profileKey": "fae24f4ca7d7",
+      "sourceHash": "1acbb96339168f5386e440f6d46f2e6abc7854a76a3ba1cdd76df51425466d1e",
+      "sourceBytes": 1635654,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-textures/grass-painted.webp",
+      "outputBytes": 35764,
+      "psnrDb": 45
+    },
+    "src/assets/map-textures/grass-natural.png": {
+      "profileKey": "10ab95c2eb68",
+      "sourceHash": "4988f832fe450158f5074e5e7435e808e1cc93b87f1770b3a85ab15f4f804108",
+      "sourceBytes": 4118099,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-textures/grass-natural.webp",
+      "outputBytes": 1999136,
+      "psnrDb": 138.1
+    },
+    "src/assets/map-textures/hills.png": {
+      "profileKey": "882175eaa441",
+      "sourceHash": "14191de78066f7474a20ae11ca565168eeed8d5bf2aeb310bcfc457000b9336a",
+      "sourceBytes": 1845430,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-textures/hills.webp",
+      "outputBytes": 235164,
+      "psnrDb": 39.7
     }
   }
 }

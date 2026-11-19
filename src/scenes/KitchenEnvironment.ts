@@ -443,8 +443,36 @@ export interface CustomMapAnchors {
   readonly stations: readonly KitchenStationPlacement[];
   readonly bounds: MovementBounds;
   readonly playerSpawn: Vector3;
-  readonly playerSpawns: readonly [Vector3, Vector3];
+  /** One per possible cook (`MAX_PLAYERS`), in player order. */
+  readonly playerSpawns: readonly Vector3[];
 }
+
+/** Cooks are 0.66 m wide; spawns closer than this would start them inside each other. */
+const SPAWN_SPACING = 0.8;
+
+/**
+ * Spawns for cooks three and four when a map only marks one and two: on the line between
+ * those two, which is floor the level already promises a cook can stand on. When one and
+ * two stand too close for that, three and four go either side of them instead.
+ */
+export const extraSpawns = (one: Readonly<Vector3>, two: Readonly<Vector3>): [Vector3, Vector3] => {
+  const dx = two.x - one.x;
+  const dz = two.z - one.z;
+  const distance = Math.hypot(dx, dz);
+  // Three gaps of SPAWN_SPACING; the epsilon keeps exactly 2.4 m (the default layout) in.
+  if (distance >= SPAWN_SPACING * 3 - 1e-6) {
+    return [Vector3.Lerp(one as Vector3, two as Vector3, 1 / 3), Vector3.Lerp(one as Vector3, two as Vector3, 2 / 3)];
+  }
+  // Perpendicular to the pair (or along x when they coincide).
+  const nx = distance > 1e-3 ? -dz / distance : 0;
+  const nz = distance > 1e-3 ? dx / distance : 1;
+  const midX = (one.x + two.x) / 2;
+  const midZ = (one.z + two.z) / 2;
+  return [
+    new Vector3(midX + nx * SPAWN_SPACING, one.y, midZ + nz * SPAWN_SPACING),
+    new Vector3(midX - nx * SPAWN_SPACING, one.y, midZ - nz * SPAWN_SPACING),
+  ];
+};
 
 /**
  * Where the cooks play: floors, stations, crates and spawns. Scenery is left out — the size
@@ -532,14 +560,16 @@ export const deriveAnchorsFromMap = (map: MapData): CustomMapAnchors => {
   const fallbackSpawn = floor
     ? new Vector3(floor.position.x, 0, floor.position.z)
     : new Vector3(centerX, 0, Math.min(bounds.minZ + 1.5, centerZ));
-  const playerOne = map.objects.find(object => object.role === "spawn" && object.playerIndex === 1);
-  const playerTwo = map.objects.find(object => object.role === "spawn" && object.playerIndex === 2);
+  const marked = (index: number): Vector3 | null => {
+    const spawn = map.objects.find(object => object.role === "spawn" && object.playerIndex === index);
+    return spawn ? toVector3(spawn.position) : null;
+  };
   // A spawn placed off the lot starts the cook on its edge instead of outside it.
-  const playerSpawns: [Vector3, Vector3] = [
-    inside(playerOne ? toVector3(playerOne.position) : fallbackSpawn.add(new Vector3(-1.15, 0, 0))),
-    inside(playerTwo ? toVector3(playerTwo.position) : fallbackSpawn.add(new Vector3(1.15, 0, 0))),
-  ];
-  const playerSpawn = playerSpawns[0].add(playerSpawns[1]).scale(0.5);
+  const one = inside(marked(1) ?? fallbackSpawn.add(new Vector3(-1.15, 0, 0)));
+  const two = inside(marked(2) ?? fallbackSpawn.add(new Vector3(1.15, 0, 0)));
+  const [three, four] = extraSpawns(one, two);
+  const playerSpawns = [one, two, inside(marked(3) ?? three), inside(marked(4) ?? four)];
+  const playerSpawn = one.add(two).scale(0.5);
   return { stations, bounds, playerSpawn, playerSpawns };
 };
 
@@ -569,7 +599,8 @@ export class KitchenEnvironment {
   readonly backdrop: OutdoorBackdrop;
   readonly bounds: Readonly<MovementBounds>;
   readonly playerSpawn: Vector3;
-  readonly playerSpawns: readonly [Vector3, Vector3];
+  /** One per possible cook, in player order. */
+  readonly playerSpawns: readonly Vector3[];
   readonly kitchenStations: readonly KitchenStationPlacement[];
   /** Wedding reception floor; null lets the guests pick an area from the bounds. */
   readonly receptionArea: Readonly<MovementBounds> | null;
@@ -602,7 +633,7 @@ export class KitchenEnvironment {
       const anchors = deriveAnchorsFromMap(options.map);
       this.bounds = anchors.bounds;
       this.playerSpawn = anchors.playerSpawn.clone();
-      this.playerSpawns = [anchors.playerSpawns[0].clone(), anchors.playerSpawns[1].clone()];
+      this.playerSpawns = anchors.playerSpawns.map((spawn) => spawn.clone());
       this.kitchenStations = anchors.stations;
       // The scenario's reception only applies if it actually lands inside this map's room;
       // otherwise the carpet would float outside it and the guests walk through a wall.
@@ -612,11 +643,10 @@ export class KitchenEnvironment {
     } else {
       const layout = DEFAULT_KITCHEN_LAYOUT;
       this.bounds = layout.playerBounds;
-      this.playerSpawns = [
-        new Vector3(layout.spawns[0].x, 0, layout.spawns[0].z),
-        new Vector3(layout.spawns[1].x, 0, layout.spawns[1].z),
-      ];
-      this.playerSpawn = this.playerSpawns[0].add(this.playerSpawns[1]).scale(0.5);
+      const one = new Vector3(layout.spawns[0].x, 0, layout.spawns[0].z);
+      const two = new Vector3(layout.spawns[1].x, 0, layout.spawns[1].z);
+      this.playerSpawns = [one, two, ...extraSpawns(one, two)];
+      this.playerSpawn = one.add(two).scale(0.5);
       this.kitchenStations = layout.stations;
       this.receptionArea = scenario.receptionArea ?? layout.receptionArea;
     }

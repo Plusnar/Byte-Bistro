@@ -1,0 +1,639 @@
+@font-face {
+  font-family: Nunito;
+  src: url("/assets/ui/nunito.woff2") format("woff2");
+  font-weight: 400 900;
+  font-display: swap;
+}
+
+:root {
+  --bistro-font: Nunito, "Segoe UI", system-ui, sans-serif;
+  --bistro-ink: #102445;
+  --bistro-blue: #0a4fb3;
+  --bistro-cyan: #00c8ff;
+  --bistro-aqua: #c8f2ff;
+  --bistro-paper: #edfaff;
+  --bistro-yellow: #ffdf54;
+  --bistro-orange: #ff9400;
+}
+
+.game-ui, .game-ui :is(button, input, select, textarea, h1, h2, h3) {
+  font-family: var(--bistro-font);
+}
+
+.game-ui #splash-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .2em;
+  font-weight: 900;
+}
+
+.game-ui #splash-title::before {
+  content: "";
+  inline-size: 1.45em;
+  block-size: 1.45em;
+  background: url("/assets/ui/bistro-emblem.webp") center / contain no-repeat;
+}
+
+.game-ui :is(.primary-action, .secondary-action, .icon-button) {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+  font-weight: 800;
+  border-radius: 1rem;
+}
+
+.game-ui :is(.primary-action, .secondary-action):not(:disabled):hover { filter: brightness(1.1); }
+.game-ui :is(.primary-action, .secondary-action):not(:disabled):active { filter: brightness(.92); }
+.game-ui :is(.primary-action, .secondary-action):disabled { filter: saturate(.15); }
+.game-ui button:focus-visible { outline: 3px solid var(--bistro-yellow); outline-offset: 2px; }
+
+.game-ui .primary-action:not(:disabled) {
+  color: var(--bistro-ink);
+  border-color: #fff2a1;
+  background: linear-gradient(var(--bistro-yellow), var(--bistro-orange));
+  text-shadow: none;
+}
+
+.game-ui .secondary-action:not(:disabled) {
+  color: white;
+  border-color: var(--bistro-cyan);
+  background: linear-gradient(#0879cf, var(--bistro-blue));
+}
+
+.game-ui .modal-window {
+  min-inline-size: 0;
+  max-block-size: 94dvh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  border-color: var(--bistro-aqua);
+}
+
+.game-ui :is(.modal-header, .modal-footer, .results-actions, .selection-header-actions) {
+  flex-wrap: wrap;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.bistro-collection {
+  box-sizing: border-box;
+  inline-size: min(44rem, calc(100% - 2rem));
+  max-block-size: 90dvh;
+  overflow: auto;
+  padding: clamp(.75rem, 3vw, 1.5rem);
+  border: 2px solid var(--bistro-cyan);
+  border-radius: 1.25rem;
+  color: var(--bistro-ink);
+  background: var(--bistro-paper);
+  font-family: var(--bistro-font);
+  overflow-wrap: anywhere;
+}
+
+.bistro-collection::backdrop { background: #03142dc7; }
+.bistro-collection h2 { margin-block-start: 0; }
+.bistro-collection button {
+  padding: .55em 1em;
+  margin-block: .35rem;
+  border: 1px solid var(--bistro-cyan);
+  border-radius: 1rem;
+  color: white;
+  background: var(--bistro-blue);
+  font: inherit;
+  font-weight: 800;
+  white-space: normal;
+}
+.bistro-collection button[aria-pressed="true"] { background: var(--bistro-yellow); color: var(--bistro-ink); }
+.bistro-collection button:focus-visible { outline: 3px solid var(--bistro-orange); outline-offset: 2px; }
+.bistro-collection-filters { display: flex; flex-wrap: wrap; gap: .5rem; }
+.bistro-collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: .65rem;
+  margin-block: .65rem;
+}
+.bistro-collection-grid article {
+  display: grid;
+  gap: .35rem;
+  padding: .8rem;
+  border: 1px solid var(--bistro-blue);
+  border-radius: .75rem;
+  background: var(--bistro-aqua);
+}
+.bistro-collection-grid article[data-locked="true"] { background: #e0ebf4; }
+.bistro-collection-grid progress { inline-size: 100%; accent-color: var(--bistro-orange); }
+
+.bistro-collection-grid article:has(progress)::before {
+  content: "";
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  background: url("/assets/ui/bistro-medal.webp") center / contain no-repeat;
+}
+.bistro-collection-grid article[data-locked="true"]::before { filter: grayscale(.8); }
+
+.game-ui .bistro-account-action:not(:disabled) {
+  background: linear-gradient(#8f58ff, #5630a5);
+  border-color: #c7aaff;
+}
+.bistro-collection form { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; }
+.bistro-collection form :is(label, p, .bistro-avatars) { flex: 0 0 100%; min-inline-size: 0; }
+.bistro-collection label { display: grid; gap: .25rem; }
+.bistro-collection input {
+  box-sizing: border-box; width: 100%; min-inline-size: 0;
+  padding: .55rem .75rem; border: 1px solid var(--bistro-blue);
+  border-radius: .65rem; font: inherit;
+}
+.bistro-avatars { display: flex; flex-wrap: wrap; gap: .5rem; }
+.bistro-avatars button { padding: .25rem; }
+.bistro-avatars img { display: block; object-fit: contain; }
+
+.game-ui :is(.shift-chip, .station-progress, .player-status) {
+  border-color: var(--bistro-cyan);
+  color: var(--bistro-paper);
+  background: linear-gradient(#095b9e, #082b60);
+}
+.game-ui :is(.shift-chip strong, .order-card-timer, .order-card-reward, .station-progress footer strong) {
+  font-family: var(--bistro-font);
+  font-variant-numeric: tabular-nums;
+}
+.game-ui .order-tickets .order-card {
+  color: var(--bistro-ink);
+  background: linear-gradient(white, var(--bistro-aqua));
+  border-color: #5cb6eb;
+}
+.game-ui .order-tickets .order-card-name {
+  color: var(--bistro-ink);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.game-ui .order-tickets .order-card-timer { color: #fff; background-color: #073d7f; }
+.game-ui .level-window {
+  border-color: var(--bistro-cyan);
+  overflow-wrap: anywhere;
+  max-block-size: 86dvh;
+  overflow-y: auto;
+}
+.game-ui :is(.level-window, .cookbook-detail, .results-footer) > * { min-inline-size: 0; }
+.game-ui :is(.language-switch, .quality-switch) button[aria-pressed="true"] {
+  color: var(--bistro-ink);
+  background: var(--bistro-yellow);
+  border-color: #fff2a1;
+}
+:is(.bm-button, .bm-icon-button, .bm-tab, .bm-panel, .bm-popover) { font-family: var(--bistro-font); }
+:is(.bm-button, .bm-tab, .bm-panel, .bm-popover) { overflow-wrap: anywhere; }
+:is(.bm-button, .bm-icon-button, .bm-tab):focus-visible { outline: 2px solid var(--bistro-yellow); outline-offset: 2px; }
+
+.game-ui .selection-header-actions :is([data-collection], [data-action="menu-recipes"])::before,
+.game-ui .selection-header-actions .quality-switch::before {
+  content: "";
+  display: inline-block;
+  inline-size: 1.5em;
+  block-size: 1.5em;
+  vertical-align: middle;
+  margin-inline-end: .3em;
+  background: var(--bistro-icon) center / contain no-repeat;
+}
+.game-ui [data-action="menu-recipes"] { --bistro-icon: url("/assets/ui/bistro-recipes.webp"); }
+.game-ui [data-collection="items"] { --bistro-icon: url("/assets/ui/bistro-items.webp"); }
+.game-ui [data-collection="achievements"] { --bistro-icon: url("/assets/ui/bistro-achievements.webp"); }
+.game-ui .quality-switch { --bistro-icon: url("/assets/ui/bistro-settings.webp"); }
+
+.bistro-collection-grid img { object-fit: contain; }
+.bistro-collection-grid [data-locked="true"] img { filter: grayscale(.85); opacity: .65; }
+.game-ui .game-notification {
+  color: var(--bistro-ink);
+  background: var(--bistro-paper);
+  border-color: var(--bistro-cyan);
+  overflow-wrap: anywhere;
+}
+.game-ui .game-notification[data-tone="success"] { border-color: #1e984f; }
+.game-ui .game-notification[data-tone="warning"] { border-color: #b97800; }
+.game-ui .game-notification[data-tone="error"] { border-color: #c3274c; }
+
+/* Match HUD uses the same visual language as the menus. */
+.game-ui .shift-cluster {
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-inline-size: calc(100vw - 24px);
+  gap: clamp(3px, 1vw, 8px);
+}
+.game-ui .shift-cluster .shift-chip {
+  flex-direction: row;
+  min-inline-size: 0;
+  gap: .35rem;
+  border: 1px solid #7cdbff;
+  border-radius: .8rem;
+  padding: .35rem .55rem;
+  box-shadow: inset 0 1px 0 #ffffff55, 0 2px 5px #041832aa;
+}
+.game-ui .shift-cluster .shift-chip :is(small, strong) { color: #fff; }
+.game-ui .shift-cluster .shift-chip small { white-space: normal; overflow-wrap: anywhere; }
+.game-ui .shift-cluster .combo-chip { display: flex; background: linear-gradient(#b74a0e, #753012); }
+.game-ui .shift-cluster .is-urgent { background: #a42640; }
+.game-ui .shift-pause {
+  inline-size: 2.4rem; block-size: 2.4rem;
+  border: 1px solid #90e8ff; border-radius: .75rem;
+  color: #fff; background: linear-gradient(#0879cf, var(--bistro-blue));
+  cursor: pointer; pointer-events: auto;
+}
+.game-ui :is(.shift-pause, .shift-chip)::before,
+.game-ui .notification-signal,
+.game-ui .pause-emblem span {
+  content: "";
+  display: inline-block;
+  inline-size: clamp(1.1rem, 2.5vw, 1.6rem);
+  block-size: clamp(1.1rem, 2.5vw, 1.6rem);
+  flex: none;
+  vertical-align: middle;
+  background: var(--hud-icon) center / contain no-repeat;
+}
+.game-ui :is(.shift-pause, .pause-emblem) { --hud-icon: url("/assets/ui/hud/pause.webp"); }
+.game-ui .pause-emblem span { font-size: 0; inline-size: 2rem; block-size: 2rem; }
+.game-ui .time-chip { --hud-icon: url("/assets/ui/hud/timer.webp"); }
+.game-ui .score-chip { --hud-icon: url("/assets/ui/hud/coin.webp"); }
+.game-ui .combo-chip { --hud-icon: url("/assets/ui/hud/combo.webp"); }
+.game-ui .game-notification { --hud-icon: url("/assets/ui/hud/info.webp"); }
+.game-ui .game-notification[data-tone="success"] { --hud-icon: url("/assets/ui/hud/success.webp"); }
+.game-ui .game-notification:is([data-tone="warning"], [data-tone="error"]) { --hud-icon: url("/assets/ui/hud/warning.webp"); }
+.game-ui .star-meter-stars [data-star] {
+  background: url("/assets/ui/hud/star.webp") center / contain no-repeat;
+  mask: none;
+  opacity: .4;
+}
+.game-ui .star-meter-stars [data-star][data-filled="true"] { opacity: 1; }
+.game-ui .order-card-name, .game-ui .notification-copy { min-inline-size: 0; overflow-wrap: anywhere; }
+.game-ui .station-progress :is(header, footer) { flex-wrap: wrap; gap: .3rem; overflow-wrap: anywhere; }
+@media (max-width: 520px) {
+  .game-ui .shift-cluster .shift-chip { gap: .2rem; padding: .25rem .4rem; }
+  .game-ui .shift-pause { inline-size: 2rem; block-size: 2rem; }
+}
+
+.game-ui .cookbook-nav .recipe-tab {
+  display: flex;
+  gap: .45rem;
+  align-items: center;
+  padding: .55rem;
+  border: 1px solid #90d9ff;
+  border-radius: .85rem;
+  background: var(--bistro-paper);
+  color: var(--bistro-ink);
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.game-ui .cookbook-nav .recipe-tab[aria-pressed="true"] {
+  background: linear-gradient(#fff5c5, #ffce62);
+  border-color: #e68e00;
+}
+.game-ui .cookbook-nav .recipe-tab :is(strong, small, .recipe-index) {
+  color: inherit;
+  white-space: normal;
+}
+.game-ui .recipe-tab-copy { flex: 1; min-inline-size: 0; }
+.game-ui .recipe-illustration { flex: none; inline-size: clamp(24px, 5vw, 48px); block-size: auto; object-fit: contain; }
+.game-ui .notification-signal { border: 0; box-shadow: none; }
+.game-ui .order-card .order-card-track { background: #16355b; border-radius: 999px; }
+.game-ui .order-card[data-urgency="nominal"] .order-card-fill { background: #2ec77a; }
+.game-ui .order-card-dish:has(img[hidden]) {
+  background: url("/assets/ui/hud/serve.webp") center / contain no-repeat;
+}
+
+.game-ui .hud-portrait { object-fit: contain; flex: none; }
+
+.game-ui .order-panel { max-inline-size: min(95vw, 600px); }
+.game-ui .order-tickets { flex-wrap: wrap; justify-content: center; }
+.game-ui .level-select > h2::before,
+.game-ui :is(.level-window-play, .start-action, .menu-map-action)::before {
+  content: ""; display: inline-block;
+  inline-size: 1.35em; block-size: 1.35em;
+  margin-inline-end: .25em; vertical-align: middle;
+  background: var(--action-illustration) center / contain no-repeat;
+}
+.game-ui .level-select > h2 { --action-illustration: url("/assets/ui/hud/level-map.webp"); }
+.game-ui :is(.level-window-play, .start-action) { --action-illustration: url("/assets/ui/hud/play.webp"); }
+.game-ui .menu-map-action { --action-illustration: url("/assets/ui/hud/editor-map.webp"); }
+@media (max-width: 520px) {
+
+  .game-ui .hud-portrait { inline-size: 22px; block-size: 22px; }
+}
+
+.game-ui .bistro-hud-top {
+  position: absolute; inset: .65rem .75rem auto;
+  display: grid; justify-items: center; gap: .55rem;
+}
+.game-ui .bistro-hud-top :is(.shift-cluster, .order-panel) {
+  position: static; inset: auto; transform: none;
+}
+.game-ui .bistro-hud-top .shift-cluster { justify-self: end; }
+.game-ui .bistro-hud-top .order-panel { justify-self: center; }
+.game-ui .star-meter:not([hidden]) {
+  min-inline-size: 5.5rem;
+  padding: .3rem .5rem;
+  border: 1px solid #7cdbff;
+  border-radius: .75rem;
+  background: #082b60;
+}
+.game-ui .star-meter-stars [data-star] { clip-path: none; }
+.game-ui .star-meter small { color: var(--bistro-paper); overflow-wrap: anywhere; }
+.game-ui .game-notification .notification-copy { color: var(--bistro-ink); }
+.game-ui[data-game-visible="false"] .shift-pause { visibility: hidden; pointer-events: none; }
+.bm {
+  --bm-panel: #0a3162f2;
+  --bm-panel-solid: #082b60;
+  --bm-line: #6ad7ff70;
+  --bm-primary: #ffbc35;
+  --bm-primary-ink: #102445;
+  font-family: var(--bistro-font);
+}
+.bm :is(.bm-panel, .bm-popover) { max-block-size: 85dvh; overflow-y: auto; }
+.confirm-dialog {
+  max-block-size: 90dvh;
+  overflow: auto;
+  font-family: var(--bistro-font);
+  overflow-wrap: anywhere;
+}
+.confirm-dialog-actions { flex-wrap: wrap; }
+.confirm-dialog-actions button { white-space: normal; overflow-wrap: anywhere; }
+
+/* Illustrated panel emblems keep the heading text independent of the artwork. */
+.game-ui .pause-card .pause-emblem,
+.game-ui .cookbook-brand .mini-glyph {
+  background: var(--panel-art) center / contain no-repeat;
+}
+.game-ui .pause-card .pause-emblem {
+  --panel-art: url("/assets/ui/panels/pause-board.webp");
+  inline-size: clamp(5rem, 20vw, 8rem);
+  block-size: clamp(4rem, 16vw, 6rem);
+}
+.game-ui .pause-card .pause-emblem span { display: none; }
+.game-ui .cookbook-brand .mini-glyph {
+  --panel-art: url("/assets/ui/panels/recipe-board.webp");
+  display: block;
+  flex: none;
+  color: transparent;
+}
+.game-ui .level-window-title { --panel-art: url("/assets/ui/panels/map-board.webp"); }
+.game-ui .results-heading h2 { --panel-art: url("/assets/ui/panels/results-board.webp"); }
+.bm-drawer[data-panel="settings"] .bm-drawer-head strong { --panel-art: url("/assets/ui/panels/settings-board.webp"); }
+.confirm-dialog-title { --panel-art: url("/assets/ui/panels/confirm-board.webp"); }
+.bistro-profile h2 { --panel-art: url("/assets/ui/panels/profile-board.webp"); }
+.bistro-items h2 { --panel-art: url("/assets/ui/panels/items-board.webp"); }
+.bistro-achievements h2 { --panel-art: url("/assets/ui/panels/achievement-board.webp"); }
+.game-ui :is(.level-window-title, .results-heading h2)::before,
+.bm-drawer[data-panel="settings"] .bm-drawer-head strong::before,
+.confirm-dialog-title::before,
+.bistro-collection h2::before {
+  content: "";
+  display: inline-block;
+  inline-size: clamp(2rem, 8vw, 3.5rem);
+  block-size: clamp(2rem, 8vw, 3.5rem);
+  margin-inline-end: .35em;
+  vertical-align: middle;
+  background: var(--panel-art) center / contain no-repeat;
+}
+.game-ui .player-callout:not([hidden]) {
+  padding-inline-start: 2.5rem;
+  background: url("/assets/ui/panels/callout.webp") .45rem center / 1.6rem auto no-repeat, #e4f8ff;
+  color: #102445;
+  border: 2px solid #57d7ff;
+  overflow-wrap: anywhere;
+}
+.game-ui .player-callout::after { background: #e4f8ff; border-color: #57d7ff; }
+.game-ui .level-window, .confirm-dialog, .bistro-collection {
+  border-radius: 1.15rem;
+  box-shadow: 0 0 0 2px #82e1ff55, 0 .65rem 2rem #04183299;
+}
+.game-ui :is(.pause-card, .results-window, .cookbook-window) {
+  border-color: #81dfff;
+  background-image:
+    linear-gradient(155deg, #153d75da, #081e43ed),
+    url("/assets/ui/panels/circuit-frame.webp");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+}
+.game-ui .level-window {
+  background: linear-gradient(160deg, #0d3e82, #061b45);
+  color: #f3fbff;
+  border: 2px solid #68e8ff;
+  box-shadow: 0 0 0 3px #004594, 0 0 24px #00caff88, inset 0 1px 0 #c8faff;
+}
+.game-ui .notification-region .game-notification[data-tone="info"] {
+  --hud-icon: url("/assets/ui/panels/notice.webp");
+}
+
+.game-ui .pause-card .pause-emblem { border: 0; border-radius: 0; box-shadow: none; }
+.game-ui .pause-card .pause-emblem::before,
+.game-ui .pause-card .pause-emblem::after { content: none; }
+
+.game-ui .selection-screen[data-step="home"] :is(.selection-arena, .level-select, .selection-footer),
+.game-ui .selection-screen:not([data-step="home"]) .bistro-home-actions,
+.game-ui .bistro-home-video,
+.game-ui .bistro-home-scrim {
+  display: none;
+}
+
+.game-ui .splash-overlay:has([data-step="home"]) {
+  background: #85c6ed url("/assets/ui/cinematic/chase-landscape.webp") center / cover no-repeat;
+  isolation: isolate;
+  overflow: hidden;
+}
+.game-ui .selection-screen[data-step="home"] {
+  --home-edge: clamp(.625rem, 2vw, 1.6rem);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: auto / minmax(0, 1fr);
+  align-content: end;
+  justify-items: center;
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: none;
+  min-block-size: 0;
+  margin: 0;
+  padding: var(--home-edge);
+  padding-block-end: max(var(--home-edge), env(safe-area-inset-bottom));
+}
+.game-ui .selection-screen[data-step="home"] .selection-header {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: max(var(--home-edge), env(safe-area-inset-bottom));
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  inline-size: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.game-ui .selection-screen[data-step="home"] #splash-title {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.game-ui .selection-screen[data-step="home"] #splash-title::before { content: none; }
+.game-ui .selection-screen[data-step="home"] :is(.bistro-home-video, .bistro-home-scrim) {
+  display: block;
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  pointer-events: none;
+}
+.game-ui .selection-screen[data-step="home"] .bistro-home-video {
+  object-fit: cover;
+  opacity: 0;
+}
+.game-ui .selection-screen[data-step="home"] .bistro-home-video[data-playing="true"] { opacity: 1; }
+.game-ui .selection-screen[data-step="home"] .bistro-home-scrim {
+  background: linear-gradient(transparent 75%, #03162c39 89%, #03162cdb 100%);
+}
+.game-ui .bistro-home-actions {
+  --home-icon-size: clamp(44px, 4.5vw, 58px);
+  display: grid;
+  grid-template-columns: repeat(3, var(--home-icon-size)) clamp(8rem, 17vw, 14rem) repeat(3, var(--home-icon-size));
+  align-items: center;
+  gap: clamp(.375rem, 1vw, .8rem);
+  inline-size: max-content;
+  max-inline-size: 100%;
+}
+.game-ui .bistro-home-actions :is(.bistro-home-icon, .bistro-home-play) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-block-size: 44px;
+  padding: 0;
+  border: 2px solid var(--home-glint, #bffaff);
+  border-radius: 999px;
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 14% 7%, #e6ffffae, transparent 29%),
+    linear-gradient(var(--home-top, #0a9bff), var(--home-mid, #0065c3) 46%, var(--home-bottom, #043785));
+  box-shadow: inset 0 0 0 2px var(--home-rim, #18e5ff), inset 0 .3rem .6rem var(--home-glint, #bffaff), 0 0 .55rem var(--home-rim, #18e5ff);
+}
+.game-ui .bistro-home-actions :is(.bistro-home-icon, .bistro-home-play)::before {
+  content: "";
+  position: static;
+  display: block;
+  inline-size: 60%;
+  block-size: 60%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  transform: none;
+  box-shadow: none;
+  background: var(--home-icon, var(--bistro-icon)) center / contain no-repeat;
+}
+.game-ui .bistro-home-actions :is(.bistro-home-icon, .bistro-home-play)::after { content: none; }
+.game-ui .bistro-home-actions .bistro-home-icon {
+  min-inline-size: 0;
+  inline-size: var(--home-icon-size);
+  block-size: var(--home-icon-size);
+}
+.game-ui .bistro-home-actions .bistro-home-play {
+  --home-icon: url("/assets/ui/hud/play.webp");
+  --home-glint: #fffbd5;
+  --home-top: #fff057;
+  --home-mid: #ffae00;
+  --home-bottom: #f97702;
+  --home-rim: #ffd025;
+  inline-size: 100%;
+  min-block-size: clamp(49px, 5.2vw, 62px);
+  gap: .4em;
+  padding: .25em .55em;
+  border-width: 3px;
+  font: 900 clamp(1.15rem, 2.4vw, 1.7rem)/1.12 var(--bistro-font);
+  text-transform: none;
+  text-shadow: 0 2px 3px #813300;
+}
+.game-ui .bistro-home-actions .bistro-home-play::before { flex: none; inline-size: 1.08em; block-size: 1.08em; }
+.game-ui .bistro-home-levels { --home-icon: url("/assets/ui/hud/level-map.webp"); }
+.game-ui .bistro-home-actions .menu-map-action { --home-icon: url("/assets/ui/hud/editor-map.webp"); }
+.game-ui .bistro-home-settings { --home-icon: url("/assets/ui/bistro-settings.webp"); position: relative; }
+.game-ui .bistro-home-settings summary { cursor: pointer; list-style: none; }
+.game-ui .bistro-home-settings summary::marker { content: ""; }
+.game-ui .bistro-home-settings summary::-webkit-details-marker { display: none; }
+.game-ui .bistro-home-settings .quality-switch {
+  position: absolute;
+  inset-block-end: calc(100% + .5rem);
+  inset-inline-end: 0;
+  inline-size: max-content;
+  max-inline-size: calc(100vw - var(--home-edge) * 2);
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 2;
+  padding: .45rem;
+  border: 1px solid #bffaff;
+  border-radius: .8rem;
+  background: #062c60;
+}
+.game-ui .bistro-home-actions .bistro-account-action {
+  --home-icon: url("/assets/ui/panels/profile-board.webp");
+  --home-glint: #d8c7ff;
+  --home-top: #9b69ff;
+  --home-mid: #6135d4;
+  --home-bottom: #2a1477;
+  --home-rim: #a77cff;
+  position: fixed;
+  inset-block-start: max(var(--home-edge), env(safe-area-inset-top));
+  inset-inline-start: max(var(--home-edge), env(safe-area-inset-left));
+}
+.game-ui .bistro-home-actions > .language-switch {
+  position: fixed;
+  inset-block-start: max(var(--home-edge), env(safe-area-inset-top));
+  inset-inline-end: max(var(--home-edge), env(safe-area-inset-right));
+  display: flex;
+  min-block-size: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  border: 2px solid #a8fbff;
+  border-radius: 999px;
+  background: linear-gradient(#087fe5, #053c89 54%, #032959);
+  box-shadow: inset 0 0 0 2px #07bfe7, inset 0 .3rem .55rem #86e4ff80, 0 0 .6rem #00d9ff90;
+  padding: .2rem .35rem;
+}
+.game-ui .bistro-home-actions > .language-switch button {
+  min-block-size: 2rem;
+  padding: .35rem .48rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+  font: 900 clamp(.8rem, 1.7vw, 1.1rem)/1 var(--bistro-font);
+}
+.game-ui .bistro-home-actions > .language-switch button + button { border-inline-start: 2px solid #ddf9ff; }
+.game-ui .bistro-home-actions > .language-switch button[aria-pressed="true"] { color: #ffdd43; background: transparent; }
+.game-ui .bistro-home-actions :is(button, summary):focus-visible {
+  outline: 3px solid #fff1a0;
+  outline-offset: 3px;
+}
+@media (max-aspect-ratio: 4/3) {
+  .game-ui .splash-overlay:has([data-step="home"]) { background-image: url("/assets/ui/cinematic/chase-portrait.webp"); }
+}
+@media (max-width: 450px) {
+  .game-ui .bistro-home-actions {
+    grid-template-columns: repeat(6, var(--home-icon-size));
+    row-gap: .5rem;
+  }
+  .game-ui .bistro-home-actions .bistro-home-play {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: center;
+    inline-size: min(100%, 10rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .selection-screen[data-step="home"] .bistro-home-video { display: none; }
+}

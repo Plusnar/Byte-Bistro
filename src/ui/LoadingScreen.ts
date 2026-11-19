@@ -7,8 +7,8 @@ import { t } from "../i18n";
  * takes over the element that is already on screen.
  *
  * The bar shows real progress, smoothed. The displayed value eases toward the reported one
- * but never runs ahead of it and never moves backwards, so it cannot claim more than has
- * actually loaded, and it does not jitter when a new file joins the batch.
+ * but also follows the eight-second presentation pace. It never runs ahead of the reported
+ * load or moves backwards. Only hide() confirms completion.
  */
 
 import { nextFrame } from "../core/assets/MainThreadQueue";
@@ -19,6 +19,7 @@ export type LoadingMode = "boot" | "match";
 const EASE_RATE = 6;
 /** The bar reaches at least this many percent per second while catching up, so it ends. */
 const MIN_CATCH_UP = 0.35;
+const MIN_VISIBLE_MS = 8000;
 const FADE_MS = 450;
 
 export interface LoadingFailure {
@@ -40,7 +41,9 @@ export class LoadingScreen {
   private shown = 0;
   private frame = 0;
   private lastTick = 0;
-  private hideTimer = 0;
+  private shownAt = 0;
+  private presentation = 0;
+  private hiding: Promise<void> | null = null;
 
   private constructor(root: HTMLElement) {
     this.root = root;
@@ -67,9 +70,13 @@ export class LoadingScreen {
     return !this.root.hidden && this.root.dataset.state !== "done";
   }
 
-  /** Shows the loader. `match` is the short, smaller variant used before a shift. */
+  /** Shows the loader for the initial boot or for match preparation. */
   show(mode: LoadingMode, status: string): void {
-    window.clearTimeout(this.hideTimer);
+    const initialBoot = this.presentation === 0 && mode === "boot";
+    this.shownAt = (initialBoot ? performance.getEntriesByName("bb:loading-shown", "mark")[0]?.startTime : undefined)
+      ?? performance.now();
+    this.presentation++;
+    this.hiding = null;
     this.root.hidden = false;
     this.root.dataset.mode = mode;
     this.root.dataset.state = "loading";
@@ -111,18 +118,25 @@ export class LoadingScreen {
   }
 
   /** Fills the bar, fades out, and resolves once the loader is gone. */
-  async hide(): Promise<void> {
+  hide(): Promise<void> {
+    return this.hiding ??= this.finishHiding(this.presentation);
+  }
+
+  private async finishHiding(presentation: number): Promise<void> {
     this.target = 1;
+    const remaining = MIN_VISIBLE_MS - (performance.now() - this.shownAt);
+    if (remaining > 0) await new Promise<void>((resolve) => window.setTimeout(resolve, Math.ceil(remaining)));
+    if (presentation !== this.presentation) return;
     // Let the bar visibly reach 100% rather than vanishing at 87%.
     const deadline = performance.now() + 400;
     // nextFrame, not requestAnimationFrame: rAF stops in a background tab and would hang here.
-    while (this.shown < 0.999 && performance.now() < deadline) await nextFrame();
+    while (presentation === this.presentation && this.shown < 0.999 && performance.now() < deadline) await nextFrame();
+    if (presentation !== this.presentation) return;
     this.shown = 1;
     this.render();
     this.root.dataset.state = "done";
-    await new Promise<void>((resolve) => {
-      this.hideTimer = window.setTimeout(resolve, FADE_MS);
-    });
+    await new Promise<void>((resolve) => window.setTimeout(resolve, FADE_MS));
+    if (presentation !== this.presentation) return;
     cancelAnimationFrame(this.frame);
     this.frame = 0;
   }
@@ -136,10 +150,12 @@ export class LoadingScreen {
   private readonly tick = (now: number): void => {
     const seconds = Math.min(0.1, Math.max(0, (now - this.lastTick) / 1000));
     this.lastTick = now;
-    const gap = this.target - this.shown;
+    const elapsedFraction = (now - this.shownAt) / MIN_VISIBLE_MS;
+    const pacedTarget = Math.min(this.target, elapsedFraction, this.hiding ? 1 : 0.99);
+    const gap = pacedTarget - this.shown;
     if (gap > 0) {
       const eased = gap * (1 - Math.exp(-EASE_RATE * seconds));
-      this.shown = Math.min(this.target, this.shown + Math.max(eased, MIN_CATCH_UP * seconds));
+      this.shown = Math.min(pacedTarget, this.shown + Math.max(eased, MIN_CATCH_UP * seconds));
     }
     this.render();
     this.frame = this.root.dataset.state === "done" ? 0 : requestAnimationFrame(this.tick);

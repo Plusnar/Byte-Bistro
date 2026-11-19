@@ -14,7 +14,7 @@
  *   memory    the kitchen rebuilt N times: JS heap and texture memory must not keep growing
  *   quality   every profile: resolution, glow, frame time
  *   warm      a reload with the HTTP cache off: models must come from the persistent store
- *   failure   a cook's download blocked, then unblocked and retried from the error screen
+ *   failure   player one's cook download blocked, then unblocked and retried from the error screen
  *
  * Frame times depend on the machine and are reported, failing only past a generous ceiling;
  * counts and bytes are hardware-independent and are the real regression gates.
@@ -268,7 +268,9 @@ try {
   // --- failure and retry ------------------------------------------------------------------
   if (!SKIP.has("failure")) {
     await send("Network.setCacheDisabled", { cacheDisabled: true });
-    await send("Network.setBlockedURLs", { urls: ["*Sandy*"] });
+    // Player one's cook: the one the menu cannot be shown without (the others join once
+    // their phones pair).
+    await send("Network.setBlockedURLs", { urls: ["*William*"] });
     await send("Page.navigate", { url: pageUrl("cache=off") });
     const errorShown = await waitFor("document.querySelector('[data-ui=\"boot-loader\"]')?.dataset.state === 'error'", 120_000);
     await send("Network.setBlockedURLs", { urls: [] });
@@ -289,7 +291,7 @@ try {
 
 // The failure phase provokes errors on purpose (a blocked download is reported as one).
 results.pageErrors = pageErrors;
-const unexpected = pageErrors.filter((message) => !/Sandy|ERR_BLOCKED|Falha ao carregar|could not be (loaded|prepared)|não pôde/i.test(message ?? ""));
+const unexpected = pageErrors.filter((message) => !/William|ERR_BLOCKED|Falha ao carregar|could not be (loaded|prepared)|não pôde/i.test(message ?? ""));
 if (unexpected.length) failures.push(`page errors: ${unexpected.length} (${unexpected.slice(0, 3).join(" | ")})`);
 results.failures = failures;
 const out = flag("json", null);

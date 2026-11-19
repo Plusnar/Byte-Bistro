@@ -47,10 +47,16 @@ const CAMERA_HORIZONTAL_FOV = 2 * Math.atan(18 / 22);
  * The camera looks down -Z, so a cook at higher X renders on the LEFT of the screen:
  * player one is the positive slot.
  */
-// Apart enough that the start button, centred below, falls between them.
-const SLOTS: readonly [Vector3, Vector3] = [fromBlender(-1.9, 3.0), fromBlender(3.7, 3.1)];
-/** Each cook turned a little towards the other, as in the render. */
-const SLOT_TURN: readonly [number, number] = [0.21, -0.24];
+// Players one and two in front, apart enough that the start button, centred below, falls
+// between them; three and four a step further up the street, between and behind them.
+const SLOTS: readonly Vector3[] = [
+  fromBlender(-1.9, 3.0),
+  fromBlender(3.7, 3.1),
+  fromBlender(-0.2, 5.6),
+  fromBlender(2.3, 5.7),
+];
+/** Each cook turned a little towards the middle, as in the render. */
+const SLOT_TURN: readonly number[] = [0.21, -0.24, 0.12, -0.12];
 /** Seconds the pair spends walking forward before the match starts. */
 const CONFIRM_SECONDS = 1.2;
 /** How far forward they walk on confirm, in metres. */
@@ -176,14 +182,13 @@ export class CharacterPreview {
   private streetMaterials: StandardMaterial[] = [];
   /** Settles true once the street is on screen, false if it could not load. */
   private streetSettled: Promise<boolean>;
-  /** Settles the first time each player's slot shows a cook, or fails to. */
-  private firstSlots = [deferred<boolean>(), deferred<boolean>()] as const;
+  /** Settles the first time player one's slot shows a cook, or fails to. */
+  private firstSlot = deferred<boolean>();
   private readonly previews = new Map<string, Promise<PreviewModel | null>>();
   private current: PreviewModel | null = null;
-  private readonly slots: [SlotState, SlotState] = [
-    { characterId: null, standing: null },
-    { characterId: null, standing: null },
-  ];
+  private readonly slots: SlotState[] = SLOTS.map(() => ({ characterId: null, standing: null }));
+  /** How many players' cooks stand on the street. */
+  private slotCount = SLOTS.length;
   /** 0 while choosing, ramps to 1 as the pair walks together on confirm. */
   private confirmProgress = 0;
   private confirming = false;
@@ -290,29 +295,39 @@ export class CharacterPreview {
   }
 
   /**
-   * Resolves once the menu is presentable: the street and both players' cooks are on
-   * screen, or have definitively failed. Never rejects — the loading screen decides what a
-   * failure means, and a missing backdrop should not lock the player out of the game.
+   * Resolves once the menu is presentable: the street and player one's cook are on screen,
+   * or have definitively failed. (The other players' cooks follow once they have paired.)
+   * Never rejects — the loading screen decides what a failure means, and a missing backdrop
+   * should not lock the player out of the game.
    */
   async whenReady(): Promise<PreviewReadiness> {
-    const [street, playerOne, playerTwo] = await Promise.all([
-      this.streetSettled,
-      this.firstSlots[0].promise,
-      this.firstSlots[1].promise,
-    ]);
+    const [street, playerOne] = await Promise.all([this.streetSettled, this.firstSlot.promise]);
     const failed: string[] = [];
     if (!street) failed.push(t("boot.menuScenery"));
     if (!playerOne) failed.push(t("boot.playerOneCook"));
-    if (!playerTwo) failed.push(t("boot.playerTwoCook"));
     return { failed };
   }
 
   /** Steps already done out of `stageCount`, for the loading bar. */
   get stagesDone(): number {
-    return (this.street ? 1 : 0) + this.slots.filter((slot) => slot.standing).length;
+    return (this.street ? 1 : 0) + (this.slots[0]!.standing ? 1 : 0);
   }
 
-  readonly stageCount = 3;
+  readonly stageCount = 2;
+
+  /** How many cooks stand on the street, one per player; the others step out of view. */
+  setSlotCount(count: number): void {
+    const next = Math.max(1, Math.min(SLOTS.length, count));
+    if (next === this.slotCount) return;
+    this.slotCount = next;
+    this.slots.forEach((state, slot) => {
+      if (!state.standing) return;
+      const shown = slot < next;
+      state.standing.root.setEnabled(shown);
+      if (shown) state.standing.idle?.start(true, 1);
+      else state.standing.idle?.stop();
+    });
+  }
 
   /**
    * The menu's critical files, available before a preview exists: `Game` requests them
@@ -342,16 +357,15 @@ export class CharacterPreview {
   }
 
   /** Re-attempts whatever failed to load; `whenReady` then reflects the new attempt. */
-  retry(characters: readonly [CharacterDefinition, CharacterDefinition]): void {
+  retry(characters: readonly CharacterDefinition[]): void {
     if (!this.street) this.streetSettled = this.loadStreetSafely();
-    for (const slot of [0, 1] as const) {
-      if (this.slots[slot].standing) continue;
-      this.firstSlots = slot === 0
-        ? [deferred<boolean>(), this.firstSlots[1]]
-        : [this.firstSlots[0], deferred<boolean>()];
-      this.slots[slot].characterId = null;
-      void this.showSlot(slot, characters[slot]);
-    }
+    characters.slice(0, this.slotCount).forEach((character, slot) => {
+      const state = this.slots[slot]!;
+      if (state.standing) return;
+      if (slot === 0) this.firstSlot = deferred<boolean>();
+      state.characterId = null;
+      void this.showSlot(slot, character);
+    });
   }
 
   get isActive(): boolean {
@@ -359,16 +373,17 @@ export class CharacterPreview {
   }
 
   /** Puts `character` in a player's slot, replacing whoever was standing there. */
-  async showSlot(slot: 0 | 1, character: CharacterDefinition): Promise<void> {
+  async showSlot(slot: number, character: CharacterDefinition): Promise<void> {
     if (this.disposed) return;
     const state = this.slots[slot];
+    if (!state) return;
     if (state.characterId === character.id) return;
     state.characterId = character.id;
 
     const preview = await this.prepare(character, slot);
     if (this.disposed) return;
     if (!preview) {
-      this.firstSlots[slot].resolve(false);
+      if (slot === 0) this.firstSlot.resolve(false);
       return;
     }
     // Another change landed while this model was loading.
@@ -383,17 +398,18 @@ export class CharacterPreview {
     state.standing = preview;
     this.placeSlot(preview, slot, 0);
     preview.hair?.reset();
-    preview.root.setEnabled(true);
+    const shown = slot < this.slotCount;
+    preview.root.setEnabled(shown);
     preview.walk?.stop();
-    preview.idle?.start(true, 1);
-    this.firstSlots[slot].resolve(true);
+    if (shown) preview.idle?.start(true, 1);
+    if (slot === 0) this.firstSlot.resolve(true);
     this.warmWhileHidden();
   }
 
   /** Both cooks walk forward; resolves once they have finished the walk. */
   async playConfirm(): Promise<void> {
     if (this.disposed) return;
-    const standing = this.slots.map((state) => state.standing).filter(
+    const standing = this.slots.slice(0, this.slotCount).map((state) => state.standing).filter(
       (model): model is PreviewModel => model !== null,
     );
     await Promise.race([
@@ -416,7 +432,7 @@ export class CharacterPreview {
   resetConfirm(): void {
     this.confirming = false;
     this.confirmProgress = 0;
-    for (const state of this.slots) {
+    for (const state of this.slots.slice(0, this.slotCount)) {
       if (!state.standing) continue;
       state.standing.walk?.stop();
       state.standing.idle?.start(true, 1);
@@ -436,18 +452,18 @@ export class CharacterPreview {
     const eased = this.confirmProgress * this.confirmProgress * (3 - 2 * this.confirmProgress);
     for (const [index, state] of this.slots.entries()) {
       if (!state.standing) continue;
-      this.placeSlot(state.standing, index as 0 | 1, eased * CONFIRM_WALK_DISTANCE);
+      this.placeSlot(state.standing, index, eased * CONFIRM_WALK_DISTANCE);
     }
   }
 
   /** `forward` walks the cook toward the camera, which sits on +Z. */
-  private placeSlot(model: PreviewModel, slot: 0 | 1, forward: number): void {
-    const spot = SLOTS[slot];
+  private placeSlot(model: PreviewModel, slot: number, forward: number): void {
+    const spot = SLOTS[slot]!;
     model.root.position.x = spot.x;
     model.root.position.z = spot.z + forward;
     model.root.rotation.set(0, 0, 0);
     // Angled slightly inward while idle; square to the camera once they start walking.
-    model.root.rotation.y = SLOT_TURN[slot] * (1 - Math.min(1, forward / 0.8));
+    model.root.rotation.y = (SLOT_TURN[slot] ?? 0) * (1 - Math.min(1, forward / 0.8));
   }
 
   /** Loads the character and starts playing its idle loop. */
@@ -468,7 +484,7 @@ export class CharacterPreview {
     this.resize();
   }
 
-  private prepare(character: CharacterDefinition, slot: 0 | 1 = 0): Promise<PreviewModel | null> {
+  private prepare(character: CharacterDefinition, slot = 0): Promise<PreviewModel | null> {
     // Keyed per slot: both players may pick the same cook and each needs its own model.
     const key = `${slot}:${character.id}`;
     const cached = this.previews.get(key);

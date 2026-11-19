@@ -10,6 +10,30 @@ const SPLIT_DISTANCE = 14;
 const MERGE_DISTANCE = 10;
 const BASE_FOV = 0.72;
 const WIDE_FOV = 1.02;
+/** Three or four cooks never split: the shared view pulls back this much further at most. */
+const GROUP_PULL_BACK = 0.3;
+
+/**
+ * Where a shared camera should look for a group of cooks, and how spread out they are:
+ * the centre of their bounding box on the floor, and its diagonal. Writes the centre into
+ * `center` (y untouched) so nothing is allocated per frame.
+ */
+export const coopFraming = (points: readonly Readonly<Vector3>[], center: Vector3): number => {
+  if (points.length === 0) return 0;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const point of points) {
+    if (point.x < minX) minX = point.x;
+    if (point.x > maxX) maxX = point.x;
+    if (point.z < minZ) minZ = point.z;
+    if (point.z > maxZ) maxZ = point.z;
+  }
+  center.x = (minX + maxX) / 2;
+  center.z = (minZ + maxZ) / 2;
+  return Math.hypot(maxX - minX, maxZ - minZ);
+};
 
 export interface CoopCameraSnapshot {
   readonly distance: number;
@@ -113,6 +137,39 @@ export class CoopCameraController {
       splitAmount: this.splitAmountValue,
       isSplit: this.splitRequested,
     };
+  }
+
+  /**
+   * One shared view for any number of cooks. One cook is followed like a pair standing
+   * together; two use `update` (with its split screen); three or four share one camera that
+   * frames them all and pulls back as they spread out — four quarters of a TV would be
+   * too small to cook in.
+   */
+  updateGroup(
+    deltaSeconds: number,
+    cooks: readonly Readonly<Vector3>[],
+    focusTarget?: Readonly<Vector3> | null,
+    focusWeight = 0,
+  ): CoopCameraSnapshot {
+    if (cooks.length <= 2) return this.update(deltaSeconds, cooks[0]!, cooks[1] ?? cooks[0]!, focusTarget, focusWeight);
+    const spread = coopFraming(cooks, this.midpoint);
+    let height = 0;
+    for (const cook of cooks) height += cook.y;
+    this.midpoint.y = height / cooks.length + 0.82;
+    this.splitRequested = false;
+    this.splitAmountValue = 0;
+    this.sharedTarget.copyFrom(this.midpoint);
+    if (focusTarget && focusWeight > 0) {
+      Vector3.LerpToRef(this.sharedTarget, focusTarget, Math.min(0.45, Math.max(0, focusWeight)), this.sharedTarget);
+    }
+    const zoom = Math.min(1, Math.max(0, (spread - SHARED_DISTANCE) / (SPLIT_DISTANCE - SHARED_DISTANCE)));
+    this.updateCamera(this.primary, this.sharedTarget, 1 + zoom * GROUP_PULL_BACK, BASE_FOV + (WIDE_FOV - BASE_FOV) * zoom, deltaSeconds);
+    if (this.scene.activeCameras?.length) {
+      this.scene.activeCameras = null;
+      this.primary.viewport = new Viewport(0, 0, 1, 1);
+      this.scene.activeCamera = this.primary;
+    }
+    return { distance: spread, splitAmount: 0, isSplit: false };
   }
 
   dispose(): void {

@@ -23,9 +23,12 @@ import { EventBus } from "../core/EventBus";
 import { createInitialRuntimeState } from "../core/GameState";
 import {
   InputManager,
+  NO_KEYBOARD_BINDINGS,
   PLAYER_ONE_BINDINGS,
   PLAYER_TWO_BINDINGS,
+  type InputBindings,
 } from "../core/InputManager";
+import { MAX_PLAYERS, PLAYER_COLORS, clampPlayerCount, playerLabel } from "../data/players";
 import type { ManagedScene } from "../core/SceneManager";
 import {
   CHARACTER_ANIMATION_ASSETS,
@@ -147,11 +150,11 @@ import { CoopCameraController } from "./CoopCameraController";
 import { WeddingGuests, MANNEQUIN } from "../systems/WeddingGuests";
 
 
-const PLAYER_COLORS: readonly [string, string] = ["#74F4FF", "#FFD166"];
-const PLAYER_HIGHLIGHT_COLORS: readonly [Color3, Color3] = [
-  Color3.FromHexString(PLAYER_COLORS[0]),
-  Color3.FromHexString(PLAYER_COLORS[1]),
-];
+/** Each cook's highlight colour; phones show the same one. */
+export { PLAYER_COLORS };
+const PLAYER_HIGHLIGHT_COLORS: readonly Color3[] = PLAYER_COLORS.map((color) => Color3.FromHexString(color));
+/** Keyboard halves: player one on the left of the keyboard, player two on the right. */
+const KEYBOARD_BINDINGS: readonly InputBindings[] = [PLAYER_ONE_BINDINGS, PLAYER_TWO_BINDINGS];
 
 const {
   gravity: THROW_GRAVITY,
@@ -208,8 +211,10 @@ type KitchenTarget =
 
 interface CoopPlayerState {
   readonly index: PlayerIndex;
-  readonly label: "P1" | "P2";
+  readonly label: string;
   readonly input: InputManager;
+  /** This cook as a passenger of the level's moving parts; built once, reused every frame. */
+  readonly rider: MechanismRider;
   readonly player: Player;
   held: KitchenItem | null;
   target: KitchenTarget | null;
@@ -268,7 +273,15 @@ export class KitchenScene implements ManagedScene {
   private readonly cameraFocusTarget = new Vector3(0, 2.2, 6.3);
   private readonly environment: KitchenEnvironment;
   private readonly wedding: WeddingGuests;
-  private readonly players: readonly [CoopPlayerState, CoopPlayerState];
+  /**
+   * The cooks in this shift: the first `cookCount` of `allCooks`, so a cook's index is its
+   * position here. Cooks beyond the count are not drawn, updated, or counted anywhere.
+   */
+  private players: readonly CoopPlayerState[] = [];
+  /** Every cook built so far, in slot order; three and four are built only when needed. */
+  private readonly allCooks: CoopPlayerState[] = [];
+  /** One InputManager per possible cook, built up front so devices can attach in the menu. */
+  private readonly inputs: readonly InputManager[];
   private readonly eventBus = new EventBus<GameEvents>();
   /**
    * The kitchen's event bus, for systems that want to react to a shift without this scene
@@ -342,8 +355,8 @@ export class KitchenScene implements ManagedScene {
   private streak: StreakState = NO_STREAK;
   /** Seconds the kitchen has been alight without anyone reaching for the extinguisher. */
   private meltdownClock = 0;
-  /** Coins this level wants for one, two and three stars. */
-  private readonly starThresholds: StarThresholds;
+  /** Coins this level wants for one, two and three stars, for this many cooks. */
+  private starThresholds: StarThresholds;
   /** Drives the level's moving parts; empty on a level that has none. */
   private mechanisms: KitchenMechanisms | null = null;
   /** Reused rider views, so carrying allocates nothing per frame. */
@@ -362,6 +375,9 @@ export class KitchenScene implements ManagedScene {
   private cameraFocusRemaining = 0;
   private cameraDistance = 0;
   private cameraSplitAmount = 0;
+  /** Reused every frame: the cooks the camera frames. */
+  private readonly cameraPoints: Vector3[] = [];
+  private readonly cameraGround: readonly Vector3[] = Array.from({ length: MAX_PLAYERS }, () => new Vector3());
 
   constructor(
     engine: AbstractEngine,
@@ -385,12 +401,7 @@ export class KitchenScene implements ManagedScene {
     });
     // What this level asks for, derived from its own menu and length rather than written
     // down per level; a map's `starCoins` overrides it. See src/data/levelGoals.ts.
-    this.starThresholds = options.map?.meta?.starCoins
-      ?? starThresholdsFor({
-        shiftDurationSeconds: options.shiftDuration,
-        recipes: this.recipeList,
-        tuning: this.tuning,
-      });
+    this.starThresholds = this.goalsFor(2);
     this.scene = new Scene(engine);
     this.scene.fogMode = Scene.FOGMODE_EXP2;
     this.fogBaseDensity = options.map?.environment.fogDensity ?? 0.008;
@@ -442,51 +453,11 @@ export class KitchenScene implements ManagedScene {
       options.map ? null : WEDDING_BANNER,
       () => this.environment.mechanisms.map((mechanism) => mechanism.footprint),
     );
-    const movementRotation = Math.atan2(
-      -GAME_CONFIG.camera.offsetX,
-      -GAME_CONFIG.camera.offsetZ,
-    );
-    const createPlayer = (
-      index: PlayerIndex,
-      label: "P1" | "P2",
-      input: InputManager,
-    ): CoopPlayerState => ({
-      index,
-      label,
-      input,
-      player: new Player(this.scene, {
-        spawnPosition: this.environment.playerSpawns[index].clone(),
-        walkSpeed: GAME_CONFIG.player.walkSpeed,
-        runSpeed: GAME_CONFIG.player.walkSpeed * GAME_CONFIG.player.runMultiplier,
-        movementRotation,
-        assetManager: this.assets,
-      }),
-      held: null,
-      target: null,
-      highlighted: null,
-      keyPromptView: null,
-      focusedOrderId: null,
-      work: NO_WORK,
-      workStation: null,
-      workProgressStep: -1,
-      wasDashing: false,
-      aimSeconds: null,
-      aimMarker: null,
-      lastEmoteAt: 0,
-      portalCooldown: 0,
-      lastNotifyAt: 0,
-    });
-    this.players = [
-      createPlayer(0, "P1", new InputManager(window, PLAYER_ONE_BINDINGS)),
-      createPlayer(1, "P2", new InputManager(window, PLAYER_TWO_BINDINGS)),
-    ];
-    // Built once: the cooks are the only passengers, and a mechanism asks each frame where
-    // they are rather than being told.
-    this.mechanismRiders = this.players.map((slot) => ({
-      position: slot.player.position,
-      carry: (x: number, z: number) => slot.player.applyCarry(x, z),
-      fell: () => this.fallFromFloor(slot),
-    }));
+    this.inputs = Array.from({ length: MAX_PLAYERS }, (_, index) =>
+      new InputManager(window, KEYBOARD_BINDINGS[index] ?? NO_KEYBOARD_BINDINGS));
+    // Two cooks until the menu says otherwise: the keyboard's two halves, and what the
+    // automated benchmarks measure.
+    this.setCookCount(2);
 
     const cameraOffset = new Vector3(
       GAME_CONFIG.camera.offsetX,
@@ -600,6 +571,110 @@ export class KitchenScene implements ManagedScene {
     return this.prepared;
   }
 
+  /**
+   * The input of each cook, in slot order, so other devices (phones, gamepads) can be
+   * attached to them. The managers live as long as this kitchen.
+   */
+  get cookInputs(): readonly InputManager[] {
+    return this.inputs;
+  }
+
+  /** How many cooks this kitchen plays with, 1 to `MAX_PLAYERS`. */
+  get cookCount(): number {
+    return this.players.length;
+  }
+
+  /**
+   * Sets how many cooks play: the first `count` cooks are in the kitchen, the rest are
+   * switched off entirely (not drawn, updated, targeted by disasters, or carried). Cooks
+   * three and four are built the first time they are needed. Call before `startShift`;
+   * during a shift it is ignored.
+   */
+  setCookCount(count: number): void {
+    const next = clampPlayerCount(count);
+    if (next === this.players.length) return;
+    if (this.started && !this.runtime.shiftEnded) return;
+    while (this.allCooks.length < next) this.allCooks.push(this.createCook(this.allCooks.length as PlayerIndex));
+    this.players = this.allCooks.slice(0, next);
+    for (const slot of this.allCooks) {
+      const active = slot.index < next;
+      slot.player.root.setEnabled(active);
+      if (!active) {
+        slot.input.enabled = false;
+        this.hideAim(slot);
+        this.setTarget(slot, null);
+      }
+    }
+    this.mechanismRiders = this.players.map((slot) => slot.rider);
+    // Field initialisers run first, but the recipe list is set in the constructor body.
+    if (this.recipeList) this.starThresholds = this.goalsFor(next);
+    this.selection = null;
+    this.selectedKey = "";
+
+  }
+
+  /** What this level asks of `cooks` cooks; a map's own `starCoins` wins. */
+  private goalsFor(cooks: number): StarThresholds {
+    return this.options.map?.meta?.starCoins ?? starThresholdsFor({
+      shiftDurationSeconds: this.options.shiftDuration,
+      recipes: this.recipeList,
+      tuning: this.tuning,
+      cooks,
+    });
+  }
+
+  private createCook(index: PlayerIndex): CoopPlayerState {
+    const player = new Player(this.scene, {
+      spawnPosition: this.environment.playerSpawns[index]!.clone(),
+      walkSpeed: GAME_CONFIG.player.walkSpeed,
+      runSpeed: GAME_CONFIG.player.walkSpeed * GAME_CONFIG.player.runMultiplier,
+      movementRotation: Math.atan2(-GAME_CONFIG.camera.offsetX, -GAME_CONFIG.camera.offsetZ),
+      assetManager: this.assets,
+    });
+    const slot: CoopPlayerState = {
+      index,
+      label: playerLabel(index),
+      input: this.inputs[index]!,
+      player,
+      // The cooks are the only passengers, and a mechanism asks each frame where they are
+      // rather than being told.
+      rider: {
+        position: player.position,
+        carry: (x: number, z: number) => player.applyCarry(x, z),
+        fell: () => this.fallFromFloor(slot),
+      },
+      held: null,
+      target: null,
+      highlighted: null,
+      keyPromptView: null,
+      focusedOrderId: null,
+      work: NO_WORK,
+      workStation: null,
+      workProgressStep: -1,
+      wasDashing: false,
+      aimSeconds: null,
+      aimMarker: null,
+      lastEmoteAt: 0,
+      portalCooldown: 0,
+      lastNotifyAt: 0,
+    };
+    slot.input.enabled = false;
+    // Built after the constructor (a third cook): its animations load now.
+    if (this.allCooks.length >= 2) {
+      void player.prepareCharacterAnimations().catch((error: unknown) => {
+        console.warn("Character animations could not be preloaded.", error);
+      });
+    }
+    return slot;
+  }
+
+  /** Where the shift stands, for the phone controllers' screens. */
+  get shiftPhase(): "lobby" | "playing" | "paused" | "results" {
+    if (!this.started) return "lobby";
+    if (this.runtime.shiftEnded) return "results";
+    return this.runtime.paused ? "paused" : "playing";
+  }
+
   /** A shift is being played right now: started, not over, not paused. */
   get isShiftRunning(): boolean {
     return this.started && !this.runtime.shiftEnded && !this.runtime.paused;
@@ -669,15 +744,18 @@ export class KitchenScene implements ManagedScene {
    * picks settle, and again on Start; the same picks share one promise, so Start usually
    * finds the work already done.
    */
-  selectCharacters(characterIds: readonly [string, string]): Promise<void> {
+  selectCharacters(requested: readonly string[]): Promise<void> {
+    // One pick per cook in the kitchen: extra picks are ignored, missing ones repeat the last.
+    const characterIds = this.players.map((_, index) => requested[index] ?? requested.at(-1) ?? "");
     const key = characterIds.join("|");
     if (this.selection?.key !== key) {
+      const cooks = this.players;
       const promise = Promise.all([
         this.prepareInBackground(),
         ...characterIds.map(async (characterId, index) => {
           const character = getCharacter(characterId);
           if (!character) throw new Error(`Unknown character: ${characterId}`);
-          await this.players[index as PlayerIndex].player.selectCharacter(character.id);
+          await cooks[index]!.player.selectCharacter(character.id);
         }),
       ]).then(() => {
         this.selectedKey = key;
@@ -696,7 +774,7 @@ export class KitchenScene implements ManagedScene {
 
   /** True when a shift with these cooks could start without loading anything. */
   isReadyFor(characterIds: readonly string[]): boolean {
-    return this.prepared && this.selectedKey === characterIds.join("|");
+    return this.prepared && characterIds.length === this.players.length && this.selectedKey === characterIds.join("|");
   }
 
 
@@ -749,6 +827,8 @@ export class KitchenScene implements ManagedScene {
 
   update(deltaSeconds: number): void {
     const delta = Math.min(Math.max(deltaSeconds, 0), 0.1);
+    // Phones and gamepads feed the same InputManagers as the keyboard; read them first.
+    for (const slot of this.players) slot.input.poll(delta);
     this.handleOverlayInput();
 
     if (!this.started || this.runtime.shiftEnded || this.runtime.paused) {
@@ -842,8 +922,8 @@ export class KitchenScene implements ManagedScene {
     this.disasterOverlay.dispose();
     this.sfx.dispose();
     this.wedding.dispose();
-    for (const slot of this.players) {
-      slot.input.dispose();
+    for (const input of this.inputs) input.dispose();
+    for (const slot of this.allCooks) {
       slot.held = null;
       slot.aimMarker?.dispose();
       slot.aimMarker = null;
@@ -889,9 +969,10 @@ export class KitchenScene implements ManagedScene {
     this.kitchen.reset();
     this.mechanisms?.reset(this.kitchenClockMs / 1_000);
     this.phasesAnnounced = 0;
-    this.players[0].player.teleport(this.environment.playerSpawns[0]);
-    this.players[1].player.teleport(this.environment.playerSpawns[1]);
-    for (const slot of this.players) slot.player.setExpression("^_^");
+    for (const slot of this.players) {
+      slot.player.teleport(this.environment.playerSpawns[slot.index]!);
+      slot.player.setExpression("^_^");
+    }
     this.runtime = this.shifts.start(
       createInitialRuntimeState(this.options.shiftDuration),
       this.options.shiftDuration,
@@ -1090,6 +1171,7 @@ export class KitchenScene implements ManagedScene {
         this.notifyPlayer(slot, outcome.message, "warning");
         return;
       }
+      this.eventBus.emit("station:used", { stationKind: target.station.spec.kind });
       if (outcome.kind === "deliver") {
         slot.held = null;
         slot.player.playThrowGesture();
@@ -1234,7 +1316,7 @@ export class KitchenScene implements ManagedScene {
   private showAim(slot: CoopPlayerState, charge: number): void {
     const marker = slot.aimMarker ?? new WaypointMarker(this.scene, {
       label: "aim",
-      color: PLAYER_COLORS[slot.index],
+      color: PLAYER_COLORS[slot.index] ?? PLAYER_COLORS[0]!,
       playerIndex: slot.index,
       beam: false,
     });
@@ -1473,19 +1555,32 @@ export class KitchenScene implements ManagedScene {
 
   /** What the disasters may touch in this kitchen. */
   private disasterHost(): DisasterHost {
-    const cooks: DisasterCook[] = this.players.map((slot) => ({
-      index: slot.index,
-      label: slot.label,
-      player: slot.player,
-      input: slot.input,
-    }));
-    const slotOf = (cook: DisasterCook): CoopPlayerState => this.players[cook.index];
+    const slotOf = (cook: DisasterCook): CoopPlayerState => this.allCooks[cook.index]!;
+    // The cooks in play right now: the count can change between shifts, the host cannot.
+    const cookViews = new Map<CoopPlayerState, DisasterCook>();
+    let cooks: DisasterCook[] = [];
+    let cooksOf: readonly CoopPlayerState[] | null = null;
+    const players = (): readonly CoopPlayerState[] => this.players;
     return {
       scene: this.scene,
       assets: this.assets,
       sfx: this.sfx,
       overlay: this.disasterOverlay,
-      cooks,
+      get cooks(): DisasterCook[] {
+        const current = players();
+        if (current !== cooksOf) {
+          cooksOf = current;
+          cooks = current.map((slot) => {
+            let view = cookViews.get(slot);
+            if (!view) {
+              view = { index: slot.index, label: slot.label, player: slot.player, input: slot.input };
+              cookViews.set(slot, view);
+            }
+            return view;
+          });
+        }
+        return cooks;
+      },
       bounds: this.environment.bounds,
       robots: this.wedding,
       juiceTexture: this.workstationResources.fireTexture,
@@ -1501,7 +1596,7 @@ export class KitchenScene implements ManagedScene {
       })),
       scatterFloorItems: (x, z, radius, power) => this.scatterFloorItems(x, z, radius, power),
       freeSpot: () => this.freeSpot(),
-      spawnPoint: (cook) => this.environment.playerSpawns[cook.index === 0 ? 0 : 1].clone(),
+      spawnPoint: (cook) => (this.environment.playerSpawns[cook.index] ?? this.environment.playerSpawns[0]!).clone(),
       stealables: () => this.stealables(),
       dropLoose: (item, x, z) => {
         const entry = this.addFloorItem(item as unknown as KitchenItem, x, 0.25, z, null, true);
@@ -1647,7 +1742,7 @@ export class KitchenScene implements ManagedScene {
       );
       if (!blocked) return new Vector3(x, 0, z);
     }
-    return this.environment.playerSpawns[0].clone();
+    return this.environment.playerSpawns[0]!.clone();
   }
 
   /**
@@ -1664,19 +1759,21 @@ export class KitchenScene implements ManagedScene {
       slot.wasDashing = dashing;
       if (!dashing) continue;
 
-      const other = this.players[slot.index === 0 ? 1 : 0];
-      if (other.player.isDowned()) continue;
-      const dx = other.player.position.x - slot.player.position.x;
-      const dz = other.player.position.z - slot.player.position.z;
-      if (dx * dx + dz * dz > DASH_SHOVE_REACH * DASH_SHOVE_REACH) continue;
-      // Only a dash that is actually heading into them counts, so brushing past while
-      // dashing away does not knock anybody down.
-      if (dx * slot.player.dashDirection.x + dz * slot.player.dashDirection.z <= 0) continue;
+      // Every other cook within reach and ahead of the dash goes over.
+      for (const other of this.players) {
+        if (other === slot || other.player.isDowned()) continue;
+        const dx = other.player.position.x - slot.player.position.x;
+        const dz = other.player.position.z - slot.player.position.z;
+        if (dx * dx + dz * dz > DASH_SHOVE_REACH * DASH_SHOVE_REACH) continue;
+        // Only a dash that is actually heading into them counts, so brushing past while
+        // dashing away does not knock anybody down.
+        if (dx * slot.player.dashDirection.x + dz * slot.player.dashDirection.z <= 0) continue;
 
-      other.player.stun(slot.player.dashDirection.x, slot.player.dashDirection.z, DASH_SHOVE_STRENGTH);
-      this.scatterHeldOf(other, slot.player.dashDirection.x, slot.player.dashDirection.z);
-      this.sfx.play("bonk", 0.7);
-      this.notify(t("kitchen.shoved", { name: other.label }), "warning", 1_800);
+        other.player.stun(slot.player.dashDirection.x, slot.player.dashDirection.z, DASH_SHOVE_STRENGTH);
+        this.scatterHeldOf(other, slot.player.dashDirection.x, slot.player.dashDirection.z);
+        this.sfx.play("bonk", 0.7);
+        this.notify(t("kitchen.shoved", { name: other.label }), "warning", 1_800);
+      }
     }
   }
 
@@ -2219,9 +2316,16 @@ export class KitchenScene implements ManagedScene {
 
   private handleOverlayInput(): void {
     if (!this.started || this.runtime.shiftEnded) return;
-    const input = this.players[0].input;
+    // Any cook may pause: player two's keyboard has no pause key, but a phone or a
+    // gamepad on that cook does.
+    let pausePressed = false;
+    let cookbookPressed = false;
+    for (const slot of this.players) {
+      if (slot.input.consumePressed("pause")) pausePressed = true;
+      if (slot.input.consumePressed("cookbook")) cookbookPressed = true;
+    }
 
-    if (input.consumePressed("pause")) {
+    if (pausePressed) {
       if (this.cookbookOpen) {
         this.ui.toggleCookbook(false);
       } else {
@@ -2230,7 +2334,7 @@ export class KitchenScene implements ManagedScene {
       }
     }
 
-    if (input.consumePressed("cookbook")) {
+    if (cookbookPressed) {
       this.ui.toggleCookbook();
     }
   }
@@ -2370,21 +2474,19 @@ export class KitchenScene implements ManagedScene {
       this.cameraFocusRemaining = Math.max(0, this.cameraFocusRemaining - deltaSeconds);
     }
     // A cook up in the saucer is not followed into the sky: the camera keeps to the
-    // one still in the kitchen.
-    const [one, two] = this.players;
-    const anchor = (slot: CoopPlayerState, other: CoopPlayerState): Vector3 => {
-      if (!slot.player.isAbducted) return slot.player.position;
-      const fallback = other.player.isAbducted ? slot.player.position : other.player.position;
-      return new Vector3(fallback.x, 0, fallback.z);
-    };
+    // ones still in the kitchen (or, if every cook is up there, to where they were).
+    const points = this.cameraPoints;
+    points.length = 0;
+    for (const slot of this.players) if (!slot.player.isAbducted) points.push(slot.player.position);
+    if (points.length === 0) {
+      for (const slot of this.players) {
+        const ground = this.cameraGround[slot.index]!;
+        ground.set(slot.player.position.x, 0, slot.player.position.z);
+        points.push(ground);
+      }
+    }
     this.camera.shake = this.shakeAmount;
-    const snapshot = this.camera.update(
-      deltaSeconds,
-      anchor(one, two),
-      anchor(two, one),
-      this.cameraFocusTarget,
-      focus,
-    );
+    const snapshot = this.camera.updateGroup(deltaSeconds, points, this.cameraFocusTarget, focus);
     this.cameraDistance = snapshot.distance;
     this.cameraSplitAmount = snapshot.splitAmount;
     this.ui.setSplitScreen(snapshot.splitAmount, snapshot.distance);
@@ -2395,7 +2497,7 @@ export class KitchenScene implements ManagedScene {
       this.ui.updateDebug(null);
       return;
     }
-    const target = this.players[0].target;
+    const target = this.players[0]!.target;
     const queued = this.runtime.activeOrders
       .filter((order) => order.status === "active")
       .map((order) => {
@@ -2405,14 +2507,14 @@ export class KitchenScene implements ManagedScene {
       .join(" · ");
     this.ui.updateDebug({
       fps: this.scene.getEngine().getFps(),
-      playerPosition: this.players[0].player.position,
+      playerPosition: this.players[0]!.player.position,
       carrying: this.players.map((slot) =>
         `${slot.label}: ${slot.held ? describeItem(slot.held, this.recipeList) : "empty"}`,
       ).join(" / "),
       character: this.players.map((slot) =>
         `${slot.label} ${slot.player.selectedCharacterId ?? "placeholder"}`,
       ).join(" / "),
-      characterBounds: this.players[0].player.characterDebugBounds,
+      characterBounds: this.players[0]!.player.characterDebugBounds,
       characterAnimation: this.players.map((slot) =>
         `${slot.label}:${slot.player.characterAnimation}`,
       ).join(" / "),
