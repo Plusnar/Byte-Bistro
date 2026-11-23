@@ -44,7 +44,7 @@ The game is set in **São Bento do Sul, Santa Catarina, Brazil**, as a way to sh
 
 ### Main menu and level selector
 
-![Main menu with the Play button](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/tela-inicial.webp)
+![Main menu with the characters running in the background video and the Play button](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/tela-inicial.webp?v=6s)
 
 ![3D São Bento do Sul globe with a bus and objects in orbit](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/selecao-fases.webp)
 

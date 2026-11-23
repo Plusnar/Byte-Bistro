@@ -44,7 +44,7 @@ O jogo é ambientado em **São Bento do Sul (SC)** como forma de divulgar a cida
 
 ### Menu inicial e seletor de fases
 
-![Menu inicial com o botão Jogar](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/tela-inicial.webp)
+![Menu inicial com os personagens correndo no vídeo de fundo e o botão Jogar](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/tela-inicial.webp?v=6s)
 
 ![Globo 3D de São Bento do Sul com o ônibus e objetos em órbita](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/selecao-fases.webp)
 
