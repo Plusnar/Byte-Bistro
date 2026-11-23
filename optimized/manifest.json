@@ -1554,6 +1554,90 @@
         "textures": []
       }
     },
+    "src/assets/map-town/sao-bento-planet.glb": {
+      "profile": "staticScene",
+      "profileKey": "5801fe231243",
+      "sourceHash": "72340a38fc18d4020e8f194bbf62c941f3c4ed8ac00fcfcba08020724e3ed0e0",
+      "sourceBytes": 7594016,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-town/sao-bento-planet.glb",
+      "outputHash": "ac1a85cff0c45b6eba8f5c1dfcbd309ba02b938027e73302d5faa05a40c31673",
+      "outputBytes": 1589524,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "src/assets/map-town/orbit-satellite.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "268d84d522ccc11a34414a7d61edac5cd0c64764c7baf3c3dc9b061257c0dd31",
+      "sourceBytes": 55744,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-town/orbit-satellite.glb",
+      "outputHash": "8082c02161ee4b9271854231235bd3dcb248b6babcb90784a9a338a1764e5e25",
+      "outputBytes": 16176,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      }
+    },
+    "src/assets/map-town/orbit-robot.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "fe6457ef55925dce24bfbf485f6bbe8c4b84638dab355cdfbc6939680c8dbc9a",
+      "sourceBytes": 72876,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-town/orbit-robot.glb",
+      "outputHash": "51a61c8f541fa839f312b03f2980835cc5729ca5316361f02f8d3c2ec8504934",
+      "outputBytes": 20988,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      }
+    },
+    "src/assets/map-town/orbit-meteor.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "8365de4d896db751f3c0567c4e8c0fbdac4c50dec52c7c5388d82bece8841e24",
+      "sourceBytes": 12432,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-town/orbit-meteor.glb",
+      "outputHash": "9140e6f73475799eee61eb96b10c63063a394f433f966a1f4e96ac807f1c4b85",
+      "outputBytes": 6400,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      }
+    },
     "public/assets/environment/cidade_fundo.glb": {
       "profile": "staticScene",
       "profileKey": "5801fe231243",
@@ -1677,6 +1761,27 @@
       "after": {
         "meshes": 10,
         "primitives": 10,
+        "textures": []
+      }
+    },
+    "src/assets/map-vehicles/rainha-585.glb": {
+      "profile": "prop",
+      "profileKey": "4a040b359e47",
+      "sourceHash": "d274a2137dfe72d0630a5ab92f2dfbdf41f8f9a844d1d06987bab772fb232763",
+      "sourceBytes": 419208,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-vehicles/rainha-585.glb",
+      "outputHash": "8477706cf50a864ff1ffa13164e3abaab7b27c7e2bcf94bf248d8c9e43dfaa8e",
+      "outputBytes": 115860,
+      "meshopt": true,
+      "before": {
+        "meshes": 5,
+        "primitives": 17,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 17,
         "textures": []
       }
     },

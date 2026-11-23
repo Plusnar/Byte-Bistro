@@ -102,6 +102,22 @@
       "profile": "staticScene"
     },
     {
+      "path": "src/assets/map-town/sao-bento-planet.glb",
+      "profile": "staticScene"
+    },
+    {
+      "path": "src/assets/map-town/orbit-satellite.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "src/assets/map-town/orbit-robot.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "src/assets/map-town/orbit-meteor.glb",
+      "profile": "staticProp"
+    },
+    {
       "path": "public/assets/environment/cidade_fundo.glb",
       "profile": "staticScene"
     },
@@ -123,6 +139,10 @@
     },
     {
       "path": "src/assets/map-vehicles/city-bus.glb",
+      "profile": "prop"
+    },
+    {
+      "path": "src/assets/map-vehicles/rainha-585.glb",
       "profile": "prop"
     },
     {

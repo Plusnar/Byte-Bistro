@@ -34,3 +34,20 @@ export function sampleMapEdge(edge: number, segments = 16): MapPoint[] {
   });
 }
 
+
+/** Updates a point on the centerline of the Blender planet's paved ring (glTF Y-up). */
+export function planetRoadPoint(angle: number, target: { x: number; y: number; z: number }): void {
+  const spread = .62 + .039 * Math.cos(4 * angle) + .036 * Math.sin(5 * angle) + .024 * Math.sin(2 * angle + .32);
+  const radius = 6.39;
+  target.x = radius * Math.sin(angle) * spread;
+  target.y = radius * Math.cos(angle) * spread;
+  target.z = radius * Math.sqrt(1 - spread * spread);
+}
+
+/** The clockwise or counterclockwise arc from anywhere on the ring to a landmark. */
+export function planetStopAngle(angle: number, stop: number): number {
+  const turn = Math.PI * 2;
+  const destination = stop * turn / MAP_STOPS.length;
+  const clockwise = ((destination - angle) % turn + turn) % turn;
+  return angle + (clockwise <= Math.PI ? clockwise : clockwise - turn);
+}

@@ -37,8 +37,7 @@
   width: 100%;
   height: 100%;
   display: block;
-  /* Drag and pinch belong to the camera, not to the page. */
-  touch-action: none;
+  touch-action: manipulation;
   outline: none;
 }
 
@@ -232,12 +231,14 @@
 /* --- The player's own maps -------------------------------------------------------- */
 
 .my-maps {
-  position: absolute;
-  top: 16px;
-  left: 16px;
+  position: fixed;
+  top: max(var(--home-edge, 12px), env(safe-area-inset-top));
+  left: calc(max(var(--home-edge, 12px), env(safe-area-inset-left)) + clamp(44px, 4.5vw, 58px) + .55rem);
   z-index: 2;
-  max-width: min(340px, calc(100% - 32px));
+  max-width: min(340px, calc(100vw - 84px));
 }
+
+.game-ui .selection-screen:not([data-step="home"]) .my-maps { display: none; }
 
 .my-maps > summary {
   display: inline-flex;
@@ -371,11 +372,11 @@
   transform: translateX(-50%);
   max-width: 55vw;
   padding: 8px 20px;
-  border: 1px solid #64e8ff;
-  border-radius: 999px;
-  background: linear-gradient(#0963ba, #063979);
-  box-shadow: 0 0 14px #00c8ff88;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   text-align: center;
+  text-shadow: 0 2px 8px #050e27;
   font-size: clamp(14px, 2vw, 23px);
   letter-spacing: .03em;
 }

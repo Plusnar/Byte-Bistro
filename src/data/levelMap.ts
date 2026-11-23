@@ -2,14 +2,10 @@ import type { LevelEntry } from "./levelCatalog";
 import { bundledModelUrl } from "../core/assets/assetRegistry";
 
 /**
- * The level map: São Bento do Sul as a diorama, one star per official level.
- *
- * Pure placement and navigation rules live here so they can be tested without WebGL; the
- * Babylon side is `ui/LevelMapView.ts`.
+ * São Bento do Sul's level selector. The Babylon view owns rendering and hit testing.
  */
 
-/** Referenced where it sits, so the artist's file is the one the game shows. */
-export const LEVEL_MAP_URL = bundledModelUrl("Scenario/sao_bento_do_sul.glb");
+export const LEVEL_MAP_URL = bundledModelUrl("src/assets/map-town/sao-bento-planet.glb");
 
 /**
  * Landmarks that hold a star, in level order. The first level sits on the church; more
@@ -47,7 +43,7 @@ export const ringSpots = (count: number, ground: GroundRect): { x: number; z: nu
 };
 
 /**
- * The star to jump to when a direction is pressed: the nearest one on screen that lies
+ * The landmark to select when a direction is pressed: the nearest one on screen that lies
  * within 60° of that direction. `points` are screen positions (y grows downward) and
  * `dx`/`dy` the pressed direction in the same space. Returns -1 when nothing is that way.
  */
@@ -56,6 +52,7 @@ export const neighbourInDirection = (
   from: number,
   dx: number,
   dy: number,
+  minimumAlignment = 0.5,
 ): number => {
   const origin = points[from];
   const length = Math.hypot(dx, dy);
@@ -71,7 +68,7 @@ export const neighbourInDirection = (
     const distance = Math.hypot(offsetX, offsetY);
     if (distance < 1e-6) continue;
     const alignment = (offsetX * dirX + offsetY * dirY) / distance;
-    if (alignment < 0.5) continue;
+    if (alignment < minimumAlignment) continue;
     // Straight ahead beats diagonal at the same distance.
     const score = distance * (2 - alignment);
     if (score < bestScore) {

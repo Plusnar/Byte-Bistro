@@ -1462,6 +1462,7 @@ export class GameUI {
 
   private openLevelWindow(key: string): void {
     if (!this.fillLevelWindow(key)) return;
+    this.levelMap?.select(key);
     window.clearTimeout(this.levelWindowTimer);
     this.levelWindowKey = key;
     this.levelWindow.hidden = false;
@@ -1525,7 +1526,7 @@ export class GameUI {
     return true;
   }
 
-  /** Arrow keys and WASD jump between stars; Enter opens the window, then plays. */
+  /** Arrow keys and WASD select landmarks; Enter opens the window, then plays. */
   private handleLevelKey(event: KeyboardEvent): void {
     const key = event.key;
     const directions: Readonly<Record<string, readonly [number, number]>> = {
@@ -2087,6 +2088,10 @@ export class GameUI {
               <button class="secondary-action bistro-home-icon bistro-phones-action" type="button" data-action="phones" data-i18n-attr="aria-label:pair.players;title:pair.players"></button>
               ${GameUI.languageSwitch()}
             </div>
+            <details class="my-maps" data-ui="my-maps" hidden>
+              <summary data-i18n="menu.myMaps"></summary>
+              <ul class="level-list" data-ui="level-list"></ul>
+            </details>
           </header>
           <section class="pair-select" data-ui="pair-select" aria-labelledby="pair-title">
             <h2 id="pair-title" data-i18n="pair.title"></h2>
@@ -2118,10 +2123,6 @@ export class GameUI {
                 <div class="level-window-meta" data-ui="level-window-meta"></div>
                 <button class="primary-action level-window-play" type="button" data-action="play-level"><span data-i18n="menu.play"></span><i aria-hidden="true">&#8594;</i></button>
               </aside>
-              <details class="my-maps" data-ui="my-maps" hidden>
-                <summary data-i18n="menu.myMaps"></summary>
-                <ul class="level-list" data-ui="level-list"></ul>
-              </details>
             </div>
           </section>
           <section class="selection-arena">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAP_BUSHES, MAP_LAMPS, MAP_STOPS, mapRoute, sampleMapEdge } from "../../data/mapRoute";
+import { MAP_BUSHES, MAP_LAMPS, MAP_STOPS, mapRoute, planetRoadPoint, planetStopAngle, sampleMapEdge } from "../../data/mapRoute";
 
 describe("town bus route", () => {
   it("uses the shortest path and a predictable clockwise tie", () => {
@@ -23,5 +23,29 @@ describe("town bus route", () => {
         for (const lamp of MAP_LAMPS) expect(Math.hypot(p.x-lamp.x,p.z-lamp.z)).toBeGreaterThan(.85);
       }
     }
+  });
+});
+
+describe("planet bus route", () => {
+  it("circles the front of the globe and returns to the same point", () => {
+    const points = Array.from({ length: 5 }, (_, index) => {
+      const point = { x: 0, y: 0, z: 0 };
+      planetRoadPoint(index * Math.PI / 2, point);
+      expect(Math.hypot(point.x, point.y, point.z)).toBeCloseTo(6.39);
+      expect(point.z).toBeGreaterThan(0);
+      return point;
+    });
+    expect(points[0].y).toBeGreaterThan(0);
+    expect(points[1].x).toBeGreaterThan(0);
+    expect(points[2].y).toBeLessThan(0);
+    expect(points[3].x).toBeLessThan(0);
+    expect(points[0].y).toBeCloseTo(points[4].y);
+  });
+
+  it("takes the shortest arc even when redirected between landmarks", () => {
+    expect(planetStopAngle(0, 2)).toBeCloseTo(Math.PI);
+    expect(planetStopAngle(0, 3)).toBeCloseTo(-Math.PI / 2);
+    expect(planetStopAngle(Math.PI / 3, 3)).toBeCloseTo(-Math.PI / 2);
+    expect(planetStopAngle(-Math.PI / 2, 0)).toBeCloseTo(0);
   });
 });
