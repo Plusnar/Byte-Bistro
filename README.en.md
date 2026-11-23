@@ -2,7 +2,7 @@
 
 [Português](README.md) · **English**
 
-![A match in the wedding level](docs/images/jogando-casamento.jpg)
+![Four cooks in the Wedding level, with the order queue and timer](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/partida-4-jogadores.webp)
 
 > 🚧 **Work in progress.** Features, levels and visuals are still changing.
 
@@ -14,7 +14,7 @@ Runs straight in the browser, nothing to install: the game on a PC or TV screen 
 
 ## About
 
-Byte Bistro is a cooperative 3D cooking game for **1 to 4 players on the same screen**, in the style of *Overcooked*, where **each player uses their own phone as the controller**. The cooks share one kitchen to prepare and serve the dishes that are ordered before time runs out: fetch ingredients, chop, cook, plate up and deliver.
+Byte Bistro is a cooperative 3D cooking game for **1 to 4 players on the same screen**, in the style of *Overcooked*. The cooks prepare and serve orders before time runs out.
 
 The main level is a wedding reception whose guests are robots placing the orders. The game also has a **build mode**, inspired by *The Sims 4*, where anyone can build their own kitchen and surroundings and then play in them.
 
@@ -31,64 +31,87 @@ The project was developed for the **Software Design and Architecture** course. T
 
 The game is set in **São Bento do Sul, Santa Catarina, Brazil**, as a way to showcase the city:
 
-- the level picker is a miniature of the town, with the **Igreja Matriz** (main church), the square's bandstand and araucaria pines;
+- the level selector is a 3D globe featuring the **main church**, the **SGD** entrance, **Salão Pauli**, and the **Univille** campus. The Rainha 585 bus travels across the globe between araucaria trees;
 - the build-mode object packs were modelled from local references: the **Praça** (town square), the **Igreja Matriz** and the **Schlachtfest** festival, with half-timbered houses, stalls and bunting.
 
-![Level picker featuring São Bento do Sul](docs/images/menu.jpg)
+## Game screenshots
+
+### Loading and phone pairing
+
+![Loading screen with the cooks and a progress bar](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/loading.webp)
+
+![QR code and four phones connected to the room](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/pareamento-4-jogadores.webp)
+
+### Main menu and level selector
+
+![Main menu with the Play button](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/tela-inicial.webp)
+
+![3D São Bento do Sul globe with a bus and objects in orbit](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/selecao-fases.webp)
+
+![Details panel for the Wedding level](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/detalhes-fase.webp)
 
 ## How to play
 
-The game runs on the big screen (PC or TV) and **every player uses their own phone as the controller**, Netflix-games style: **1 to 4 people**, nothing to install.
+**On a computer**, choose **Play on this computer** on the pairing screen to start a local single-player session. **With phones**, connect one to four players to the same room. Each person uses their own phone as a controller.
 
-1. **Connect the phones.** The game opens on a QR code and a 6-letter code. Each player points their camera at the QR code (or opens `byte-bistro.pages.dev/controller` and types the code). The **first phone is P1**; the others join as P2, P3 and P4, each with their own colour.
-2. **P1 presses A** once everyone is in: whoever is connected then plays. The room locks (a phone that drops reconnects to its own slot by itself).
-3. **P1 drives the menus** with the phone's arrows (**A** confirms, **B** goes back): home, level map, pause, recipes and results. The other phones show "P1 has the controls".
-4. **Everyone picks their own cook** on their phone: ← → change, **A** confirms (a ✓ appears) and **B** undoes. Once all are ready, P1's A starts the match.
-5. **In the kitchen**, orders appear at the top with the dish, ingredients and time left. Take ingredients from the crates, **chop** on the board, **cook** on the stove (pan or pot), **plate** and **deliver** at the counter. Dirty plates come back and must be **washed**; if something catches fire, use the **extinguisher**. You can **throw** ingredients to your teammates. Fast, well-made dishes score more; expired orders cost points.
+1. **Connect the phones.** Scan the QR code or open the [browser controller](https://byte-bistro.pages.dev/controller) and enter the six-character code. The first phone is P1. The next phones take slots P2, P3 and P4, each with its own colour.
+2. **P1 presses A** once everyone has joined. The room locks and disconnected players can return to the same slot.
+3. **P1 navigates the menus.** Use the arrows, **A** to confirm and **B** to go back. The level selector turns the globe to bring the chosen landmark to the top.
+4. **Each player chooses a cook.** Use ← and → to switch, **A** to confirm and **B** to undo. When everyone is ready, P1 presses **A** to start the match.
+5. **Prepare and serve the orders.** The queue shows dishes, ingredients and deadlines. Collect ingredients, use the prep stations, plate the dishes and serve them at the counter before time runs out.
 
-**Players** on the menu goes back to the QR code for someone to join or leave. The **PT | EN** button switches the whole game's language at once.
+The **PT | EN** button switches the game language.
 
-![Choosing the cooks](docs/images/selecao-personagens.jpg)
+![Character selection screen with four cooks](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/selecao-cozinheiros.webp)
 
-### The phone controller
+### Phone controller
 
-Hold the phone sideways, like a console pad. The game decides what each phone shows:
+Hold your phone sideways. The layout changes with the stage of the game.
 
-| When | Left thumb | Right thumb | Middle |
-| --- | --- | --- | --- |
-| Menus (P1 only) | Arrows (hold to repeat) | **A** confirm · **B** back | Recipes · Pause (≡) |
-| Cook selection (everyone) | ← → change cook | **A** confirm · **B** undo | — |
-| Match (everyone) | 360° analog stick (push all the way to run) | **A** grab/drop/deliver · **X** use (chop, wash, extinguish, aim) · **B** dash · **Y** call | Recipes · Pause (≡) |
+| Player one's menu controller | Controller during a match |
+| --- | --- |
+| ![Phone controller with directional controls and A and B](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/controle-menu.webp) | ![Phone controller with analogue stick, A, B, X and Y, recipe book and pause](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/controle-partida.webp) |
 
-The ✕ in the corner opens the phone's options: name, full screen, leave the room and connection diagnostics.
+| Stage | Controls |
+| --- | --- |
+| Menus (P1) | Arrows to navigate, **A** to confirm and **B** to go back |
+| Character selection | ← → to switch, **A** to confirm and **B** to undo |
+| Match | Analogue stick to move and run. **A** picks up, drops or serves, **X** uses stations and tools, **B** dashes and **Y** calls teammates |
+| Match shortcuts | Recipe book and pause on the centre buttons |
+
+The ✕ in the corner opens phone options, including name, fullscreen, leaving the room and connection diagnostics.
 
 ### More players, same kitchen
 
-- **1 to 4 cooks:** with 1 the camera follows the cook; with 2 it splits when they move apart; with 3 or 4 one camera frames everyone and pulls back as they spread out.
-- **Star goals** follow the number of players: half with 1 cook, the usual ones with 2 and somewhat higher with 3 and 4 (extra hands help less and less: the stove and the sink are the same).
-- A **dash** knocks over any teammate in the way, and **disasters** (storm, abduction, flood…) hit every cook in play.
-- Physical gamepads also work in a match (the first drives Player 1, and so on).
+- **1 to 4 cooks.** With one cook, the camera follows them. With two, it splits when they move apart. With three or four, one camera frames the whole group.
+- Star goals scale with team size. A dash can knock over teammates, and kitchen events can affect every cook.
+- Physical gamepads also work during a match.
 
-### Keyboard (development)
+### Keyboard
 
-To test without phones, add `?dev` to the address and click **Continue with the keyboard** on the QR screen (2 players):
+| Action | Key |
+| --- | --- |
+| Move | `W A S D` |
+| Run | Left `Shift` |
+| Dash | `Space` |
+| Pick up, put down, combine or serve | `E` |
+| Chop, wash, use the extinguisher, or aim and throw | Hold `F` |
+| Recipe book | `Tab` |
+| Pause | `Esc` |
 
-| Action | Player 1 | Player 2 |
-| --- | --- | --- |
-| Move | `W A S D` | Arrow keys |
-| Run | Left `Shift` | `Numpad 0` |
-| Dash | `Space` | `Numpad .` |
-| Call your partner | `Q` | `Numpad 1` |
-| Pick up, drop, combine, deliver | `E` | `Enter` |
-| Hold: chop, wash, extinguish · With an ingredient: aim and throw | `F` | Right `Shift` |
-| Recipe book | `Tab` | — |
-| Pause | `Esc` | — |
+### Recipes, pause and results
+
+![Recipe book open during a match](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/livro-receitas.webp)
+
+![Match pause menu](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/pausa.webp)
+
+![Results screen with the shift grade and score](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/resultados.webp)
 
 ## Build mode
 
 In the menu, **Create map** opens the editor, inspired by *The Sims 4*'s build mode. A finished map can be played right away.
 
-![Build mode overview](docs/images/construcao-visao-geral.jpg)
+![Build mode overview](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/construcao-visao-geral.jpg)
 
 - A **catalogue** of more than 1,600 objects, grouped in tabs and packs, with search.
 - **Draw walls and floors** by clicking and dragging.
@@ -97,17 +120,17 @@ In the menu, **Create map** opens the editor, inspired by *The Sims 4*'s build m
 - **Free placement**: any object goes anywhere, off the lot too (it becomes scenery) and on top of other objects, like a lamp on a table.
 - **Top-down view** and grid.
 
-![Walls and floors drawn by dragging](docs/images/construcao-paredes-e-pisos.jpg)
+![Walls and floors drawn by dragging](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/construcao-paredes-e-pisos.jpg)
 
 - **Recolour each part of an object** without going back to Blender. Colours are saved with the map.
 
-![Colour tool](docs/images/construcao-cores.jpg)
+![Colour tool](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/construcao-cores.jpg)
 
-![Top-down view](docs/images/construcao-vista-de-cima.jpg)
+![Top-down view](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/construcao-vista-de-cima.jpg)
 
 - Eyedropper, sledgehammer, copy and paste, undo and redo, and maps saved in the browser or exported as JSON.
 
-![Playing the map built in the editor](docs/images/jogando-mapa-criado.jpg)
+![Playing the map built in the editor](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/jogando-mapa-criado.jpg)
 
 ## Phone controller architecture
 
@@ -200,7 +223,7 @@ npm run mp:dev     # terminal 1: rooms Worker (port 8787)
 npm run dev        # terminal 2: the game (http://127.0.0.1:5173)
 ```
 
-To use a real phone on the same network, run `MP_LAN=1 npm run dev` and open `http://<pc-ip>:5173/controller#CODE` on the phone. Without phones, use `?dev` and **Continue with the keyboard**.
+To use a real phone on the same network, run `MP_LAN=1 npm run dev` and open `http://<pc-ip>:5173/controller#CODE` on the phone. Without phones, choose **Play on this computer** on the pairing screen.
 
 Tests: `npm test` (unit), `npm run mp:test:integration` (server, with `mp:dev` running) and `npm run mp:test:e2e` (Chrome with 4 simulated phones, with `mp:dev` and `dev` running). Production build: `npm run build`.
 

@@ -2,19 +2,19 @@
 
 **Português** · [English](README.en.md)
 
-![Partida na fase do casamento](docs/images/jogando-casamento.jpg)
+![Quatro cozinheiros na fase do casamento, com a fila de pedidos e o cronômetro](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/partida-4-jogadores.webp)
 
 > 🚧 **Projeto em desenvolvimento.** Funcionalidades, fases e visual ainda estão mudando.
 
 ### ▶️ [Jogar online: byte-bistro.pages.dev](https://byte-bistro.pages.dev)
 
-Roda direto no navegador, sem instalar nada: o jogo na tela do PC ou TV (Chrome ou Edge atualizado) e um celular por jogador como controle.
+Jogue direto no navegador em um PC ou TV. Use um celular por pessoa no modo cooperativo ou escolha **Jogar pelo computador** para jogar sozinho com teclado.
 
 ---
 
 ## Sobre o projeto
 
-Byte Bistro é um jogo 3D cooperativo de cozinha para **1 a 4 jogadores na mesma tela**, no estilo *Overcooked*, em que **cada jogador usa o próprio celular como controle**. Os cozinheiros dividem a cozinha para preparar e servir os pratos pedidos antes que o tempo acabe: pegar ingredientes, cortar, cozinhar, montar o prato e entregar.
+Byte Bistro é um jogo 3D cooperativo de cozinha para **1 a 4 jogadores na mesma tela**, no estilo *Overcooked*. Os cozinheiros preparam e servem os pratos pedidos antes que o tempo acabe.
 
 A fase principal é a recepção de um casamento, com convidados robôs que fazem os pedidos. O jogo também tem um **modo construção**, inspirado no do *The Sims 4*, em que qualquer pessoa monta a própria cozinha e o próprio cenário e depois joga nele.
 
@@ -31,64 +31,87 @@ O projeto foi desenvolvido para a disciplina de **Design e Arquitetura de Softwa
 
 O jogo é ambientado em **São Bento do Sul (SC)** como forma de divulgar a cidade:
 
-- o mapa de escolha de fases é uma miniatura da cidade, com a **Igreja Matriz**, o coreto da praça e as araucárias;
+- o seletor de fases é um globo 3D com a **Igreja Matriz**, a entrada da **SGD**, o **Salão Pauli** e o campus da **Univille**. O ônibus Rainha 585 percorre o globo entre as araucárias;
 - os pacotes de objetos do modo construção foram modelados a partir de referências locais: **Praça**, **Igreja Matriz** e a festa **Schlachtfest**, com suas casas em enxaimel, barracas e bandeirolas.
 
-![Mapa de escolha de fases com São Bento do Sul](docs/images/menu.jpg)
+## Telas do jogo
+
+### Carregamento e pareamento
+
+![Tela de carregamento com os cozinheiros e a barra de progresso](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/loading.webp)
+
+![QR Code e quatro celulares conectados à sala](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/pareamento-4-jogadores.webp)
+
+### Menu inicial e seletor de fases
+
+![Menu inicial com o botão Jogar](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/tela-inicial.webp)
+
+![Globo 3D de São Bento do Sul com o ônibus e objetos em órbita](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/selecao-fases.webp)
+
+![Painel de detalhes da fase Casamento](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/detalhes-fase.webp)
 
 ## Como jogar
 
-O jogo roda na tela grande (PC ou TV) e **cada jogador usa o próprio celular como controle**, no estilo dos jogos da Netflix: de **1 a 4 pessoas**, sem instalar nada.
+**No computador**, clique em **Jogar pelo computador** na tela de pareamento para abrir o modo local de um jogador. **Para jogar com celulares**, use a mesma sala para conectar de um a quatro jogadores. Cada pessoa usa o próprio celular como controle.
 
-1. **Conecte os celulares.** Ao abrir o jogo aparece um QR Code e um código de 6 letras. Cada jogador aponta a câmera para o QR (ou abre `byte-bistro.pages.dev/controller` e digita o código). O **primeiro celular é o P1**; os outros entram como P2, P3 e P4, cada um com sua cor.
-2. **O P1 aperta A** quando todos tiverem entrado: quem está conectado nesse momento joga. A sala é trancada (quem cair reconecta sozinho na mesma vaga).
-3. **O P1 comanda os menus** com as setas do celular (**A** confirma, **B** volta): menu inicial, mapa de fases, pausa, receitas e resultados. Os outros celulares mostram “P1 está no controle”.
-4. **Cada um escolhe o seu cozinheiro** no próprio celular: ← → troca, **A** confirma (aparece um ✓) e **B** desfaz. Com todos prontos, o A do P1 começa a partida.
-5. **Na cozinha**, os pedidos aparecem no topo, com prato, ingredientes e tempo. Pegue os ingredientes nas caixas, **corte** na tábua, **cozinhe** no fogão (frigideira ou panela), **monte** no prato e **entregue** no balcão. Pratos sujos voltam e precisam ser **lavados**; se algo pegar fogo, use o **extintor**. Dá para **arremessar** ingredientes para os colegas. Pedidos rápidos e bem feitos dão mais pontos; pedidos que expiram tiram pontos.
+1. **Conecte os celulares.** Leia o QR Code ou abra o [controle no navegador](https://byte-bistro.pages.dev/controller) e digite o código de seis caracteres. O primeiro celular é o P1. Os seguintes ficam nas vagas P2, P3 e P4, cada um com sua cor.
+2. **O P1 aperta A** quando todos entrarem. A sala é trancada e quem cair pode se reconectar à mesma vaga.
+3. **O P1 navega pelos menus.** Use as setas, **A** para confirmar e **B** para voltar. O seletor gira o globo para trazer o local escolhido ao topo.
+4. **Cada pessoa escolhe um cozinheiro.** Use ← e → para trocar, **A** para confirmar e **B** para desfazer. Quando todos estiverem prontos, o P1 começa a partida com **A**.
+5. **Prepare e entregue os pedidos.** A fila mostra pratos, ingredientes e prazos. Pegue ingredientes nas caixas, use as estações de preparo, monte os pratos e entregue no balcão antes que o tempo acabe.
 
-O botão **Jogadores** no menu volta ao QR Code para alguém entrar ou sair. O botão **PT | EN** troca o idioma do jogo inteiro na hora.
+O botão **PT | EN** troca o idioma do jogo.
 
-![Seleção dos cozinheiros](docs/images/selecao-personagens.jpg)
+![Seleção de personagens com quatro cozinheiros](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/selecao-cozinheiros.webp)
 
-### O controle no celular
+### Controle no celular
 
-Segure o celular deitado, como um controle de console. O jogo decide o que cada celular mostra:
+Segure o celular deitado. O layout acompanha a etapa do jogo.
 
-| Momento | Polegar esquerdo | Polegar direito | Centro |
-| --- | --- | --- | --- |
-| Menus (só o P1) | Setas (segurar repete) | **A** confirma · **B** volta | Receitas · Pausa (≡) |
-| Seleção de personagem (todos) | ← → troca o cozinheiro | **A** confirma · **B** desfaz | — |
-| Partida (todos) | Analógico 360° (no fim do curso o cozinheiro corre) | **A** pegar/largar/entregar · **X** usar (cortar, lavar, extintor, mirar) · **B** avançada (dash) · **Y** chamar | Receitas · Pausa (≡) |
+| Navegação dos menus pelo P1 | Controle durante a partida |
+| --- | --- |
+| ![Controle de celular com setas e botões A e B](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/controle-menu.webp) | ![Controle de celular com analógico, botões A, B, X e Y, receitas e pausa](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/controle-partida.webp) |
 
-O ✕ no canto abre as opções do celular: nome, tela cheia, sair da sala e diagnóstico da conexão.
+| Momento | Controles |
+| --- | --- |
+| Menus (P1) | Setas para navegar, **A** para confirmar e **B** para voltar |
+| Seleção de personagem | ← → para trocar, **A** para confirmar e **B** para desfazer |
+| Partida | Analógico para mover e correr. **A** pega, larga ou entrega, **X** usa estações e ferramentas, **B** dá uma avançada e **Y** chama os colegas |
+| Atalhos na partida | Livro de receitas e pausa nos botões centrais |
+
+O ✕ no canto abre as opções do celular, incluindo nome, tela cheia, saída da sala e diagnóstico da conexão.
 
 ### Mais jogadores, mesma cozinha
 
-- **1 a 4 cozinheiros:** com 1, a câmera segue o cozinheiro; com 2, ela se divide quando os dois se afastam; com 3 ou 4, uma câmera só enquadra todos e se afasta conforme eles se espalham.
-- **Metas de estrelas** acompanham o número de jogadores: metade com 1 cozinheiro, as mesmas de sempre com 2 e um pouco mais altas com 3 e 4 (mais mãos rendem cada vez menos, porque o fogão e a pia são os mesmos).
-- A **avançada** derruba qualquer colega no caminho, e os **desastres** (tempestade, abdução, enchente…) atingem todos os cozinheiros em jogo.
-- Gamepads físicos também funcionam na partida (o 1º no Jogador 1, e assim por diante).
+- **1 a 4 cozinheiros.** Com um, a câmera segue o cozinheiro. Com dois, ela se divide quando eles se afastam. Com três ou quatro, uma câmera enquadra todo o grupo.
+- As metas de estrelas acompanham o tamanho da equipe. A avançada pode derrubar os colegas, e os eventos da cozinha afetam todos os cozinheiros.
+- Gamepads físicos também funcionam na partida.
 
-### Teclado (desenvolvimento)
+### Teclado
 
-Para testar sem celular, abra o jogo com `?dev` no endereço e clique em **Continuar com o teclado** na tela do QR (2 jogadores):
+| Ação | Tecla |
+| --- | --- |
+| Mover | `W A S D` |
+| Correr | `Shift` esquerdo |
+| Avançada | `Espaço` |
+| Pegar, largar, combinar ou entregar | `E` |
+| Cortar, lavar, usar o extintor ou mirar e arremessar | Segure `F` |
+| Livro de receitas | `Tab` |
+| Pausar | `Esc` |
 
-| Ação | Jogador 1 | Jogador 2 |
-| --- | --- | --- |
-| Mover | `W A S D` | Setas |
-| Correr | `Shift` esquerdo | `Numpad 0` |
-| Avançada | `Espaço` | `Numpad .` |
-| Chamar o colega | `Q` | `Numpad 1` |
-| Pegar, largar, combinar, entregar | `E` | `Enter` |
-| Segurar: cortar, lavar, extintor · Com ingrediente: mirar e arremessar | `F` | `Shift` direito |
-| Livro de receitas | `Tab` | — |
-| Pausar | `Esc` | — |
+### Receitas, pausa e resultados
+
+![Livro de receitas aberto durante a partida](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/livro-receitas.webp)
+
+![Menu de pausa da partida](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/pausa.webp)
+
+![Tela de resultados com a nota e a pontuação do turno](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/resultados.webp)
 
 ## Modo construção
 
 No menu, **Criar mapa** abre o editor, inspirado no modo construção do *The Sims 4*. O mapa pronto pode ser jogado na hora.
 
-![Visão geral do modo construção](docs/images/construcao-visao-geral.jpg)
+![Visão geral do modo construção](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/construcao-visao-geral.jpg)
 
 - **Catálogo** com mais de 1.600 objetos, separados por abas e por pacote, com busca.
 - **Desenhar paredes e pisos** clicando e arrastando.
@@ -97,17 +120,17 @@ No menu, **Criar mapa** abre o editor, inspirado no modo construção do *The Si
 - **Colocação livre**: qualquer objeto vai em qualquer lugar, inclusive fora do lote (vira cenário) e em cima de outros objetos, como uma luminária sobre a mesa.
 - **Vista de cima** e grade.
 
-![Paredes e pisos desenhados arrastando](docs/images/construcao-paredes-e-pisos.jpg)
+![Paredes e pisos desenhados arrastando](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/construcao-paredes-e-pisos.jpg)
 
 - **Mudar a cor de cada parte de um objeto** sem precisar voltar ao Blender. As cores ficam salvas no mapa.
 
-![Ferramenta de cores](docs/images/construcao-cores.jpg)
+![Ferramenta de cores](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/construcao-cores.jpg)
 
-![Vista de cima](docs/images/construcao-vista-de-cima.jpg)
+![Vista de cima](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/construcao-vista-de-cima.jpg)
 
 - Conta-gotas, marreta, copiar e colar, desfazer e refazer, e mapas salvos no navegador ou exportados em JSON.
 
-![Jogando o mapa criado no editor](docs/images/jogando-mapa-criado.jpg)
+![Jogando o mapa criado no editor](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/jogando-mapa-criado.jpg)
 
 ## Arquitetura do controle por celular
 
@@ -200,7 +223,7 @@ npm run mp:dev     # terminal 1: Worker das salas (porta 8787)
 npm run dev        # terminal 2: o jogo (http://127.0.0.1:5173)
 ```
 
-Para usar um celular de verdade na mesma rede, rode `MP_LAN=1 npm run dev` e abra no celular `http://<ip-do-pc>:5173/controller#CÓDIGO`. Sem celular, use `?dev` e **Continuar com o teclado**.
+Para usar um celular de verdade na mesma rede, rode `MP_LAN=1 npm run dev` e abra no celular `http://<ip-do-pc>:5173/controller#CÓDIGO`. Sem celular, use **Jogar pelo computador** na tela de pareamento.
 
 Testes: `npm test` (unitários), `npm run mp:test:integration` (servidor, com `mp:dev` no ar) e `npm run mp:test:e2e` (Chrome com 4 celulares simulados, com `mp:dev` e `dev` no ar). Para a versão de publicação: `npm run build`.
 
