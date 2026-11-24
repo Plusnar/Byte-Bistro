@@ -5,8 +5,12 @@
 export const MAX_PLAYERS = 4;
 export const MIN_PLAYERS = 1;
 
-/** One colour per player, everywhere: phone, HUD card, cursor, ticket, station highlight. */
-export const PLAYER_COLORS: readonly string[] = ["#74F4FF", "#FFD166", "#FF7EB6", "#8CFF7A"];
+/**
+ * One colour per player, everywhere: phone, HUD, cursor, ticket, station highlight and the
+ * tag over each cook. Green, blue, red, yellow, in the order players join, so two cooks in
+ * the same outfit are still told apart at a glance.
+ */
+export const PLAYER_COLORS: readonly string[] = ["#4FD96B", "#4A9DFF", "#FF5A5F", "#FFC93C"];
 
 export const playerLabel = (index: number): string => `P${index + 1}`;
 

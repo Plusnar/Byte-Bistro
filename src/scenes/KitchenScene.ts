@@ -255,6 +255,10 @@ export interface KitchenSceneOptions {
 
 const NO_WORK: WorkOutcome = { kind: "none" };
 
+/** The jolt the whole view gets as a disaster breaks out, in metres and seconds. */
+const DISASTER_JOLT_AMOUNT = 0.32;
+const DISASTER_JOLT_SECONDS = 0.7;
+
 /** How long a cook reaches into the oven after putting a tray in or taking one out. */
 const OVEN_REACH_SECONDS = OVEN_REACH_PERIOD;
 
@@ -633,6 +637,7 @@ export class KitchenScene implements ManagedScene {
       runSpeed: GAME_CONFIG.player.walkSpeed * GAME_CONFIG.player.runMultiplier,
       movementRotation: Math.atan2(-GAME_CONFIG.camera.offsetX, -GAME_CONFIG.camera.offsetZ),
       assetManager: this.assets,
+      tag: { label: playerLabel(index), color: PLAYER_COLORS[index] ?? "#ffffff" },
     });
     const slot: CoopPlayerState = {
       index,
@@ -1535,10 +1540,8 @@ export class KitchenScene implements ManagedScene {
     return best;
   }
 
-  /** The disaster playing right now, if any (not the warning before it). */
-  get activeDisaster(): DisasterKind | null {
-    return this.punishment.active;
-  }
+  /** Told when a disaster breaks out, for what lives outside the scene (the phones' buzz). */
+  onDisasterStart: ((kind: DisasterKind) => void) | null = null;
 
   /**
    * Sets off a disaster at once, skipping the wait for a failed order. For testing
@@ -1601,6 +1604,10 @@ export class KitchenScene implements ManagedScene {
       dropHeld: (cook) => this.scatterHeld(slotOf(cook), 0, 0),
       notify: (message, tone) => this.notify(message, tone, 2_400),
       shake: (amount, seconds) => this.shake(amount, seconds),
+      alarm: (kind) => {
+        this.shake(DISASTER_JOLT_AMOUNT, DISASTER_JOLT_SECONDS);
+        this.onDisasterStart?.(kind);
+      },
       stationViews: () => [...this.stationViews.values()].map((view) => ({
         root: view.root,
         x: view.placement.x,

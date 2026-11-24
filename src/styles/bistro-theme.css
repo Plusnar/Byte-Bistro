@@ -528,11 +528,11 @@
   text-transform: uppercase;
 }
 /* Who is on this order: the dish frame's border and a stripe across its top, one colour
-   per cook (PLAYER_COLORS in src/data/players.ts). */
-.game-ui .bistro-hud-top .order-card[data-player="p1"] { --ticket-player: #74f4ff; }
-.game-ui .bistro-hud-top .order-card[data-player="p2"] { --ticket-player: #ffd166; }
-.game-ui .bistro-hud-top .order-card[data-player="p3"] { --ticket-player: #ff7eb6; }
-.game-ui .bistro-hud-top .order-card[data-player="p4"] { --ticket-player: #8cff7a; }
+   per cook (PLAYER_COLORS in src/data/players.ts: green, blue, red, yellow). */
+.game-ui .bistro-hud-top .order-card[data-player="p1"] { --ticket-player: #4fd96b; }
+.game-ui .bistro-hud-top .order-card[data-player="p2"] { --ticket-player: #4a9dff; }
+.game-ui .bistro-hud-top .order-card[data-player="p3"] { --ticket-player: #ff5a5f; }
+.game-ui .bistro-hud-top .order-card[data-player="p4"] { --ticket-player: #ffc93c; }
 .game-ui .bistro-hud-top .order-card:is([data-player="p1"], [data-player="p2"], [data-player="p3"], [data-player="p4"]) .order-card-dish {
   border-color: var(--ticket-player);
   box-shadow: inset 0 4px 0 var(--ticket-player);
@@ -901,4 +901,58 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .game-ui .selection-screen[data-step="home"] .bistro-home-video { display: none; }
+}
+
+/*
+ * Notifications: a stack beside the shift clock, bottom right, newest nearest the clock.
+ * One self-contained style per tone, background and text together, at a specificity no
+ * other theme reaches: cosmic.css used to paint the box dark per tone while this file
+ * kept the text navy (dark on dark), and the info card fell back to near-white text on
+ * a near-white paper. Dark card, light text and a coloured edge read on any floor.
+ */
+.game-ui .hud-layer .notification-region {
+  --clock-room: calc(max(.75rem, env(safe-area-inset-right)) + clamp(5.8rem, 13vw, 9.4rem) + .6rem);
+  position: absolute;
+  inset: auto var(--clock-room) max(.65rem, env(safe-area-inset-bottom)) auto;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: .4rem;
+  width: min(23rem, 46vw);
+  margin: 0;
+  pointer-events: none;
+}
+.game-ui .hud-layer .notification-region .game-notification,
+.game-ui .hud-layer .notification-region .game-notification[data-tone] {
+  --tone: #5fc8ff;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  max-width: 100%;
+  margin: 0;
+  padding: .45rem .75rem .45rem .55rem;
+  border: 2px solid color-mix(in srgb, var(--tone) 70%, #0b1d3a);
+  border-left-width: .4rem;
+  border-left-color: var(--tone);
+  border-radius: .7rem;
+  background: #0b1d3af2;
+  background-image: none;
+  box-shadow: 0 .25rem .8rem #030d21b0;
+  color: #f4f9ff;
+  font: 800 clamp(.78rem, 1.4vw, .95rem)/1.25 var(--bistro-font, Nunito, sans-serif);
+  text-shadow: none;
+}
+.game-ui .hud-layer .notification-region .game-notification[data-tone="success"] { --tone: #3ddc84; }
+.game-ui .hud-layer .notification-region .game-notification[data-tone="warning"] { --tone: #ffb020; }
+.game-ui .hud-layer .notification-region .game-notification[data-tone="error"] { --tone: #ff5d78; }
+.game-ui .hud-layer .notification-region .game-notification .notification-copy {
+  color: #f4f9ff;
+  text-shadow: none;
+}
+@media (max-width: 650px) {
+  /* No room beside the clock: the stack sits just above it, across the screen. */
+  .game-ui .hud-layer .notification-region {
+    inset: auto max(.75rem, env(safe-area-inset-right)) calc(max(.65rem, env(safe-area-inset-bottom)) + 3.4rem) max(.75rem, env(safe-area-inset-left));
+    width: auto;
+  }
 }

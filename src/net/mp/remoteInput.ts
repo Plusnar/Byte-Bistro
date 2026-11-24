@@ -176,22 +176,35 @@ const PHONE_LABELS: Partial<Record<InputAction, string>> = {
   emote: "Y",
 };
 
-/** Past this stick deflection the cook runs, like an analog stick pushed all the way. */
-export const AUTO_RUN_THRESHOLD = 0.92;
+/**
+ * A phone's stick only steers: any push past this (after the phone's own deadzone and the
+ * host's smoothing) moves the cook at full running speed in that direction, however far
+ * the thumb went. A touchscreen gives no feel for "how far", so partial speeds read as lag.
+ */
+export const STICK_MOVE_THRESHOLD = 0.05;
 
 /** Feeds a phone's state into an InputManager, alongside keyboard and gamepads. */
 export class RemoteInputDevice implements InputDevice {
   readonly state = new RemoteControllerState();
   axisX = 0;
   axisY = 0;
-  autoRun = true;
+  /** Stick moves at full running speed in any direction pushed (see STICK_MOVE_THRESHOLD). */
+  fullSpeed = true;
 
   constructor(readonly id: string, private readonly mapping: PhoneButtonActions = PHONE_BUTTON_ACTIONS) {}
 
   poll(nowMs: number, deltaSeconds: number): void {
     this.state.step(nowMs, deltaSeconds);
-    this.axisX = this.state.x;
-    this.axisY = this.state.y;
+    const x = this.state.x;
+    const y = this.state.y;
+    const length = Math.hypot(x, y);
+    if (this.fullSpeed && length >= STICK_MOVE_THRESHOLD) {
+      this.axisX = x / length;
+      this.axisY = y / length;
+    } else {
+      this.axisX = this.fullSpeed ? 0 : x;
+      this.axisY = this.fullSpeed ? 0 : y;
+    }
   }
 
   collectHeld(out: Set<InputAction>): void {
@@ -200,7 +213,7 @@ export class RemoteInputDevice implements InputDevice {
       const action = held & (1 << bit) ? this.mapping[BUTTONS[bit]!] : undefined;
       if (action) out.add(action);
     }
-    if (this.autoRun && Math.hypot(this.axisX, this.axisY) >= AUTO_RUN_THRESHOLD) out.add("run");
+    if (this.fullSpeed && (this.axisX !== 0 || this.axisY !== 0)) out.add("run");
   }
 
   labelFor(action: InputAction): string | null {

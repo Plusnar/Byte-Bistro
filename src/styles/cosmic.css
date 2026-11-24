@@ -183,10 +183,10 @@
   background: var(--space-surface);
   box-shadow: var(--space-shadow);
 }
-.game-ui .pick-hint-p2 { border-color: var(--space-pink); box-shadow: 0 0 18px #ff71dc40, inset 0 0 0 3px #241743; }
+.game-ui .pick-hint-p2 { border-color: var(--player-color); box-shadow: 0 0 18px color-mix(in srgb, var(--player-color) 25%, transparent), inset 0 0 0 3px #241743; }
 .game-ui .pick-hint strong { color: var(--space-white); }
 .game-ui .pick-badge { border: 1px solid #bdffff; border-radius: 7px; background: linear-gradient(#8af5ff, #15cef3); }
-.game-ui .pick-hint-p2 .pick-badge { border-color: #ffd8f6; background: linear-gradient(#ffb0eb, #ef66d3); }
+.game-ui .pick-hint-p2 .pick-badge { border-color: #ffffffb0; background: var(--player-color); }
 
 /* Buttons: glossy faces and physical inset edges, with clear keyboard focus. */
 .game-ui .primary-action {
@@ -228,8 +228,8 @@
   background: linear-gradient(145deg, #fff, #e4f7ff);
   box-shadow: 0 4px 0 #0c2051, 0 0 0 2px #21519b, 0 0 13px #14caff45, inset 0 0 0 3px #ffffffb3;
 }
-.game-ui .order-card[data-player='p1'] { --ticket-accent: var(--space-cyan); }
-.game-ui .order-card[data-player='p2'] { --ticket-accent: var(--space-pink); background: linear-gradient(145deg, #fff, #fbe3f7); }
+.game-ui .order-card[data-player='p1'] { --ticket-accent: #4fd96b; }
+.game-ui .order-card[data-player='p2'] { --ticket-accent: #4a9dff; }
 .game-ui .order-card[data-lead='1'] { box-shadow: 0 4px 0 #0c2051, 0 0 0 2px var(--ticket-accent), 0 0 18px #14caff55, inset 0 0 0 3px #fff; }
 .game-ui .order-card-dish { border: 1px solid #99d8ee; border-radius: 11px; background: radial-gradient(ellipse at top, #ffffffaa, #ffffff00), color-mix(in srgb, var(--ticket-accent) 32%, white); }
 .game-ui .order-card-timer { border: 1px solid #e6ffff; border-radius: 8px; background: linear-gradient(#7febff, #28ccf1); box-shadow: 0 2px 0 #328eb8; }

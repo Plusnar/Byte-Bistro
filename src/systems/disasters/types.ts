@@ -72,6 +72,8 @@ export interface DisasterHost {
   notify(message: string, tone: DisasterTone): void;
   /** Trembles the view by `amount` metres, fading out over `seconds`. */
   shake(amount: number, seconds: number): void;
+  /** A disaster just broke out: the whole room feels it (screen jolt, phones buzz). */
+  alarm?(kind: DisasterKind): void;
   stationViews(): readonly DisasterStationView[];
   /** Flings everything lying on the floor within `radius` of (x, z) away from it. */
   scatterFloorItems(x: number, z: number, radius: number, power: number): void;

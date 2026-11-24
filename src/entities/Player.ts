@@ -61,6 +61,9 @@ export interface PlayerOptions {
   deceleration?: number;
   movementRotation?: number;
   assetManager?: AssetManager;
+  /** A tag floating over the cook ("P1" in their colour), so two cooks in the same outfit
+   *  are told apart. None when omitted. */
+  tag?: { readonly label: string; readonly color: string };
 }
 
 const ROTATION_RESPONSE = 13;
@@ -70,6 +73,8 @@ const STAND_UP_DURATION = 0.55;
 const LYING_PITCH = -Math.PI / 2;
 const LYING_VISUAL_Y = 0.34;
 const STUN_BADGE_HEIGHT = 2.1;
+/** The player tag floats here, over the head; the stun stars take its place while down. */
+const PLAYER_TAG_HEIGHT = 2.05;
 /**
  * How far the body steps in towards the board or the sink while working at it. The collider keeps a
  * wider berth than the cooks' bodies need, which would leave their hands short of it.
@@ -116,6 +121,8 @@ export class Player {
   private dash: DashState = IDLE_DASH;
   private readonly slideVelocity = new Vector3();
   private readonly stunBadge: Mesh;
+  private readonly tag: Mesh | null = null;
+  private tagTexture: DynamicTexture | null = null;
   private readonly stunTexture: DynamicTexture;
   private carriedVisual: IngredientVisual | null = null;
   private readonly assets: AssetManager | null;
@@ -285,6 +292,26 @@ export class Player {
     this.stunBadge.material = stunMaterial;
     this.stunBadge.setEnabled(false);
 
+    if (options.tag) {
+      this.tagTexture = this.createTagTexture(sequence, options.tag.label, options.tag.color);
+      const tag = MeshBuilder.CreatePlane(`byte-tag-${sequence}`, { width: 0.74, height: 0.37 }, scene);
+      tag.parent = this.stepNode;
+      tag.position.y = PLAYER_TAG_HEIGHT;
+      tag.billboardMode = Mesh.BILLBOARDMODE_ALL;
+      tag.isPickable = false;
+      // Drawn over the scene like the stun stars, so a counter or another cook never hides it.
+      tag.renderingGroupId = 1;
+      const tagMaterial = new StandardMaterial(`byte-tag-mat-${sequence}`, scene);
+      tagMaterial.diffuseTexture = this.tagTexture;
+      tagMaterial.emissiveTexture = this.tagTexture;
+      tagMaterial.useAlphaFromDiffuseTexture = true;
+      tagMaterial.disableLighting = true;
+      tagMaterial.backFaceCulling = false;
+      this.ownedMaterials.push(tagMaterial);
+      tag.material = tagMaterial;
+      this.tag = tag;
+    }
+
     this.characterController = options.assetManager
       ? new CharacterController(scene, options.assetManager, this.stepNode, GAME_CONFIG.characterLift)
       : null;
@@ -420,6 +447,8 @@ export class Player {
     bounds?: Readonly<MovementBounds>,
   ): void {
     const delta = Math.min(Math.max(deltaSeconds, 0), 0.05);
+    // The tag steps aside while the stun stars spin where it floats.
+    if (this.tag && this.tag.isEnabled() === this.stunBadge.isEnabled()) this.tag.setEnabled(!this.stunBadge.isEnabled());
     this.dash = advanceDash(this.dash, delta);
     this.stepOffset = easeStepOffset(this.stepOffset, delta);
     this.stepNode.position.y = this.stepOffset;
@@ -945,6 +974,8 @@ export class Player {
     this.knife = null;
     this.faceTexture.dispose();
     this.stunTexture.dispose();
+    this.tagTexture?.dispose();
+    this.tagTexture = null;
     for (const material of this.ownedMaterials) {
       material.dispose();
     }
@@ -978,6 +1009,37 @@ export class Player {
     if (loaded) adopt(loaded);
     else void this.assets.instantiateModel(id, options).then(adopt);
     this.characterController.setKnifeProp(holder);
+  }
+
+  /** A rounded pill in the player's colour with their label ("P1"), drawn once. */
+  private createTagTexture(sequence: number, label: string, color: string): DynamicTexture {
+    const width = 256;
+    const height = 128;
+    const texture = new DynamicTexture(`byte-tag-texture-${sequence}`, { width, height }, this.scene, true);
+    texture.hasAlpha = true;
+    const context = texture.getContext() as unknown as CanvasRenderingContext2D;
+    context.clearRect(0, 0, width, height);
+    const inset = 10;
+    const radius = (height - inset * 2) / 2;
+    context.beginPath();
+    context.moveTo(inset + radius, inset);
+    context.arcTo(width - inset, inset, width - inset, height - inset, radius);
+    context.arcTo(width - inset, height - inset, inset, height - inset, radius);
+    context.arcTo(inset, height - inset, inset, inset, radius);
+    context.arcTo(inset, inset, width - inset, inset, radius);
+    context.closePath();
+    context.fillStyle = color;
+    context.fill();
+    context.lineWidth = 10;
+    context.strokeStyle = "#0d1b2a";
+    context.stroke();
+    context.font = "900 68px Nunito, 'Arial Black', sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = "#0d1b2a";
+    context.fillText(label, width / 2, height / 2 + 4);
+    texture.update();
+    return texture;
   }
 
   /** Three dizzy stars, drawn once per player and shown while they are down. */

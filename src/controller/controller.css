@@ -17,7 +17,7 @@
   --orange: #ff9400;
   --red: #ff688d;
   --green: #66f4cf;
-  --cook: #74f4ff;
+  --cook: #4fd96b;
   --font: Nunito, "Segoe UI", system-ui, sans-serif;
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
@@ -158,37 +158,32 @@ input { font: inherit; -webkit-user-select: text; user-select: text; touch-actio
   box-shadow: inset 0 0 3rem #000;
   overflow: hidden;
   touch-action: none;
-  /* Its own stacking context, so the disaster art below sits over the pad's background
-     but under every control. */
+  /* Its own stacking context, so the theme below sits over the pad's background but
+     under every control. */
   isolation: isolate;
 }
 .pad[hidden] { display: none; }
 
 /*
- * A disaster playing in the kitchen: the pad's background becomes its art, darkened so
- * the stick and buttons stay readable, and fades back out when it ends. Only the
- * background changes.
+ * The player's theme: one design for everyone, tinted with the colour they joined with
+ * (--cook: green, blue, red or yellow). Built from gradients only, so it fills any phone
+ * at any size or aspect without stretching an image. Tilted stripes and a soft glow from
+ * two corners, darkened in the middle where the stick and buttons sit.
  */
 .pad::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(#00000094, #0000007a), var(--theme-art, none) center / cover no-repeat;
-  opacity: 0;
-  transition: opacity .35s ease;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 50%, #04060cd0, transparent 75%),
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--cook) 55%, transparent), transparent 45%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--cook) 45%, transparent), transparent 50%),
+    repeating-linear-gradient(-35deg,
+      color-mix(in srgb, var(--cook) 14%, transparent) 0 1.1rem,
+      transparent 1.1rem 2.6rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--cook) 30%, #071226), #050a16 70%);
   pointer-events: none;
-}
-.pad[data-theme]::before { opacity: 1; }
-.pad[data-theme="inverted"] { --theme-art: url("/assets/ui/phone/inverted.webp"); }
-.pad[data-theme="ufo"] { --theme-art: url("/assets/ui/phone/ufo.webp"); }
-.pad[data-theme="lightning"] { --theme-art: url("/assets/ui/phone/lightning.webp"); }
-.pad[data-theme="tomatoes"] { --theme-art: url("/assets/ui/phone/tomatoes.webp"); }
-.pad[data-theme="tesla"] { --theme-art: url("/assets/ui/phone/tesla.webp"); }
-.pad[data-theme="flood"] { --theme-art: url("/assets/ui/phone/flood.webp"); }
-.pad[data-theme="rats"] { --theme-art: url("/assets/ui/phone/rats.webp"); }
-@media (prefers-reduced-motion: reduce) {
-  .pad::before { transition: none; }
 }
 
 .corner-btn, .round-btn {

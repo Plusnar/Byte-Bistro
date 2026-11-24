@@ -36,6 +36,7 @@ const CARDS: Readonly<Record<DisasterKind, { readonly icon: string; readonly tit
 export const disasterCard = (kind: DisasterKind): DisasterCard => {
   const card = CARDS[kind];
   return {
+    kind,
     icon: card.icon,
     title: t(card.title),
     detail: t(card.detail),
@@ -165,6 +166,7 @@ export class PunishmentSystem {
           this.host.overlay.hideWarning();
           const disaster = this.factory(state.kind, this.host);
           disaster.start();
+          this.host.alarm?.(state.kind);
           this.state = { name: "active", disaster, elapsed: 0 };
         }
         break;

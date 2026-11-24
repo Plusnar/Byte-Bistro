@@ -85,6 +85,9 @@ const whenIdle = (callback: () => void): void => {
  *   3. background: cooks nobody picked, levels nobody opened — fetched in idle time or when
  *      asked for.
  */
+/** How long the phones vibrate as a disaster breaks out (the protocol allows up to 400). */
+const DISASTER_BUZZ_MS = 380;
+
 export class Game {
   private readonly engine: AbstractEngine;
   private readonly sceneManager: SceneManager;
@@ -466,6 +469,8 @@ export class Game {
     const kitchen = this.createKitchen(this.persistentState, levelMap, entry?.scenarioId);
     kitchen.setCookCount(this.ui.players);
     this.kitchenScene = kitchen;
+    // A disaster breaking out shakes the screen (in the scene) and buzzes every phone.
+    kitchen.onDisasterStart = () => this.phoneHub?.buzzAll(DISASTER_BUZZ_MS);
     this.sceneManager.set(kitchen);
     // Phones and gamepads move to the new kitchen's cooks.
     this.gamepads.attachKitchen(kitchen.cookInputs);
@@ -712,8 +717,7 @@ export class Game {
     }
     const kitchen = this.kitchenScene;
     if (!kitchen || kitchen.shiftPhase !== "playing" || this.overlayOpen()) return menu;
-    // A disaster playing in the kitchen dresses every cook's pad in its background.
-    return slot < kitchen.cookCount ? { layout: "game", leader, theme: kitchen.activeDisaster } : WAITING;
+    return slot < kitchen.cookCount ? { layout: "game", leader } : WAITING;
   }
 
   /** A dialog (account, collection, confirm box) is open over the game. */

@@ -13,7 +13,7 @@
 import "./controller.css";
 import { initLanguage, t, type MessageKey } from "../i18n";
 import { ControllerSession, type ControllerStatus, type ControllerView } from "../net/mp/ControllerSession";
-import { BUTTONS, PHONE_THEMES, isRoomCode, normalizeRoomCode, type PadLayout, type PhoneButton, type PhoneTheme, type TransportKind } from "../net/mp/protocol";
+import { BUTTONS, isRoomCode, normalizeRoomCode, type PadLayout, type PhoneButton, type TransportKind } from "../net/mp/protocol";
 import { dpadDirection, stickVector, type DpadDirection } from "./stick";
 
 initLanguage(null);
@@ -515,26 +515,6 @@ const applyLayout = (next: PadLayout): void => {
   q("[data-ui=pad-hint]").textContent = next === "menu" ? t("phone.menuHint") : next === "select" ? t("phone.selectHint") : "";
 };
 
-/**
- * A disaster playing in the kitchen swaps the pad's background (nothing else) for its
- * art, and takes it back when it ends. The art is fetched as soon as the pad first goes
- * into play, so the first disaster does not flash an empty background.
- */
-let shownTheme: PhoneTheme | null = null;
-let themesPreloaded = false;
-const themeArt = (theme: PhoneTheme): string => `/assets/ui/phone/${theme}.webp`;
-
-const applyTheme = (theme: PhoneTheme | null): void => {
-  if (layout === "game" && !themesPreloaded) {
-    themesPreloaded = true;
-    for (const each of PHONE_THEMES) new Image().src = themeArt(each);
-  }
-  if (theme === shownTheme) return;
-  shownTheme = theme;
-  if (theme) pad.dataset.theme = theme;
-  else delete pad.dataset.theme;
-};
-
 function render(next: ControllerView): void {
   view = next;
   const errorState = ERROR_STATES.has(next.status);
@@ -549,9 +529,8 @@ function render(next: ControllerView): void {
   }
   if (shownScreen !== "pad") show("pad");
   applyLayout(next.layout);
-  applyTheme(next.layout === "game" ? next.theme : null);
 
-  const color = next.cook?.color ?? me?.color ?? "#74f4ff";
+  const color = next.cook?.color ?? me?.color ?? "#4fd96b";
   document.documentElement.style.setProperty("--cook", color);
   const label = next.cook?.label ?? `P${(me?.slot ?? 0) + 1}`;
   q("[data-ui=badge]").textContent = label;

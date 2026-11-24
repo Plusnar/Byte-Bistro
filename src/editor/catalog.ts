@@ -1,4 +1,5 @@
 import { getLanguage, t, translate } from "../i18n";
+import { PLAYER_COLORS } from "../data/players";
 import { portugueseAssetName } from "../i18n/assetNames";
 import { ASSET_LIBRARY, libraryLabel } from "../data/assetLibrary";
 import { isSolidByDefault } from "../physics/collisionPolicy";
@@ -228,10 +229,10 @@ export const kitchenCrateEntry = (ingredientId: string): EditorAssetEntry => ({
 
 export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
   const entries: EditorAssetEntry[] = [
-    { assetId: "build-player-spawn-1", get label() { return t("editor.spawn1"); }, category: "spawn", role: "spawn", playerIndex: 1, color: "#55F3EC" },
-    { assetId: "build-player-spawn-2", get label() { return t("editor.spawn2"); }, category: "spawn", role: "spawn", playerIndex: 2, color: "#FF65C3" },
-    { assetId: "build-player-spawn-3", get label() { return t("editor.spawn3"); }, category: "spawn", role: "spawn", playerIndex: 3, color: "#FFD166" },
-    { assetId: "build-player-spawn-4", get label() { return t("editor.spawn4"); }, category: "spawn", role: "spawn", playerIndex: 4, color: "#8CFF7A" },
+    { assetId: "build-player-spawn-1", get label() { return t("editor.spawn1"); }, category: "spawn", role: "spawn", playerIndex: 1, color: PLAYER_COLORS[0] },
+    { assetId: "build-player-spawn-2", get label() { return t("editor.spawn2"); }, category: "spawn", role: "spawn", playerIndex: 2, color: PLAYER_COLORS[1] },
+    { assetId: "build-player-spawn-3", get label() { return t("editor.spawn3"); }, category: "spawn", role: "spawn", playerIndex: 3, color: PLAYER_COLORS[2] },
+    { assetId: "build-player-spawn-4", get label() { return t("editor.spawn4"); }, category: "spawn", role: "spawn", playerIndex: 4, color: PLAYER_COLORS[3] },
     { assetId: "build-floor", get label() { return t("editor.modularFloor"); }, category: "room", role: "decor", color: "#64758a" },
     { assetId: "build-wall", get label() { return t("editor.modularWall"); }, category: "room", role: "decor", color: "#a9bccc" },
     { assetId: "build-block", get label() { return t("editor.blockCounter"); }, category: "storage", role: "decor", color: "#d5a26c" },

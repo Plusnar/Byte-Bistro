@@ -81,6 +81,14 @@ export class PhoneHub {
     this.render();
   }
 
+  /**
+   * Vibrates every player's phone (Android; iOS browsers have no vibration API and keep
+   * the on-screen feedback only).
+   */
+  buzzAll(ms: number): void {
+    this.session?.buzzAll(ms);
+  }
+
   /** The kitchen changed (new level, rebuilt): phones move to its cooks' inputs. */
   attachKitchen(inputs: readonly InputManager[]): void {
     this.detachAll();

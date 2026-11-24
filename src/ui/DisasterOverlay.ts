@@ -3,6 +3,8 @@ import { publicUrl } from "../utils/assetUrl";
 
 /** What a disaster card shows: its glyph, title and one line of advice. */
 export interface DisasterCard {
+  /** Which disaster, for its art (public/assets/ui/disasters/<kind>.webp). */
+  readonly kind: string;
   readonly icon: string;
   readonly title: string;
   readonly detail: string;
@@ -27,6 +29,11 @@ export class DisasterOverlay {
   private readonly clockGlyph: HTMLElement;
   private readonly clockSeconds: HTMLElement;
   private readonly flashLayer: HTMLElement;
+  /** The alert card that rises from the bottom corner as a disaster is announced. */
+  private readonly alert: HTMLElement;
+  private readonly alertArt: HTMLImageElement;
+  private readonly alertTitle: HTMLElement;
+  private readonly alertDetail: HTMLElement;
   /** What the clock is counting, so text is only rewritten when it changes. */
   private phase: "idle" | "warning" | "active" = "idle";
   private card: DisasterCard | null = null;
@@ -48,11 +55,50 @@ export class DisasterOverlay {
     this.clockSeconds = this.make("strong", "penalty-clock-seconds");
     this.clock.append(face, this.clockGlyph, this.clockSeconds);
     this.flashLayer = this.make("div", "disaster-flash");
-    layer.append(this.vignette, this.chaosChip, this.clock, this.flashLayer);
+
+    // One card, reused for every disaster: art on top, then what it is and what to do.
+    // Its whole rise, hold and fall is one CSS animation, so no timer has to own it; it
+    // hides itself when the animation ends.
+    this.alert = this.make("section", "disaster-alert");
+    this.alert.hidden = true;
+    this.alert.setAttribute("role", "alert");
+    this.alertArt = document.createElement("img");
+    this.alertArt.className = "disaster-alert-art";
+    this.alertArt.alt = "";
+    const copy = this.make("div", "disaster-alert-copy");
+    const eyebrow = this.make("small", "disaster-alert-eyebrow");
+    eyebrow.dataset.i18n = "disaster.imminent";
+    eyebrow.textContent = t("disaster.imminent");
+    this.alertTitle = this.make("strong", "disaster-alert-title");
+    this.alertDetail = this.make("p", "disaster-alert-detail");
+    copy.append(eyebrow, this.alertTitle, this.alertDetail);
+    this.alert.append(this.alertArt, copy);
+    this.alert.addEventListener("animationend", (event) => {
+      if (event.target === this.alert) this.alert.hidden = true;
+    });
+
+    layer.append(this.vignette, this.chaosChip, this.clock, this.alert, this.flashLayer);
+  }
+
+  /**
+   * Raises the alert card for a disaster about to break out: its art, name and advice,
+   * in the current language. It rises from the bottom corner, holds, then drops away.
+   */
+  private raiseAlert(card: DisasterCard): void {
+    this.alertArt.src = publicUrl(`assets/ui/disasters/${card.kind}.webp`);
+    this.alertTitle.textContent = card.title;
+    this.alertDetail.textContent = card.detail;
+    this.alert.dataset.kind = card.kind;
+    this.alert.hidden = false;
+    // Restart the animation even if the previous alert is still on screen.
+    this.alert.classList.remove("is-rising");
+    void this.alert.offsetWidth;
+    this.alert.classList.add("is-rising");
   }
 
   /** Starts the clock on the warning before a disaster, counting down from `seconds`. */
   showWarning(card: DisasterCard, seconds: number): void {
+    this.raiseAlert(card);
     this.enter("warning", card);
     this.updateWarning(seconds);
   }
@@ -75,7 +121,8 @@ export class DisasterOverlay {
       if (this.phase === "active") this.leave();
       return;
     }
-    if (this.phase !== "active" || this.card !== card) this.enter("active", card);
+    // Cards are rebuilt every frame, so the same disaster is recognised by its kind.
+    if (this.phase !== "active" || this.card?.kind !== card.kind) this.enter("active", card);
     this.tick(secondsLeft);
   }
 
@@ -134,13 +181,15 @@ export class DisasterOverlay {
   /** Back to a calm screen, as at the start of a shift. */
   reset(): void {
     this.leave();
+    this.alert.hidden = true;
+    this.alert.classList.remove("is-rising");
     this.setChaos(0);
     this.flashLayer.classList.remove("is-flashing");
   }
 
   dispose(): void {
     this.reset();
-    for (const element of [this.vignette, this.chaosChip, this.clock, this.flashLayer]) element.remove();
+    for (const element of [this.vignette, this.chaosChip, this.clock, this.alert, this.flashLayer]) element.remove();
   }
 
   private make(tag: string, className: string, text?: string): HTMLElement {

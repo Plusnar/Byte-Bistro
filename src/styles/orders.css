@@ -576,8 +576,8 @@
 }
 
 /* Player one stands on the left of frame, player two on the right. */
-.game-ui .pick-hint-p1 { left: 12%; border-color: #178fa6; }
-.game-ui .pick-hint-p2 { right: 12%; border-color: #b8397f; }
+.game-ui .pick-hint-p1 { left: 12%; border-color: var(--player-color); }
+.game-ui .pick-hint-p2 { right: 12%; border-color: var(--player-color); }
 
 .game-ui .pick-badge {
   padding: 2px 11px;
@@ -589,7 +589,7 @@
   font-weight: 800;
 }
 
-.game-ui .pick-hint-p2 .pick-badge { background: #ff9ad4; }
+.game-ui .pick-hint .pick-badge { background: var(--player-color, var(--order-cyan)); }
 
 .game-ui .pick-keys { display: flex; gap: 5px; }
 

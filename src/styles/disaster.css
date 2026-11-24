@@ -150,3 +150,68 @@
   .game-ui .disaster-chaos-chip,
   .game-ui .disaster-vignette.is-on { animation: none; }
 }
+
+/*
+ * The disaster alert: a card that rises from the bottom-right corner as a disaster is
+ * announced (it may cover the shift clock), holds while the warning counts down, then
+ * drops back out of sight. Every disaster uses the same card; only its art and text change.
+ */
+.game-ui .disaster-alert {
+  position: absolute;
+  right: max(.75rem, env(safe-area-inset-right));
+  bottom: max(.75rem, env(safe-area-inset-bottom));
+  z-index: 2;
+  width: min(25rem, calc(100vw - 1.5rem));
+  overflow: hidden;
+  border: 3px solid #ff5d78;
+  border-radius: 1rem;
+  background: #0b1d3a;
+  box-shadow: 0 .6rem 1.6rem #030d21d0, 0 0 0 4px #ff5d7833;
+  color: #f4f9ff;
+  transform: translateY(calc(100% + 2rem));
+}
+.game-ui .disaster-alert[hidden] { display: none; }
+.game-ui .disaster-alert.is-rising { animation: disaster-alert-rise 3.4s cubic-bezier(.2, .9, .3, 1) both; }
+.game-ui .disaster-alert-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  object-fit: cover;
+  border-bottom: 3px solid #ff5d78;
+}
+.game-ui .disaster-alert-copy { display: grid; gap: .15rem; padding: .6rem .85rem .75rem; }
+.game-ui .disaster-alert-eyebrow {
+  color: #ff8fa3;
+  font: 900 .72rem/1 var(--bistro-font, Nunito, sans-serif);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.game-ui .disaster-alert-title {
+  color: #ffd166;
+  font: 900 clamp(1.05rem, 2.2vw, 1.4rem)/1.1 var(--bistro-font, Nunito, sans-serif);
+  text-shadow: 0 2px 0 #030d21;
+  overflow-wrap: anywhere;
+}
+.game-ui .disaster-alert-detail {
+  margin: 0;
+  color: #dbe9ff;
+  font: 700 clamp(.8rem, 1.5vw, .95rem)/1.3 var(--bistro-font, Nunito, sans-serif);
+  overflow-wrap: anywhere;
+}
+@keyframes disaster-alert-rise {
+  0% { transform: translateY(calc(100% + 2rem)); }
+  13% { transform: translateY(0); }
+  87% { transform: translateY(0); }
+  100% { transform: translateY(calc(100% + 2rem)); }
+}
+@media (max-width: 650px) {
+  .game-ui .disaster-alert-art { aspect-ratio: 16 / 6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No slide: the card simply shows for the same time, then goes. */
+  .game-ui .disaster-alert.is-rising { animation: disaster-alert-still 3.4s steps(1, end) both; }
+}
+@keyframes disaster-alert-still {
+  from { transform: none; }
+  to { transform: translateY(calc(100% + 2rem)); }
+}
