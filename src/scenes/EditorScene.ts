@@ -1,6 +1,7 @@
 import { formatNumber, t } from "../i18n";
 import { moveCameraTarget } from "./editorCamera";
 import { INGREDIENT_ASSETS } from "../data/ingredientAssets";
+import { MIXER_ASSET_ID, OVEN_ASSET_ID, STATION_ASSETS } from "../data/stationAssets";
 import { ASSET_LIBRARY } from "../data/assetLibrary";
 import { createBuildingMesh } from "../editor/building";
 import { mapRequirements } from "../editor/validation";
@@ -321,6 +322,7 @@ export class EditorScene implements ManagedScene {
       })),
       ...SCENARIO_ASSETS,
       ...INGREDIENT_ASSETS,
+      ...STATION_ASSETS,
       ...ASSET_LIBRARY,
     ]);
 
@@ -1126,9 +1128,20 @@ export class EditorScene implements ManagedScene {
     const body = new TransformNode(`editor-body-${object.id}`, this.scene);
     body.parent = root;
     let instance: ModelInstance | null = null;
-    let proxy: Mesh | null = createBuildingMesh(object.assetId, this.scene, body, object.color);
+    // An oven is always drawn as the game's oven, whatever model an older map saved for it
+    // (they stored a counter), and at its own authored size: the tile scale is undone.
+    const isOven = object.role === "station" && object.stationId === "oven";
+    const modelId = isOven ? OVEN_ASSET_ID : object.assetId;
+    if (isOven) {
+      body.scaling.set(
+        1 / (Math.abs(object.scale.x) || 1),
+        1 / (Math.abs(object.scale.y) || 1),
+        1 / (Math.abs(object.scale.z) || 1),
+      );
+    }
+    let proxy: Mesh | null = createBuildingMesh(modelId, this.scene, body, object.color);
     try {
-      if (!proxy) instance = await this.assets.instantiateModel(object.assetId, {
+      if (!proxy) instance = await this.assets.instantiateModel(modelId, {
         namePrefix: `editor-${object.id}-`,
         parent: body,
         cloneMaterials: false,
@@ -1975,10 +1988,26 @@ export class EditorScene implements ManagedScene {
   private async dressStation(object: MapPlacedObject, root: TransformNode): Promise<TransformNode | null> {
     const kind = object.stationId;
     const models = stationDressing(kind);
-    if (models.length === 0 && !showsExtinguisher(kind)) return null;
+    const showsMixer = object.role === "station" && kind === "mixer";
+    if (models.length === 0 && !showsExtinguisher(kind) && !showsMixer) return null;
     const node = new TransformNode(`editor-dressing-${object.id}`, this.scene);
     node.parent = root;
     this.unscaleDressing(node, object);
+    if (showsMixer) {
+      // The stand mixer the game sets on this counter (WorkstationView, "mixer").
+      const stand = new TransformNode(`${node.name}-mixer`, this.scene);
+      stand.parent = node;
+      stand.position.y = COUNTER_HEIGHT;
+      try {
+        await this.assets.instantiateModel(MIXER_ASSET_ID, {
+          namePrefix: `${stand.name}-`,
+          parent: stand,
+          cloneMaterials: false,
+        });
+      } catch (error) {
+        console.warn(`Editor could not dress ${object.assetId} with the mixer`, error);
+      }
+    }
     if (showsExtinguisher(kind)) {
       const stand = new TransformNode(`${node.name}-extinguisher`, this.scene);
       stand.parent = node;

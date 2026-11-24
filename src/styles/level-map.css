@@ -94,46 +94,17 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: min(340px, calc(100% - 32px));
-  padding: 20px 22px 22px;
+  width: clamp(210px, 24vw, 340px);
+  padding: clamp(12px, 1.5vw, 22px);
   border: 2px solid var(--card-accent);
   border-radius: 22px 22px 25px 13px;
   background: linear-gradient(145deg, #ffffff, #fff4df);
   color: #152d54;
   box-shadow: 0 6px 0 #10204d, 0 0 0 4px #133567, 0 0 0 5px var(--card-accent), 0 0 26px #ffc35b55, inset 0 0 0 5px #ffffffb3;
-  opacity: 0;
-  transform: translate(28px, -50%) scale(0.94);
-  transform-origin: right center;
-  transition: opacity 200ms ease, transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
-}
-
-.level-window[data-open="true"] {
-  opacity: 1;
-  transform: translate(0, -50%) scale(1);
+  transform: translateY(-50%);
 }
 
 .level-window[hidden] { display: none; }
-
-.level-window-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #b7d0e2;
-  border-radius: 10px;
-  background: #ffffffc0;
-  color: #29456a;
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.level-window-close:hover,
-.level-window-close:focus-visible {
-  background: #fff;
-  outline: 2px solid var(--card-accent);
-}
 
 .level-window-kind {
   align-self: flex-start;
@@ -150,7 +121,6 @@
 
 .level-window-title {
   margin: 0;
-  padding-right: 28px;
   font-size: 22px;
   font-weight: 900;
   line-height: 1.15;
@@ -177,12 +147,12 @@
   filter: drop-shadow(0 2px 0 #b8700f66);
 }
 
-.level-window[data-open="true"] .rank-star[data-filled="true"] {
+.level-window .rank-star[data-filled="true"] {
   animation: rank-star-pop 420ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
 }
 
-.level-window[data-open="true"] .rank-star[data-filled="true"]:nth-child(2) { animation-delay: 90ms; }
-.level-window[data-open="true"] .rank-star[data-filled="true"]:nth-child(3) { animation-delay: 180ms; }
+.level-window .rank-star[data-filled="true"]:nth-child(2) { animation-delay: 90ms; }
+.level-window .rank-star[data-filled="true"]:nth-child(3) { animation-delay: 180ms; }
 
 @keyframes rank-star-pop {
   from { transform: scale(0.4) rotate(-25deg); opacity: 0; }
@@ -310,23 +280,26 @@
 
 @media (max-width: 720px) {
   .level-map-stage { height: clamp(320px, 62vh, 620px); border-radius: 20px; }
-  .level-window {
+  .game-ui .level-window {
     top: auto;
     right: 12px;
-    bottom: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
     left: 12px;
     width: auto;
-    transform: translateY(24px) scale(0.97);
-    transform-origin: center bottom;
+    max-block-size: min(38dvh, 265px);
+    gap: 5px;
+    padding: 11px 14px;
+    transform: none;
   }
-  .level-window[data-open="true"] { transform: none; }
+  .level-window .rank-star { width: 22px; height: 22px; }
+  .level-window-kind { padding-block: 3px; }
+  .level-window-title { font-size: 18px; }
+  .level-window-play { margin-top: 2px; }
   .level-map-hint { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .level-window,
-  .level-window[data-open="true"] .rank-star[data-filled="true"] {
-    transition: none;
+  .level-window .rank-star[data-filled="true"] {
     animation: none;
   }
 }
@@ -384,11 +357,13 @@
 .game-ui .level-window { color: #f2fbff; }
 .game-ui .level-window-description, .game-ui .level-window-best { color: #d7efff; }
 .game-ui .level-window-title { color: #fff; }
-.game-ui .level-window-close { color: #fff; background: #075396; border-color: #8feaff; }
-.game-ui .level-window-close:hover, .game-ui .level-window-close:focus-visible { color: #06336b; background: #fff; }
 @media (max-width: 720px) {
   .game-ui .selection-screen[data-step="level"] .level-map-stage { border-radius: 0; }
-  .game-ui .selection-screen[data-step="level"] .level-select > h2 { top: 64px; max-width: 80vw; }
+  .game-ui .selection-screen[data-step="level"] .level-select > h2 {
+    left: calc(50% + 36px);
+    max-width: calc(100% - 112px);
+    padding-inline: 8px;
+  }
 }
 
 /* Keep the map hidden until all of its geometry and textures are available. */

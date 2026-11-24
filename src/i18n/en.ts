@@ -98,6 +98,7 @@ export const en: Messages = {
     ordersAria: "Active orders",
     waitingOrders: "Waiting for orders…",
     requestedDish: "Requested dish",
+    deliver: "Deliver",
     station: "STATION",
     working: "WORKING",
     stationProgressAria: "Station progress",
@@ -807,6 +808,7 @@ export const en: Messages = {
     },
   },
   pair: {
+    connected: "Connected",
     title: "Connect the phones",
     players: "Players",
     slotFirst: "Point the camera at the QR code — the first phone is P1",
@@ -814,7 +816,7 @@ export const en: Messages = {
     waitingFirst: "Waiting for the first phone…",
     pressA: "{count} connected · P1, press A on your phone to continue",
     needOne: "Connect at least one phone to play.",
-    skip: "Continue with the keyboard (development)",
+    playOnComputer: "Play on this computer",
   },
   mp: {
     open: "Phones",

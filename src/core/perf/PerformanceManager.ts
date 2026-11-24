@@ -74,6 +74,7 @@ export class PerformanceManager {
   private lastFrameEnd = 0;
   private hitchCount = 0;
   private scene: Scene | null = null;
+  private sceneDisposeObserver: Observer<Scene> | null = null;
   private sceneInstrumentation: SceneInstrumentation | null = null;
   private engineInstrumentation: EngineInstrumentation | null = null;
   private lastDrawCalls = 0;
@@ -102,10 +103,14 @@ export class PerformanceManager {
   attachScene(scene: Scene): void {
     if (this.scene === scene) return;
     this.sceneInstrumentation?.dispose();
+    // The previous scene's dispose hook is no longer needed; left behind, each scene switch
+    // would leave one more on a scene that may outlive this manager's interest in it.
+    if (this.scene && this.sceneDisposeObserver) this.scene.onDisposeObservable.remove(this.sceneDisposeObserver);
     this.scene = scene;
     this.sceneInstrumentation = new SceneInstrumentation(scene);
     this.lastDrawCalls = 0;
-    scene.onDisposeObservable.addOnce(() => {
+    this.sceneDisposeObserver = scene.onDisposeObservable.addOnce(() => {
+      this.sceneDisposeObserver = null;
       if (this.scene !== scene) return;
       this.sceneInstrumentation?.dispose();
       this.sceneInstrumentation = null;
@@ -161,6 +166,8 @@ export class PerformanceManager {
   dispose(): void {
     this.engine.onBeginFrameObservable.remove(this.beginObserver);
     this.engine.onEndFrameObservable.remove(this.endObserver);
+    if (this.scene && this.sceneDisposeObserver) this.scene.onDisposeObservable.remove(this.sceneDisposeObserver);
+    this.sceneDisposeObserver = null;
     this.sceneInstrumentation?.dispose();
     this.engineInstrumentation?.dispose();
     this.listeners.clear();

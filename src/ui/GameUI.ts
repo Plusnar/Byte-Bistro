@@ -6,7 +6,6 @@ import type {
   RecipeData,
   RuntimeGameState,
   ShiftResult,
-  StarThresholds,
   StationId,
 } from "../types/game";
 import type { PlayerIndex } from "../types/events";
@@ -16,9 +15,10 @@ import type { CharacterDefinition } from "../data/characters";
 import { formatShiftDuration, type LevelEntry } from "../data/levelCatalog";
 import { mapLevels } from "../data/levelMap";
 import { starsForRank, type LevelRanks } from "../data/levelRanks";
-import { nextStarTarget, starsForCoins } from "../data/levelGoals";
+import { nextStarTarget } from "../data/levelGoals";
 import { confirmDialog } from "./confirmDialog";
-import { FOOD_STATE_LABEL } from "../data/kitchen";
+import { FOOD_STATE_LABEL, STATION_KIND_LABEL } from "../data/kitchen";
+import { preparationSteps, stepStatus, type PrepStation } from "./orderTicketSteps";
 import { getIngredient } from "../data/ingredients";
 import {
   LANGUAGES,
@@ -51,16 +51,6 @@ import "../styles/bistro-theme.css";
 import "../styles/players.css";
 
 export type NotificationTone = "info" | "success" | "warning" | "error";
-export type StationProgressTone = "active" | "ideal" | "warning" | "danger";
-
-export interface StationProgressInfo {
-  label: string;
-  progress: number;
-  status?: string;
-  detail?: string;
-  tone?: StationProgressTone;
-}
-
 export interface DebugVector3 {
   x: number;
   y: number;
@@ -83,14 +73,6 @@ export interface GameUIDebugSnapshot {
   splitAmount?: number;
 }
 
-export interface PlayerStatusInfo {
-  prompt: string | null;
-  key: string;
-  carrying: string | null;
-  /** What the held item still needs: "Cortar", "Cozinhar", "Montar no prato"… */
-  nextStep?: string | null;
-}
-
 /** One recipe component on a ticket, with how far along it is. */
 export interface OrderTicketComponent {
   ingredientId: string;
@@ -104,41 +86,35 @@ export interface OrderTicketInfo {
   orderId: string;
   recipeId: string | null;
   title: string;
-  guestName: string | null;
   secondsRemaining: number;
   totalSeconds: number;
-  reward: number;
-  stepsCompleted: number;
-  stepsTotal: number;
   /** Every component is plated — the dish just needs carrying to the pass. */
   readyToDeliver: boolean;
   components: readonly OrderTicketComponent[];
   assignedTo: PlayerIndex | null;
 }
 
-/** Cached DOM for one ticket row, plus the last values written, to skip no-op writes. */
 /** How a card leaves the queue, which drives its exit animation. */
 export type OrderOutcome = "delivered" | "expired";
 
+/** One ingredient on a ticket, with the stations it still has to visit stacked under it. */
 interface ChipNode {
   root: HTMLElement;
-  img: HTMLImageElement;
+  tile: HTMLElement;
+  steps: { station: PrepStation; icon: HTMLElement }[];
 }
 
+/** Cached DOM for one ticket row, plus the last values written, to skip no-op writes. */
 interface TicketNode {
   root: HTMLElement;
   name: HTMLElement;
-  timer: HTMLElement;
   dish: HTMLImageElement;
-  guest: HTMLElement;
-  reward: HTMLElement;
   chips: HTMLElement;
   stamp: HTMLElement;
-  /** Keyed by `index:ingredientId` so duplicate components keep separate nodes. */
+  /** Keyed by `index:ingredientId:state` so duplicate components keep separate nodes. */
   chipNodes: Map<string, ChipNode>;
   last: {
-    seconds: number; title: string; guest: string;
-    recipeId: string | null; reward: number; chipKey: string;
+    title: string; recipeId: string | null; chipKey: string; progress: number;
   };
   /** Set while the card is playing its exit animation and no longer tracks an order. */
   leaving: boolean;
@@ -152,8 +128,6 @@ interface TicketNode {
 export const ticketChipKey = (components: readonly OrderTicketComponent[]): string =>
   components.map((c, i) => `${i}:${c.ingredientId}:${c.state}:${c.stage}`).join("|");
 
-/** How many cards fit the queue before the rest collapse into a "+N" pill. */
-export const MAX_VISIBLE_ORDERS = 4;
 /** Must match the exit animation length in game.css. */
 const ORDER_EXIT_MS = 620;
 
@@ -195,10 +169,7 @@ export interface GameUICallbacks {
   onCookbookVisibilityChange?: (visible: boolean) => void;
   onOpenEditor?: () => void;
   onOpenAccount?: () => void;
-  /** Back to the phone pairing screen, to add or remove players. */
-  onOpenPhones?: () => void;
-  /** Development only: leave the pairing screen without phones, as two keyboard players. */
-  onPairSkip?: () => void;
+  onPlayOnComputer?: () => void;
   onOpenCollection?: (view: "items" | "achievements") => void;
   /** Fires when a level card is chosen, before the cooks are picked. */
   onLevelChange?: (entry: LevelEntry) => void;
@@ -219,10 +190,10 @@ export interface GameUICallbacks {
 export interface LevelMapPort {
   setLevels(keys: readonly string[]): void;
   select(key: string | null): void;
-  /** The star an arrow key leads to from `key`, or null when none lies that way. */
+  focusSelectedLevel(): Promise<boolean>;
+  /** The landmark an arrow key leads to from `key`, or null when none lies that way. */
   neighbour(key: string | null, dx: number, dy: number): string | null;
   setActive(active: boolean): void;
-  isMoving(): boolean;
   retry(): void;
 }
 
@@ -310,9 +281,6 @@ export class GameUI {
   private levelRanks: LevelRanks = {};
   private levelStars: Readonly<Record<string, number>> = {};
   private levelMap: LevelMapPort | null = null;
-  /** The level whose window is open, or "" when it is closed. */
-  private levelWindowKey = "";
-  private levelWindowTimer = 0;
   private editorVisible = false;
   /** Last value sent through onPreviewActiveChange; the preview starts out drawing. */
   private previewActive = true;
@@ -329,29 +297,14 @@ export class GameUI {
   private readonly notificationRegion: HTMLElement;
   /** Where the disaster warnings, the chaos vignette and the screen flashes are drawn. */
   readonly disasterLayer: HTMLElement;
-  private readonly stationProgress: HTMLElement;
-  private readonly stationProgressLabel: HTMLElement;
-  private readonly stationProgressStatus: HTMLElement;
-  private readonly stationProgressDetail: HTMLElement;
-  private readonly stationProgressBar: HTMLElement;
-  private readonly stationProgressValue: HTMLElement;
   private readonly orderPanel: HTMLElement;
   private readonly orderTickets: HTMLElement;
-  private readonly orderUpcoming: HTMLElement;
-  private readonly starMeter: HTMLElement;
-  private readonly starMeterFill: HTMLElement;
-  private readonly starMeterNote: HTMLElement;
   /** Recipe ids currently drawn in the preview strip, to skip redundant rebuilds. */
-  private upcomingKey = "";
-  private readonly weddingGuest: HTMLElement;
   /** Live ticket rows, keyed by order id, so the list reconciles instead of rebuilding. */
   private readonly ticketNodes = new Map<string, TicketNode>();
   /** Pending exit animations, so a card is not removed while it is still playing one. */
   private readonly orderExitTimers = new Map<string, number>();
   private readonly shiftTimer: HTMLElement;
-  private readonly scoreValue: HTMLElement;
-  private readonly comboValue: HTMLElement;
-  private readonly comboChip: HTMLElement;
   private readonly playerStatusPanels: readonly HTMLElement[];
   /** Dismissal timers for the per-player speech bubbles, one slot each. */
   private readonly calloutTimers: (number | undefined)[] = Array.from({ length: MAX_PLAYERS }, () => undefined);
@@ -390,23 +343,9 @@ export class GameUI {
     this.cookbookDetail = this.requireElement("[data-ui='cookbook-detail']");
     this.notificationRegion = this.requireElement("[data-ui='notifications']");
     this.disasterLayer = this.requireElement("[data-ui='disaster']");
-    this.stationProgress = this.requireElement("[data-ui='station-progress']");
-    this.stationProgressLabel = this.requireElement("[data-ui='station-progress-label']");
-    this.stationProgressStatus = this.requireElement("[data-ui='station-progress-status']");
-    this.stationProgressDetail = this.requireElement("[data-ui='station-progress-detail']");
-    this.stationProgressBar = this.requireElement("[data-ui='station-progress-bar']");
-    this.stationProgressValue = this.requireElement("[data-ui='station-progress-value']");
     this.orderPanel = this.requireElement("[data-ui='order']");
     this.orderTickets = this.requireElement("[data-ui='order-tickets']");
-    this.orderUpcoming = this.requireElement("[data-ui='order-upcoming']");
-    this.starMeter = this.requireElement("[data-ui='star-meter']");
-    this.starMeterFill = this.requireElement("[data-ui='star-meter-fill']");
-    this.starMeterNote = this.requireElement("[data-ui='star-meter-note']");
-    this.weddingGuest = this.requireElement("[data-ui='wedding-guest']");
     this.shiftTimer = this.requireElement("[data-ui='shift-timer']");
-    this.scoreValue = this.requireElement("[data-ui='score']");
-    this.comboValue = this.requireElement("[data-ui='combo']");
-    this.comboChip = this.requireElement(".combo-chip");
     this.playerStatusPanels = Array.from({ length: MAX_PLAYERS }, (_, index) => this.requireElement(`[data-player-status='${index}']`));
     this.splitDivider = this.requireElement("[data-ui='split-divider']");
     this.debugPanel = this.requireElement("[data-ui='debug']");
@@ -437,100 +376,12 @@ export class GameUI {
   update(state: Readonly<RuntimeGameState>): void {
     if (this.destroyed) return;
 
-    this.shiftTimer.textContent = formatClock(state.shiftTimeRemaining);
-    this.shiftTimer.closest(".shift-chip")?.classList.toggle("is-urgent", state.shiftTimeRemaining <= 30);
-    this.scoreValue.textContent = formatNumber(Math.max(0, Math.round(state.score)));
-    this.comboValue.textContent = state.combo > 1 ? `X${state.combo}` : "—";
-    this.comboValue.closest(".shift-chip")?.classList.toggle("is-active", state.combo > 1);
+    const time = formatClock(state.shiftTimeRemaining);
+    if (this.shiftTimer.textContent !== time) this.shiftTimer.textContent = time;
+    this.shiftTimer.closest(".round-clock")?.classList.toggle("is-urgent", state.shiftTimeRemaining <= 30);
     this.updateMiraState(state.aiState);
     // The order queue is pushed imperatively from KitchenScene, which owns the countdowns.
     this.shell.dataset.shiftEnded = state.shiftEnded ? "true" : "false";
-  }
-
-  setPlayerStatus(index: PlayerIndex, info: Readonly<PlayerStatusInfo>): void {
-    if (this.destroyed) return;
-    const panel = this.playerStatusPanels[index];
-    if (!panel) return;
-    const prompt = panel.querySelector<HTMLElement>("[data-player-prompt]");
-    const key = panel.querySelector<HTMLElement>("[data-player-key]");
-    const carrying = panel.querySelector<HTMLElement>("[data-player-carrying]");
-    if (!prompt || !key || !carrying) return;
-    panel.classList.toggle("has-prompt", Boolean(info.prompt));
-    panel.classList.toggle("is-carrying", Boolean(info.carrying));
-    prompt.textContent = info.prompt ?? t("hud.goToStation");
-    key.textContent = info.key;
-    key.hidden = !info.prompt;
-    carrying.textContent = info.carrying ? info.carrying : "";
-    const step = panel.querySelector<HTMLElement>("[data-player-step]");
-    if (step) {
-      const next = info.nextStep ?? "";
-      step.hidden = next === "";
-      if (step.textContent !== next) step.textContent = next;
-    }
-  }
-
-  /**
-   * The tickets that have not arrived yet, dimmed ahead of the live ones.
-   *
-   * These are the real draws, not a guess (see `OrderScheduler`), which is the only reason
-   * showing them is fair: a cook can start prepping for an order they can see coming.
-   */
-  setUpcomingOrders(recipeIds: readonly string[]): void {
-    if (this.destroyed) return;
-    const key = recipeIds.join("|");
-    if (key === this.upcomingKey) return;
-    this.upcomingKey = key;
-    this.orderUpcoming.replaceChildren();
-    for (const recipeId of recipeIds) {
-      const item = createElement("li", "order-upcoming-card");
-      const recipe = this.recipes.find((entry) => entry.id === recipeId);
-      const art = document.createElement("img");
-      art.src = publicUrl(`images/dishes/${recipeId}.png`);
-      art.alt = "";
-      art.loading = "lazy";
-      // A recipe with no art of its own shows its name alone rather than a broken icon.
-      art.addEventListener("error", () => { art.hidden = true; }, { once: true });
-      item.append(art);
-      const label = createElement("span");
-      label.textContent = recipe?.shortName ?? recipe?.displayName ?? "";
-      item.append(label);
-      this.orderUpcoming.append(item);
-    }
-    this.orderUpcoming.hidden = recipeIds.length === 0;
-  }
-
-  /**
-   * The coin meter: how far this shift is along the level's own one-, two- and three-star
-   * targets. Hidden when the level sets no targets, rather than showing an empty bar.
-   */
-  setStarMeter(coins: number, thresholds: StarThresholds | null): void {
-    if (this.destroyed) return;
-    if (!thresholds || !Number.isFinite(thresholds.three)) {
-      this.starMeter.hidden = true;
-      return;
-    }
-    this.starMeter.hidden = false;
-    const stars = starsForCoins(coins, thresholds);
-    this.starMeter.dataset.stars = String(stars);
-    this.starMeterFill.style.width = `${clamp((coins / thresholds.three) * 100, 0, 100).toFixed(1)}%`;
-    for (const star of this.starMeter.querySelectorAll<HTMLElement>("[data-star]")) {
-      star.dataset.filled = Number(star.dataset.star) <= stars ? "true" : "false";
-    }
-    const next = nextStarTarget(coins, thresholds);
-    const note = next === null
-      ? t("hud.starsAllEarned")
-      : t("hud.starsToGo", { coins: formatNumber(Math.max(0, next - coins)) });
-    if (this.starMeterNote.textContent !== note) this.starMeterNote.textContent = note;
-  }
-
-  /**
-   * Drains the combo chip as the streak's window runs out, so a run that is about to lapse
-   * looks like one. 0 leaves the chip idle.
-   */
-  setComboWindow(remaining: number): void {
-    if (this.destroyed) return;
-    this.comboChip.style.setProperty("--combo-window", clamp(remaining, 0, 1).toFixed(3));
-    this.comboChip.classList.toggle("is-fading", remaining > 0 && remaining < 0.35);
   }
 
   /**
@@ -574,22 +425,6 @@ export class GameUI {
     this.splitDivider.style.setProperty("--split-opacity", split.toFixed(3));
     this.splitDivider.hidden = split < 0.01;
     this.splitDivider.setAttribute("aria-label", t("hud.splitAria", { distance: formatNumber(distance, { maximumFractionDigits: 1 }) }));
-  }
-
-  setStationProgress(info: StationProgressInfo | null): void {
-    if (this.destroyed) return;
-    this.stationProgress.hidden = info === null;
-    if (!info) return;
-
-    const normalizedProgress = info.progress <= 1 ? info.progress * 100 : info.progress;
-    const percentage = clamp(normalizedProgress, 0, 100);
-    this.stationProgress.dataset.tone = info.tone ?? "active";
-    this.stationProgressLabel.textContent = info.label;
-    this.stationProgressStatus.textContent = info.status ?? t("hud.working");
-    this.stationProgressDetail.textContent = info.detail ?? `${Math.round(percentage)}%`;
-    this.stationProgressBar.style.setProperty("--progress", `${percentage}%`);
-    this.stationProgressBar.setAttribute("aria-valuenow", Math.round(percentage).toString());
-    this.stationProgressValue.textContent = `${Math.round(percentage)}%`;
   }
 
   notify(message: string, tone: NotificationTone = "info", duration = 3_400): void {
@@ -648,15 +483,12 @@ export class GameUI {
   }
 
   /**
-   * How many people play (one per paired phone): the selection street shows that many
-   * cooks, the HUD that many cards. Clears everyone's "ready".
+   * Sets the number of cooks on the selection street and clears everyone's "ready".
    */
   setPlayerCount(count: number): void {
     const next = clampPlayerCount(count);
     this.readySlots.fill(false);
     this.playerCount = next;
-    this.playerStatusPanels.forEach((panel, index) => { panel.hidden = index >= next; });
-    this.requireElement("[data-ui='coop-player-status']").dataset.count = String(next);
     this.renderCharacterSelector();
   }
 
@@ -850,7 +682,6 @@ export class GameUI {
     if (this.destroyed) return;
     this.destroyed = true;
     this.stopLanguage();
-    window.clearTimeout(this.levelWindowTimer);
     this.listenerController.abort();
     this.menuBootObserver?.disconnect();
     this.menuVideo.pause();
@@ -873,11 +704,11 @@ export class GameUI {
     return this.levelMapCanvas;
   }
 
-  /** Connects the 3D map; stars are laid out for the levels already known. */
+  /** Connects the 3D map to the levels already known. */
   attachLevelMap(map: LevelMapPort): void {
     this.levelMap = map;
     map.setLevels(mapLevels(this.levels).map((entry) => entry.key));
-    map.select(this.selectedLevelKey || null);
+    if (this.splashStep === "level") this.refreshMapLevel();
     this.updateLevelMapActivity();
   }
 
@@ -898,17 +729,12 @@ export class GameUI {
   setLevelRanks(ranks: LevelRanks, stars: Readonly<Record<string, number>> = {}): void {
     this.levelRanks = ranks;
     this.levelStars = stars;
-    if (this.levelWindowKey) this.fillLevelWindow(this.levelWindowKey);
+    if (this.selectedMapKey) this.fillLevelWindow(this.selectedMapKey);
   }
 
-  /** A star (or empty ground, for null) was clicked on the map. */
+  /** Follow the landmark picked on the map. */
   pickMapLevel(key: string | null): void {
-    if (!key) {
-      this.closeLevelWindow();
-      return;
-    }
-    this.selectMapLevel(key);
-    this.openLevelWindow(key);
+    if (key) this.selectMapLevel(key);
   }
 
   refreshCharacterPreview(): void {
@@ -932,11 +758,6 @@ export class GameUI {
         this.previewName.textContent = plate.textContent;
         this.previewRole.textContent = character?.role ?? "";
       }
-      const portrait = this.shell.querySelector<HTMLImageElement>(`[data-player-portrait="${slot}"]`);
-      if (portrait) {
-        portrait.hidden = !character || !active;
-        if (character) portrait.src = publicUrl(`assets/ui/avatar-${character.id}.webp`);
-      }
     }
     this.callbacks.onCharacterPreview?.(this.activePicks());
   }
@@ -954,37 +775,25 @@ export class GameUI {
    * re-writing innerHTML would restart CSS transitions and churn the DOM sixty times a
    * second. Text is only touched when its value actually changed.
    */
-  setOrderTickets(tickets: readonly OrderTicketInfo[], guestCount: number): void {
+  setOrderTickets(tickets: readonly OrderTicketInfo[]): void {
     if (this.destroyed) return;
-    const visible = tickets.slice(0, MAX_VISIBLE_ORDERS);
-    const overflow = tickets.length - visible.length;
-
     this.orderPanel.classList.toggle("is-empty", tickets.length === 0);
-    this.weddingGuest.textContent = overflow > 0 ? `+${overflow}` : "";
-    this.weddingGuest.hidden = overflow <= 0;
-    void guestCount;
 
     let anyCritical = false;
     const seen = new Set<string>();
-    visible.forEach((ticket, index) => {
+    tickets.forEach((ticket, index) => {
       seen.add(ticket.orderId);
       const node = this.ticketNodes.get(ticket.orderId) ?? this.createTicketNode(ticket.orderId);
-      const seconds = Math.max(0, Math.ceil(ticket.secondsRemaining));
       const fraction = ticket.totalSeconds > 0
         ? Math.max(0, Math.min(1, ticket.secondsRemaining / ticket.totalSeconds))
         : 0;
 
-      if (node.last.seconds !== seconds) {
-        node.last.seconds = seconds;
-        node.timer.textContent = `${seconds}s`;
-      }
       if (node.last.title !== ticket.title) {
         node.last.title = ticket.title;
         node.name.textContent = ticket.title;
-      }
-      if (node.last.reward !== ticket.reward) {
-        node.last.reward = ticket.reward;
-        node.reward.textContent = String(ticket.reward);
+        // The name is not drawn on the card (icons only), so it lives on as its label.
+        node.root.title = ticket.title;
+        node.root.setAttribute("aria-label", ticket.title);
       }
       if (node.last.recipeId !== ticket.recipeId) {
         node.last.recipeId = ticket.recipeId;
@@ -998,7 +807,11 @@ export class GameUI {
 
       this.syncTicketChips(node, ticket);
 
-      node.root.style.setProperty("--progress", `${fraction * 100}%`);
+      const progress = Math.round(fraction * 1000) / 10;
+      if (node.last.progress !== progress) {
+        node.last.progress = progress;
+        node.root.style.setProperty("--progress", `${progress}%`);
+      }
       // The oldest order sits first and is the one the players should clear next.
       this.setFlag(node.root, "lead", index === 0);
       this.setFlag(node.root, "ready", ticket.readyToDeliver);
@@ -1008,14 +821,14 @@ export class GameUI {
         : "nominal";
       if (node.root.dataset.urgency !== urgency) node.root.dataset.urgency = urgency;
       anyCritical ||= urgency === "critical" || urgency === "expired";
-      const player = ticket.assignedTo === null ? "" : ticket.assignedTo === 0 ? "p1" : "p2";
+      const player = ticket.assignedTo === null ? "" : `p${ticket.assignedTo + 1}`;
       if (node.root.dataset.player !== player) node.root.dataset.player = player;
 
     });
 
     // Reorder only when the sequence actually changed. Re-inserting a node restarts every
     // CSS animation on it, which made the whole queue flicker once per frame.
-    this.reorderTickets(visible);
+    this.reorderTickets(tickets);
 
     for (const [orderId, node] of this.ticketNodes) {
       if (seen.has(orderId) || node.leaving) continue;
@@ -1033,7 +846,7 @@ export class GameUI {
       const node = this.ticketNodes.get(ticket.orderId);
       if (node) desired.push(node.root);
     }
-    // Cards on their way out keep whatever slot they already had.
+    // Cards going away animate over their old slots without taking a grid cell.
     const live = Array.from(this.orderTickets.children).filter(
       (child) => !(child as HTMLElement).dataset.outcome,
     );
@@ -1054,6 +867,10 @@ export class GameUI {
     const node = this.ticketNodes.get(orderId);
     if (!node || node.leaving) return;
     node.leaving = true;
+    const { offsetLeft, offsetTop, offsetWidth } = node.root;
+    node.root.style.left = `${offsetLeft}px`;
+    node.root.style.top = `${offsetTop}px`;
+    node.root.style.width = `${offsetWidth}px`;
     node.root.dataset.outcome = outcome;
     node.stamp.textContent = outcome === "delivered" ? "✓" : "✕";
     const timeoutId = window.setTimeout(() => {
@@ -1101,25 +918,34 @@ export class GameUI {
    * and one `===` rather than touching the DOM.
    */
   private syncTicketChips(node: TicketNode, ticket: OrderTicketInfo): void {
-    const key = ticketChipKey(ticket.components);
+    const key = `${getLanguage()}|${ticketChipKey(ticket.components)}`;
     if (node.last.chipKey === key) return;
     node.last.chipKey = key;
 
     const seen = new Set<string>();
     ticket.components.forEach((component, index) => {
-      const id = `${index}:${component.ingredientId}`;
+      const id = `${index}:${component.ingredientId}:${component.state}`;
       seen.add(id);
       let chip = node.chipNodes.get(id);
       if (!chip) {
-        chip = this.createChipNode(component.ingredientId);
+        chip = this.createChipNode(component.ingredientId, component.state);
         node.chipNodes.set(id, chip);
       }
       const ingredient = getIngredient(component.ingredientId);
       chip.root.style.setProperty("--chip-color", ingredient?.color ?? "#5CE6FF");
       chip.root.dataset.state = chipState(component.stage);
-      chip.root.dataset.short = (ingredient?.shortName ?? component.ingredientId).slice(0, 3).toUpperCase();
-      chip.root.title =
-        `${ingredient?.displayName ?? component.ingredientId} · ${FOOD_STATE_LABEL[component.state]}`;
+      for (const step of chip.steps) {
+        const status = stepStatus(step.station, component.stage);
+        if (step.icon.dataset.step !== status) step.icon.dataset.step = status;
+      }
+      // Read by the fallback tile (no ingredient art) as its label.
+      chip.tile.dataset.short = (ingredient?.shortName ?? component.ingredientId).slice(0, 3).toUpperCase();
+      // Every station, in order: a cooked RAM module reads "board → stove", not just "stove".
+      const route = chip.steps.length > 0
+        ? chip.steps.map((step) => STATION_KIND_LABEL[step.station]).join(" → ")
+        : FOOD_STATE_LABEL[component.state];
+      chip.root.title = `${ingredient?.displayName ?? component.ingredientId} · ${route}`;
+      chip.root.setAttribute("aria-label", chip.root.title);
       node.chips.append(chip.root);
     });
 
@@ -1130,8 +956,9 @@ export class GameUI {
     }
   }
 
-  private createChipNode(ingredientId: string): ChipNode {
+  private createChipNode(ingredientId: string, state: FoodState): ChipNode {
     const root = createElement("li", "order-chip");
+    const tile = createElement("span", "order-chip-tile");
     const img = document.createElement("img");
     img.alt = "";
     img.loading = "lazy";
@@ -1142,8 +969,26 @@ export class GameUI {
       img.hidden = true;
     }, { once: true });
     img.src = publicUrl(ingredientIllustration(ingredientId));
-    root.append(img);
-    return { root, img };
+    img.className = "order-chip-art";
+    tile.append(img);
+    root.append(tile);
+    // The route never changes for a component, so the station icons are built once, stacked
+    // under the ingredient the way a ticket in a busy kitchen reads: what, then where.
+    const steps = preparationSteps(ingredientId, state).map((station) => {
+      const icon = createElement("span", "order-chip-step");
+      icon.dataset.station = station;
+      const stationImg = document.createElement("img");
+      stationImg.alt = "";
+      stationImg.src = publicUrl(`assets/ui/hud/${station}.webp`);
+      icon.append(stationImg);
+      return { station, icon };
+    });
+    if (steps.length > 0) {
+      const row = createElement("span", "order-chip-steps");
+      row.append(...steps.map((step) => step.icon));
+      root.append(row);
+    }
+    return { root, tile, steps };
   }
 
   private createTicketNode(orderId: string): TicketNode {
@@ -1151,15 +996,16 @@ export class GameUI {
     root.innerHTML = `
       <div class="order-card-dish">
         <img class="order-card-art" data-t="dish" hidden alt="" />
-        <span class="order-card-timer" data-t="timer">0s</span>
       </div>
       <strong class="order-card-name" data-t="name"></strong>
+      <span class="order-card-ready" data-i18n="hud.deliver"></span>
       <ul class="order-chips" data-t="chips"></ul>
       <span class="order-card-track"><span class="order-card-fill"></span></span>
-      <span class="order-card-reward"><em data-t="reward">0</em></span>
       <span class="order-card-stamp" data-t="stamp" aria-hidden="true"></span>
-      <span class="order-card-guest" data-t="guest" hidden></span>
     `;
+    // Cards arrive after the shell was translated; later language switches re-run
+    // applyTranslations over the whole shell, this label included.
+    applyTranslations(root);
     const pick = <T extends HTMLElement>(name: string): T => {
       const found = root.querySelector<T>(`[data-t="${name}"]`);
       if (!found) throw new Error(`Missing ticket element: ${name}`);
@@ -1168,14 +1014,11 @@ export class GameUI {
     const node: TicketNode = {
       root,
       name: pick("name"),
-      timer: pick("timer"),
       dish: pick<HTMLImageElement>("dish"),
-      guest: pick("guest"),
-      reward: pick("reward"),
       chips: pick("chips"),
       stamp: pick("stamp"),
       chipNodes: new Map(),
-      last: { seconds: -1, title: "", guest: "", recipeId: null, reward: -1, chipKey: "" },
+      last: { title: "", recipeId: null, chipKey: "", progress: -1 },
       leaving: false,
     };
     // One-shot entry animation: the class is dropped once it finishes, so moving the card
@@ -1204,10 +1047,7 @@ export class GameUI {
     }
     this.renderLevels();
     this.levelMap?.setLevels(mapLevels(entries).map((entry) => entry.key));
-    this.levelMap?.select(this.selectedLevelKey || null);
-    if (this.levelWindowKey && !entries.some((entry) => entry.key === this.levelWindowKey)) {
-      this.closeLevelWindow();
-    }
+    if (this.splashStep === "level") this.refreshMapLevel();
   }
 
   private renderLevels(): void {
@@ -1291,12 +1131,12 @@ export class GameUI {
     this.selectionScreen.dataset.step = step;
     this.requireElement<HTMLButtonElement>("[data-action='back-level']").hidden = step !== "characters";
     if (step === "characters") {
-      this.closeLevelWindow(true);
       // Everyone confirms their cook afresh each time the street opens.
       if (previous !== "characters") this.readySlots.fill(false);
       this.renderCharacterSelector();
       this.startButton.focus();
     } else {
+      if (step === "level") this.refreshMapLevel();
       this.focusSplash();
     }
     this.updateLevelMapActivity();
@@ -1304,10 +1144,6 @@ export class GameUI {
 
   get splashStep(): SplashStep {
     return (this.selectionScreen.dataset.step as SplashStep | undefined) ?? "home";
-  }
-
-  setPairSkipVisible(visible: boolean): void {
-    this.requireElement<HTMLButtonElement>("[data-action='pair-skip']").hidden = !visible;
   }
 
   /** Where the phone pairing panel (QR code and player slots) is drawn. */
@@ -1439,7 +1275,7 @@ export class GameUI {
     }
   }
 
-  /** On the level step the map takes the keyboard, so Enter opens a star, not a button. */
+  /** Route keyboard navigation to the map when choosing a level. */
   private focusSplash(): void {
     const step = this.selectionScreen.dataset.step;
     if (step === "home") {
@@ -1454,34 +1290,26 @@ export class GameUI {
 
   private selectedMapKey = "";
 
-  private selectMapLevel(key: string): void {
+  private selectMapLevel(key: string): boolean {
+    if (!this.fillLevelWindow(key)) return false;
     this.selectedMapKey = key;
     if (!key.startsWith("future:")) this.selectedLevelKey = key;
     this.levelMap?.select(key);
-  }
-
-  private openLevelWindow(key: string): void {
-    if (!this.fillLevelWindow(key)) return;
-    this.levelMap?.select(key);
-    window.clearTimeout(this.levelWindowTimer);
-    this.levelWindowKey = key;
     this.levelWindow.hidden = false;
-    // One frame hidden-to-shown first, or the transition has no starting state to run from.
-    window.requestAnimationFrame(() => {
-      if (this.levelWindowKey === key) this.levelWindow.dataset.open = "true";
-    });
+    return true;
   }
 
-  private closeLevelWindow(immediate = false): void {
-    if (!this.levelWindowKey && this.levelWindow.hidden) return;
-    this.levelWindowKey = "";
-    this.levelWindow.dataset.open = "false";
-    window.clearTimeout(this.levelWindowTimer);
-    const hide = (): void => {
-      if (!this.levelWindowKey) this.levelWindow.hidden = true;
-    };
-    if (immediate) hide();
-    else this.levelWindowTimer = window.setTimeout(hide, 220);
+  private refreshMapLevel(): void {
+    if (this.selectedMapKey && this.selectMapLevel(this.selectedMapKey)) return;
+    const first = mapLevels(this.levels)[0];
+    if (first) this.selectMapLevel(first.key);
+    else this.levelWindow.hidden = true;
+  }
+
+  private async confirmMapLevel(): Promise<void> {
+    const key = this.selectedMapKey;
+    if (!key || key.startsWith("future:") || !await this.levelMap?.focusSelectedLevel()) return;
+    if (this.splashStep === "level" && key === this.selectedMapKey) this.chooseLevel(key);
   }
 
   /** Writes a level's details into the window; false when the level no longer exists. */
@@ -1526,7 +1354,7 @@ export class GameUI {
     return true;
   }
 
-  /** Arrow keys and WASD select landmarks; Enter opens the window, then plays. */
+  /** Arrow keys and WASD select landmarks; Enter confirms the playable level. */
   private handleLevelKey(event: KeyboardEvent): void {
     const key = event.key;
     const directions: Readonly<Record<string, readonly [number, number]>> = {
@@ -1538,24 +1366,19 @@ export class GameUI {
       || (event.target instanceof Element && event.target.closest("summary, details[open]"));
     if (direction && !onControl) {
       event.preventDefault();
-      const next = this.levelMap?.neighbour(this.levelWindowKey || this.selectedMapKey || this.selectedLevelKey || null, direction[0], direction[1]);
+      const next = this.levelMap?.neighbour(this.selectedMapKey || null, direction[0], direction[1]);
       if (!next) return;
-      this.closeLevelWindow(true);
       this.selectMapLevel(next);
       return;
     }
-    if (key === "Escape" && this.levelWindowKey) {
+    if (key === "Escape") {
       event.preventDefault();
-      this.closeLevelWindow();
-      this.levelMapCanvas.focus({ preventScroll: true });
+      this.setSplashStep("home");
       return;
     }
     if ((key === "Enter" || key === " ") && !onControl && !event.repeat) {
       event.preventDefault();
-      const mapKey = this.selectedMapKey || this.selectedLevelKey;
-      if (!mapKey || this.levelMap?.isMoving()) return;
-      if (this.levelWindowKey === mapKey && !mapKey.startsWith("future:")) this.chooseLevel(mapKey);
-      else if (this.levelWindowKey !== mapKey) this.openLevelWindow(mapKey);
+      void this.confirmMapLevel();
     }
   }
 
@@ -1568,10 +1391,7 @@ export class GameUI {
     }, { signal });
     this.requireElement<HTMLButtonElement>("[data-action='retry-level-map']").addEventListener("click", () => this.levelMap?.retry(), { signal });
     this.requireElement<HTMLButtonElement>("[data-action='home-levels']").addEventListener("click", () => this.setSplashStep("level"), { signal });
-    this.requireElement<HTMLButtonElement>("[data-action='back-home']").addEventListener("click", () => {
-      this.closeLevelWindow(true);
-      this.setSplashStep("home");
-    }, { signal });
+    this.requireElement<HTMLButtonElement>("[data-action='back-home']").addEventListener("click", () => this.setSplashStep("home"), { signal });
     this.startButton.addEventListener("click", async () => {
       if (this.startButton.disabled) return;
       const characterIds = this.activePicks().map((id) => id ?? this.characters[0]?.id ?? "");
@@ -1642,8 +1462,7 @@ export class GameUI {
 
     this.requireElement<HTMLButtonElement>("[data-action=menu-recipes]").addEventListener("click", () => this.toggleCookbook(true), { signal });
     this.requireElement<HTMLButtonElement>("[data-action=account]").addEventListener("click", () => this.callbacks.onOpenAccount?.());
-    this.requireElement<HTMLButtonElement>("[data-action=phones]").addEventListener("click", () => this.callbacks.onOpenPhones?.(), { signal });
-    this.requireElement<HTMLButtonElement>("[data-action='pair-skip']").addEventListener("click", () => this.callbacks.onPairSkip?.(), { signal });
+    this.requireElement<HTMLButtonElement>("[data-action='play-on-computer']").addEventListener("click", () => this.callbacks.onPlayOnComputer?.(), { signal });
     this.shell.querySelectorAll<HTMLButtonElement>("[data-collection]").forEach((button) => {
       button.addEventListener("click", () => this.callbacks.onOpenCollection?.(
         button.dataset.collection === "items" ? "items" : "achievements",
@@ -1678,13 +1497,7 @@ export class GameUI {
       if (key) this.chooseLevel(key);
     }, { signal });
 
-    this.requireElement<HTMLButtonElement>("[data-action='play-level']").addEventListener("click", () => {
-      if (this.levelWindowKey) this.chooseLevel(this.levelWindowKey);
-    }, { signal });
-    this.requireElement<HTMLButtonElement>("[data-action='close-level-window']").addEventListener("click", () => {
-      this.closeLevelWindow();
-      this.levelMapCanvas.focus({ preventScroll: true });
-    }, { signal });
+    this.requireElement<HTMLButtonElement>("[data-action='play-level']").addEventListener("click", () => { void this.confirmMapLevel(); }, { signal });
 
     this.requireElement<HTMLButtonElement>("[data-action='back-level']").addEventListener("click", () => {
       if (this.startButton.dataset.loading === "true") return;
@@ -1710,7 +1523,7 @@ export class GameUI {
     this.renderLevels();
     this.renderCharacterSelector();
     this.renderCookbook();
-    if (this.levelWindowKey) this.fillLevelWindow(this.levelWindowKey);
+    if (this.selectedMapKey) this.fillLevelWindow(this.selectedMapKey);
     if (this.lastResult) this.writeResults(this.lastResult);
     // Ticket chips are cached on their contents; drop the cache so their titles redraw.
     for (const node of this.ticketNodes.values()) node.last.chipKey = "";
@@ -1982,17 +1795,12 @@ export class GameUI {
   }
 
   /** Auto | Low | Medium | High, beside the language toggle; see QualityManager. */
-  /** One HUD card per possible player; `setPlayerCount` shows the ones in play. */
+  /** Transient emote and delivery feedback, anchored by player color. */
   private static playerStatusCards(): string {
-    const classes = ["player-one", "player-two", "player-three", "player-four"];
-    return classes.map((name, index) => `
-          <section class="player-status ${name}" data-player-status="${index}"${index >= 2 ? " hidden" : ""} style="--player-color: ${PLAYER_COLORS[index]}">
-            <p class="player-callout" data-player-callout hidden aria-live="polite"></p>
-            <header><img data-player-portrait="${index}" class="hud-portrait" width="32" height="32" alt="" hidden /><strong>${playerLabel(index)}</strong><span data-i18n="hud.phoneKeys"></span></header>
-            <div><kbd data-player-key hidden>A</kbd><span data-player-prompt data-i18n="hud.goToStation"></span></div>
-            <small data-player-carrying data-i18n="hud.handsFree"></small>
-            <span class="player-next-step" data-player-step hidden></span>
-          </section>`).join("");
+    return Array.from({ length: MAX_PLAYERS }, (_, index) => `
+      <div class="crew-callout" data-player-status="${index}" style="--player-color: ${PLAYER_COLORS[index]}">
+        <p class="player-callout" data-player-callout hidden aria-live="polite"></p>
+      </div>`).join("");
   }
 
   /** One name plate per possible player on the selection street. */
@@ -2016,44 +1824,16 @@ export class GameUI {
     return `
       <div class="hud-layer" data-ui="hud" aria-hidden="false">
         <div class="bistro-hud-top">
-        <div class="shift-cluster" data-i18n-attr="aria-label:hud.shiftAria">
-          <button class="shift-pause" type="button" data-action="pause-shift" data-i18n-attr="aria-label:hud.pauseAction"></button>
-          <div class="shift-chip time-chip">
-            <span><small data-i18n="hud.time"></small><strong data-ui="shift-timer">00:00</strong></span>
-          </div>
-          <div class="shift-chip score-chip">
-            <span><small data-i18n="hud.score"></small><strong data-ui="score">0</strong></span>
-          </div>
-          <div class="shift-chip combo-chip">
-            <span><small data-i18n="hud.combo"></small><strong data-ui="combo">—</strong></span>
-          </div>
-          <div class="star-meter" data-ui="star-meter" hidden data-i18n-attr="aria-label:hud.starMeterAria">
-            <div class="star-meter-track"><span class="star-meter-fill" data-ui="star-meter-fill"></span></div>
-            <div class="star-meter-stars">
-              <span data-star="1"></span><span data-star="2"></span><span data-star="3"></span>
-            </div>
-            <small data-ui="star-meter-note"></small>
-          </div>
-        </div>
-
+        <button class="round-clock" type="button" data-action="pause-shift" data-i18n-attr="aria-label:hud.pauseAction;title:hud.pauseAction">
+          <span data-ui="shift-timer">00:00</span>
+        </button>
         <section class="order-panel is-empty" data-ui="order" data-i18n-attr="aria-label:hud.ordersAria">
           <ul class="order-tickets" data-ui="order-tickets" aria-live="polite"></ul>
-          <ul class="order-upcoming" data-ui="order-upcoming" data-i18n-attr="aria-label:hud.upcomingAria"></ul>
-          <p class="order-empty-hint" data-i18n="hud.waitingOrders"></p>
-          <span class="order-overflow" data-ui="wedding-guest" hidden></span>
         </section>
 
         </div>
 
-        <section class="station-progress" data-ui="station-progress" data-tone="active" hidden aria-live="polite">
-          <header><span data-ui="station-progress-label" data-i18n="hud.station"></span><strong data-ui="station-progress-status" data-i18n="hud.working"></strong></header>
-          <div class="station-progress-track" data-ui="station-progress-bar" role="progressbar" data-i18n-attr="aria-label:hud.stationProgressAria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-            <span class="station-progress-fill"></span><span class="station-ideal-zone" aria-hidden="true"></span>
-          </div>
-          <footer><span data-ui="station-progress-detail"></span><strong data-ui="station-progress-value">0%</strong></footer>
-        </section>
-
-        <div class="coop-player-status" data-ui="coop-player-status" data-count="2" data-i18n-attr="aria-label:hud.playersAria">
+        <div class="crew-callouts">
           ${GameUI.playerStatusCards()}
         </div>
         <div class="split-screen-divider" data-ui="split-divider" hidden aria-hidden="true"></div>
@@ -2085,7 +1865,6 @@ export class GameUI {
                 ${GameUI.qualitySwitch()}
               </details>
               <button class="secondary-action bistro-home-icon bistro-account-action" type="button" data-action="account" data-i18n-attr="aria-label:account.title;title:account.title"></button>
-              <button class="secondary-action bistro-home-icon bistro-phones-action" type="button" data-action="phones" data-i18n-attr="aria-label:pair.players;title:pair.players"></button>
               ${GameUI.languageSwitch()}
             </div>
             <details class="my-maps" data-ui="my-maps" hidden>
@@ -2095,8 +1874,8 @@ export class GameUI {
           </header>
           <section class="pair-select" data-ui="pair-select" aria-labelledby="pair-title">
             <h2 id="pair-title" data-i18n="pair.title"></h2>
+            <button class="secondary-action pair-computer" type="button" data-action="play-on-computer" data-i18n="pair.playOnComputer"></button>
             <div class="pair-panel" data-ui="pair-panel"></div>
-            <button class="secondary-action pair-skip" type="button" data-action="pair-skip" hidden data-i18n="pair.skip"></button>
           </section>
           <section class="level-select" data-ui="level-select">
             <button class="secondary-action" type="button" data-action="back-home" data-i18n="common.back"></button>
@@ -2109,12 +1888,11 @@ export class GameUI {
               <canvas class="level-map-canvas" data-ui="level-map-canvas" tabindex="0" data-i18n-attr="aria-label:menu.mapAria"></canvas>
               <p class="level-map-hint" aria-hidden="true">
                 <span><kbd>&#8592;</kbd><kbd>&#8594;</kbd><kbd>&#8593;</kbd><kbd>&#8595;</kbd> <span data-i18n="menu.changeLevel"></span></span>
-                <span><kbd>Enter</kbd> <span data-i18n="menu.open"></span></span>
+                <span><kbd>Enter</kbd> <span data-i18n="menu.play"></span></span>
               </p>
-              <aside class="level-window" data-ui="level-window" data-open="false" role="dialog" aria-labelledby="level-window-title" hidden>
-                <button class="level-window-close" type="button" data-action="close-level-window" data-i18n-attr="aria-label:common.close">&times;</button>
+              <aside class="level-window" data-ui="level-window" aria-labelledby="level-window-title" hidden>
                 <span class="level-window-kind" data-ui="level-window-kind"></span>
-                <h3 id="level-window-title" class="level-window-title" data-ui="level-window-title"></h3>
+                <h3 id="level-window-title" class="level-window-title" data-ui="level-window-title" aria-live="polite"></h3>
                 <div class="level-window-rank" data-ui="level-window-rank" role="img">
                   <svg class="rank-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.95 6.1 6.65.85-4.9 4.6 1.3 6.65L12 17.3l-5.95 3.3 1.3-6.65-4.9-4.6 6.65-.85z"/></svg><svg class="rank-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.95 6.1 6.65.85-4.9 4.6 1.3 6.65L12 17.3l-5.95 3.3 1.3-6.65-4.9-4.6 6.65-.85z"/></svg><svg class="rank-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.95 6.1 6.65.85-4.9 4.6 1.3 6.65L12 17.3l-5.95 3.3 1.3-6.65-4.9-4.6 6.65-.85z"/></svg>
                 </div>

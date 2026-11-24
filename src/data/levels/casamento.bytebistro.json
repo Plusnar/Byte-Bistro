@@ -731,7 +731,7 @@
       },
       "collides": true,
       "stationId": "mixer",
-      "label": "Cozinha // Bancada",
+      "label": "Cozinha // Batedeira",
       "color": "#FF9F43"
     },
     {
@@ -761,7 +761,7 @@
     },
     {
       "id": "wedding-counter-28",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
+      "assetId": "station:oven",
       "role": "station",
       "category": "station",
       "position": {
@@ -781,7 +781,7 @@
       },
       "collides": true,
       "stationId": "oven",
-      "label": "Cozinha // Bancada",
+      "label": "Cozinha // Forno",
       "color": "#FF9F43"
     },
     {

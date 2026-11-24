@@ -47,7 +47,7 @@ import {
 } from "../data/kitchen";
 import type { KitchenStationPlacement } from "../data/kitchenLayout";
 import { Player } from "../entities";
-import type { ArmPose } from "../entities/armPose";
+import { OVEN_REACH_PERIOD, type ArmPose } from "../entities/armPose";
 import { SprayJet } from "../entities/SprayJet";
 import { SynthSfx, type LoopHandle } from "../core/SynthSfx";
 import { DisasterOverlay } from "../ui/DisasterOverlay";
@@ -79,8 +79,6 @@ import {
   getCookwareProgress,
   isCookware,
   isCookwareBurnt,
-  isCookwareCooked,
-  findMatchingRecipe,
   plateQuality,
   type KitchenItem,
   type PlateItem,
@@ -106,7 +104,6 @@ import {
   expireStreak,
   failOrder as tipFailOrder,
   serve as serveTip,
-  streakWindowRemaining,
   NO_STREAK,
   type StreakState,
 } from "../systems/TipSystem";
@@ -142,7 +139,7 @@ import type {
   ShiftResult,
   StarThresholds,
 } from "../types/game";
-import type { GameUI, OrderTicketInfo, StationProgressInfo } from "../ui/GameUI";
+import type { GameUI, OrderTicketInfo } from "../ui/GameUI";
 import type { MapData } from "../editor/MapData";
 import { KitchenEnvironment, robotsFromMap } from "./KitchenEnvironment";
 import { WEDDING_SCENARIO, type ScenarioDefinition } from "../data/scenarios";
@@ -225,6 +222,8 @@ interface CoopPlayerState {
   focusedOrderId: string | null;
   work: WorkOutcome;
   workStation: Workstation | null;
+  /** Seconds left of the reach into the oven, after putting a tray in or taking it out. */
+  ovenReach: number;
   /**
    * Tenth of the current job already done, latched so `station:progress` fires on real
    * steps instead of allocating an event object every frame of a two-second chop.
@@ -256,13 +255,17 @@ export interface KitchenSceneOptions {
 
 const NO_WORK: WorkOutcome = { kind: "none" };
 
+/** How long a cook reaches into the oven after putting a tray in or taking one out. */
+const OVEN_REACH_SECONDS = OVEN_REACH_PERIOD;
+
 /** What a cook's arms do for the work they are at, or for what they hold. */
-const armPoseFor = (work: WorkOutcome["kind"], holding: boolean): ArmPose => {
+const armPoseFor = (work: WorkOutcome["kind"], holding: boolean, ovenReach = false): ArmPose => {
   switch (work) {
     case "chopping": return "chop";
     case "washing": return "wash";
     case "extinguishing": return "spray";
-    default: return holding ? "carry" : "none";
+    case "mixing": return "mix";
+    default: return ovenReach ? "oven" : holding ? "carry" : "none";
   }
 };
 
@@ -650,6 +653,7 @@ export class KitchenScene implements ManagedScene {
       focusedOrderId: null,
       work: NO_WORK,
       workStation: null,
+      ovenReach: 0,
       workProgressStep: -1,
       wasDashing: false,
       aimSeconds: null,
@@ -800,7 +804,6 @@ export class KitchenScene implements ManagedScene {
     this.syncPauseState();
     this.ui.hideResults();
     this.ui.setPausedVisible(false);
-    this.ui.setStationProgress(null);
     for (const slot of this.players) {
       slot.input.enabled = false;
       this.setStationKeyPrompt(slot, null);
@@ -1186,6 +1189,11 @@ export class KitchenScene implements ManagedScene {
       }
       if (pickedUp && outcome.held) {
         this.eventBus.emit("ingredient:picked", { item: outcome.held, playerIndex: slot.index });
+      }
+      // A tray going into the oven or coming out: the door swings and the cook reaches in.
+      if (target.station.spec.kind === "oven" && slot.held !== outcome.held) {
+        this.stationViews.get(target.station)?.swingDoor();
+        slot.ovenReach = OVEN_REACH_SECONDS;
       }
       slot.held = outcome.held;
       this.sfx.play(pickedUp ? "pickup" : target.station.spec.kind === "trash" ? "trash" : "place");
@@ -1919,7 +1927,8 @@ export class KitchenScene implements ManagedScene {
     }
     for (const slot of this.players) {
       if (slot.held) this.itemViews.place(slot.held, slot.player.carryAnchor);
-      slot.player.setArmPose(armPoseFor(slot.work.kind, slot.held !== null));
+      slot.ovenReach = Math.max(0, slot.ovenReach - deltaSeconds);
+      slot.player.setArmPose(armPoseFor(slot.work.kind, slot.held !== null, slot.ovenReach > 0));
       this.updateSprayJet(slot);
     }
     for (const entry of this.floorItems) {
@@ -1962,6 +1971,9 @@ export class KitchenScene implements ManagedScene {
     const washing = this.players.some(
       (slot) => slot.workStation === station && slot.work.kind === "washing",
     );
+    const mixing = this.players.some(
+      (slot) => slot.workStation === station && slot.work.kind === "mixing",
+    );
 
     if (station.spec.kind === "cutting_board" && item?.kind === "food" && item.chopProgress > 0) {
       progress = item.chopProgress;
@@ -1991,6 +2003,7 @@ export class KitchenScene implements ManagedScene {
       chopping,
       knifeInHand,
       washing,
+      mixing,
     };
   }
 
@@ -2109,36 +2122,14 @@ export class KitchenScene implements ManagedScene {
   // HUD
 
   private updateHUD(): void {
-    this.ui.setOrderTickets(
-      this.buildOrderTickets(),
-      this.wedding.guests.filter((g) => g.active).length,
-    );
-    this.ui.setUpcomingOrders(this.director.upcoming(this.runtime.activeOrders));
-    this.ui.setStarMeter(this.runtime.score, this.starThresholds);
-    this.ui.setComboWindow(streakWindowRemaining(this.streak, this.kitchenClockMs));
+    this.ui.setOrderTickets(this.buildOrderTickets());
     for (const slot of this.players) {
-      const action = this.describeAction(slot);
-      const downed = slot.player.isDowned();
-      // Standing up is automatic now, so a downed player has no key to press.
-      const prompt = downed ? "Atordoado…" : action.prompt;
-      const key = (downed ? null : slot.input.labelFor(action.action)) ?? "—";
-      this.ui.setPlayerStatus(slot.index, {
-        prompt,
-        key,
-        carrying: slot.held ? describeItem(slot.held, this.recipeList) : null,
-        // What this item still needs, read off the live recipe plan.
-        nextStep: downed ? null : this.describeHeldNextStep(slot),
-      });
-      this.setStationKeyPrompt(slot, downed ? null : action);
+      this.setStationKeyPrompt(slot, slot.player.isDowned() ? null : this.describeAction(slot));
     }
-    this.ui.setStationProgress(this.getStationProgress());
   }
 
   /** Derives the HUD's ticket rows; the scene owns the clocks, guests and assignments. */
   private buildOrderTickets(): OrderTicketInfo[] {
-    const guestByOrder = new Map(
-      this.wedding.ticketedGuests.map((entry) => [entry.orderId, entry.guest.name]),
-    );
     const guide = this.lastQueueGuide;
     return this.runtime.activeOrders
       .filter((order) => order.status === "active")
@@ -2161,48 +2152,13 @@ export class KitchenScene implements ManagedScene {
           orderId: order.id,
           recipeId: order.requestedRecipeId ?? null,
           title: recipe?.displayName ?? t("kitchen.specialOrder"),
-          guestName: guestByOrder.get(order.id) ?? null,
           secondsRemaining: clock?.remaining ?? 0,
           totalSeconds: clock?.duration ?? 0,
-          reward: order.reward,
-          stepsCompleted: steps?.completed ?? 0,
-          // No "+1 for delivery": stepsCompleted counts plated components and could never
-          // reach it, so every finished order used to read N/N+1 forever.
-          stepsTotal: steps?.total ?? recipe?.components.length ?? 0,
           readyToDeliver: components.length > 0 && components.every((c) => c.stage === "plated"),
           components,
           assignedTo: assigned?.index ?? null,
         };
       });
-  }
-
-  /**
-   * What the held item still needs before it can be plated — "Cortar", "Cozinhar",
-   * "Montar no prato" — so the player is told the next step by the thing in their hands
-   * rather than by a separate checklist.
-   */
-  private describeHeldNextStep(slot: CoopPlayerState): string | null {
-    const held = slot.held;
-    if (!held) return null;
-
-    if (held.kind === "plate") {
-      if (held.dirty) return t("kitchen.nextToSink");
-      if (held.contents.length === 0) return t("kitchen.nextPlate");
-      return findMatchingRecipe(held.contents, this.recipeList) ? t("kitchen.nextDeliver") : t("kitchen.nextPlate");
-    }
-    if (isCookware(held)) {
-      if (isCookwareBurnt(held)) return t("kitchen.nextBurnt");
-      if (held.contents.length === 0) return t("kitchen.nextToStove");
-      return isCookwareCooked(held) ? t("kitchen.nextPour") : t("kitchen.nextToStove");
-    }
-    if (held.kind !== "food") return null;
-
-    const definition = getFoodDefinition(held.ingredientId);
-    if (!definition) return null;
-    if (held.state === "burnt") return t("kitchen.nextBurnt");
-    if (definition.chop && held.state === "raw") return t("kitchen.nextChop");
-    if (definition.cook && held.state !== "cooked") return t("kitchen.nextCook");
-    return t("kitchen.nextOnPlate");
   }
 
   /**
@@ -2276,32 +2232,6 @@ export class KitchenScene implements ManagedScene {
         if (held) return { prompt: t("kitchen.putOn", { station: label }), action: "interact" };
         return { prompt: label, action: "interact" };
     }
-  }
-
-  private getStationProgress(): StationProgressInfo | null {
-    for (const slot of this.players) {
-      const target = slot.target;
-      if (target?.kind !== "station") continue;
-      const station = target.station;
-      const state = this.stationViewState(station);
-      if (state.progress === null && !station.onFire) continue;
-      const label = STATION_KIND_LABEL[station.spec.kind].toUpperCase();
-      if (station.onFire) {
-        return { label, progress: 1 - station.fireHealth, status: t("kitchen.statusFire"), detail: t("kitchen.useExtinguisher"), tone: "danger" };
-      }
-      const progress = state.progress ?? 0;
-      if (state.tone === "burn") {
-        return { label, progress, status: t("kitchen.statusReady"), detail: t("kitchen.takeOffHeat"), tone: "warning" };
-      }
-      return {
-        label,
-        progress,
-        status: state.tone === "cook" ? t("kitchen.statusCooking") : t("kitchen.statusWorking"),
-        detail: `${Math.round(progress * 100)}%`,
-        tone: "active",
-      };
-    }
-    return null;
   }
 
   private notifyPlayer(slot: CoopPlayerState, message: string, tone: "info" | "success" | "warning" | "error"): void {
@@ -2672,14 +2602,8 @@ export class KitchenScene implements ManagedScene {
     if (this.resultShown) return;
     this.resultShown = true;
     for (const slot of this.players) slot.input.enabled = false;
-    this.ui.setStationProgress(null);
     for (const slot of this.players) {
       this.setStationKeyPrompt(slot, null);
-      this.ui.setPlayerStatus(slot.index, {
-        prompt: null,
-        key: slot.input.labelFor("interact") ?? "—",
-        carrying: slot.held ? describeItem(slot.held, this.recipeList) : null,
-      });
     }
     const result = this.shifts.createResult(this.runtime, this.starThresholds);
     this.eventBus.emit("shift:ended", result);

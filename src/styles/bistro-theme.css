@@ -319,14 +319,264 @@
 }
 
 .game-ui .bistro-hud-top {
-  position: absolute; inset: .65rem .75rem auto;
-  display: grid; justify-items: center; gap: .55rem;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
-.game-ui .bistro-hud-top :is(.shift-cluster, .order-panel) {
-  position: static; inset: auto; transform: none;
+.game-ui .bistro-hud-top .order-panel {
+  inset: max(.6rem, env(safe-area-inset-top)) auto auto max(.7rem, env(safe-area-inset-left));
+  max-inline-size: calc(100% - 1.4rem);
+  transform: none;
 }
-.game-ui .bistro-hud-top .shift-cluster { justify-self: end; }
-.game-ui .bistro-hud-top .order-panel { justify-self: center; }
+.game-ui .bistro-hud-top .order-panel.is-empty:not(:has([data-outcome])) { display: none; }
+.game-ui .bistro-hud-top .order-panel:has([data-outcome]) .order-tickets { display: grid; }
+.game-ui .bistro-hud-top .order-tickets {
+  --ticket-width: clamp(7.25rem, 13.5vw, 12rem);
+  display: grid;
+  position: relative;
+  grid-template-columns: repeat(6, var(--ticket-width));
+  justify-content: start;
+  gap: clamp(.3rem, .7vw, .65rem);
+}
+/*
+ * No card: just the frames, floating over the kitchen. The dish frame carries the order's
+ * state (who is on it, urgency, ready); a short drop shadow keeps every frame legible
+ * against the light floor without a backing panel.
+ */
+.game-ui .bistro-hud-top .order-card {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  box-sizing: border-box;
+  filter: drop-shadow(0 .14rem .22rem #020a19b8);
+}
+.game-ui .bistro-hud-top .order-card[data-outcome] { position: absolute; z-index: 1; }
+.game-ui .bistro-hud-top .order-card-dish {
+  height: clamp(2.65rem, 6.4vw, 5rem);
+  border: 3px solid #367abb;
+  border-radius: .55rem;
+  background-color: #bcdcf3;
+  box-sizing: border-box;
+}
+.game-ui .bistro-hud-top .order-card[data-lead="1"] .order-card-dish { border-color: #8ef4ff; }
+.game-ui .bistro-hud-top .order-card-art {
+  width: 94%;
+  height: 100%;
+  min-height: 0;
+}
+/* The dish's name stays on the card as its accessible label and tooltip, not as text. */
+.game-ui .bistro-hud-top .order-card-name { display: none; }
+/*
+ * Ingredient row: each ingredient is a big tile with the stations it needs stacked under
+ * it (board, stove, oven, mixer), so the job reads at a glance without opening the cookbook.
+ */
+.game-ui .bistro-hud-top .order-chips {
+  width: 100%;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: clamp(3px, .45vw, 7px);
+  margin: .12rem 0 .1rem;
+}
+.game-ui .bistro-hud-top .order-chip {
+  --chip-size: clamp(1.9rem, 3.6vw, 3rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: var(--chip-size);
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  opacity: 1;
+  animation: none;
+}
+.game-ui .bistro-hud-top .order-chip-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--chip-size);
+  height: var(--chip-size);
+  border: 2px solid #9fd4f5;
+  border-radius: .5rem;
+  background: #eff8ff;
+  box-sizing: border-box;
+  transition: background-color 160ms linear, border-color 160ms linear;
+}
+.game-ui .bistro-hud-top .order-chip .order-chip-art {
+  width: 88%;
+  height: 88%;
+  min-height: 0;
+  object-fit: contain;
+}
+.game-ui .bistro-hud-top .order-chip[data-fallback="1"] .order-chip-tile { background: var(--chip-color, #5ce1e6); }
+.game-ui .bistro-hud-top .order-chip[data-fallback="1"]::before { content: none; }
+.game-ui .bistro-hud-top .order-chip[data-fallback="1"] .order-chip-tile::before {
+  content: attr(data-short);
+  color: #0d1b2a;
+  font-size: .62rem;
+  font-weight: 900;
+}
+/* The ingredient's own state, on the tile: in hand and being worked, ready, on the plate. */
+.game-ui .bistro-hud-top .order-chip[data-state="preparing"] .order-chip-tile {
+  border-color: #ffb020;
+  background: #fff1cf;
+}
+.game-ui .bistro-hud-top .order-chip[data-state="ready"] .order-chip-tile {
+  border-color: #5ce1e6;
+  box-shadow: 0 0 0 2px #5ce1e6;
+}
+.game-ui .bistro-hud-top .order-chip[data-state="used"] .order-chip-tile {
+  border-color: #23c552;
+  background: #c9f7da;
+}
+.game-ui .bistro-hud-top .order-chip[data-state="used"]::after { content: none; }
+.game-ui .bistro-hud-top .order-chip[data-state="used"] .order-chip-tile::after {
+  content: "✓";
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 15px;
+  height: 15px;
+  border: 2px solid #0d1b2a;
+  border-radius: 50%;
+  background: #23c552;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 11px;
+  text-align: center;
+}
+/* Stations under the ingredient, top to bottom in the order they are used. */
+.game-ui .bistro-hud-top .order-chip-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.game-ui .bistro-hud-top .order-chip-step {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--chip-size) * .78);
+  height: calc(var(--chip-size) * .78);
+  border: 2px solid #84cef1;
+  border-radius: .4rem;
+  background: #143c65;
+  box-sizing: border-box;
+}
+.game-ui .bistro-hud-top .order-chip .order-chip-step img {
+  width: 92%;
+  height: 92%;
+  object-fit: contain;
+}
+/* The station being worked right now: amber ring and a gentle pulse. */
+.game-ui .bistro-hud-top .order-chip-step[data-step="active"] {
+  border-color: #ffb020;
+  background: #5a3a06;
+  animation: order-chip-working 900ms ease-in-out infinite;
+}
+/* Already passed through: faded, with a small tick so colour is not the only signal. */
+.game-ui .bistro-hud-top .order-chip-step[data-step="done"] { opacity: .45; }
+.game-ui .bistro-hud-top .order-chip-step[data-step="done"]::after {
+  content: "✓";
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  color: #7ef0a6;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+/* Once the ingredient is on the plate its stations no longer matter. */
+.game-ui .bistro-hud-top .order-chip[data-state="used"] .order-chip-steps { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .bistro-hud-top .order-chip-step[data-step="active"] { animation: none; }
+}
+/* "Deliver" badge, shown once every ingredient is plated. */
+.game-ui .bistro-hud-top .order-card-ready {
+  margin: 0 auto .15rem;
+  padding: .05rem .45rem;
+  border-radius: 999px;
+  background: #23c552;
+  color: #06210f;
+  font-size: clamp(.6rem, .9vw, .78rem);
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+/* Who is on this order: the dish frame's border and a stripe across its top, one colour
+   per cook (PLAYER_COLORS in src/data/players.ts). */
+.game-ui .bistro-hud-top .order-card[data-player="p1"] { --ticket-player: #74f4ff; }
+.game-ui .bistro-hud-top .order-card[data-player="p2"] { --ticket-player: #ffd166; }
+.game-ui .bistro-hud-top .order-card[data-player="p3"] { --ticket-player: #ff7eb6; }
+.game-ui .bistro-hud-top .order-card[data-player="p4"] { --ticket-player: #8cff7a; }
+.game-ui .bistro-hud-top .order-card:is([data-player="p1"], [data-player="p2"], [data-player="p3"], [data-player="p4"]) .order-card-dish {
+  border-color: var(--ticket-player);
+  box-shadow: inset 0 4px 0 var(--ticket-player);
+}
+/* Ready to deliver: green frame. Running out of time: red frame (the card also bobs).
+   Both outrank the cook's colour, which stays in the stripe. */
+.game-ui .bistro-hud-top .order-card[data-ready="1"] .order-card-dish { border-color: #23c552; background-color: #d4f8e2; }
+.game-ui .bistro-hud-top .order-card[data-urgency="critical"] .order-card-dish { border-color: #ff5d78; }
+.game-ui .bistro-hud-top .order-card-track {
+  order: -1;
+  height: .35rem;
+  margin: 0 0 .23rem;
+  border: 0;
+}
+.game-ui .round-clock {
+  position: absolute;
+  inset: auto max(.75rem, env(safe-area-inset-right)) max(.65rem, env(safe-area-inset-bottom)) auto;
+  pointer-events: auto;
+  color: #f1faff;
+  background: #082044;
+  border: 2px solid #75d6ff;
+  border-radius: .7rem;
+  padding: .25rem .62rem;
+  cursor: pointer;
+  font: 900 clamp(1.28rem, 3vw, 2.4rem)/1.1 var(--bistro-font, Nunito, sans-serif);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 .25rem .75rem #030d21c0;
+}
+.game-ui .round-clock.is-urgent { color: #ffc5ae; border-color: #ff927b; }
+.game-ui .round-clock:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.game-ui .crew-callouts {
+  position: absolute;
+  inset: auto 7rem 1rem .8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  pointer-events: none;
+}
+.game-ui .crew-callout:has([hidden]) { display: none; }
+.game-ui .crew-callout .player-callout {
+  position: static;
+  white-space: normal;
+  border-inline-start: 4px solid var(--player-color);
+}
+.game-ui .crew-callout .player-callout::after { content: none; }
+@media (max-width: 1100px) {
+  .game-ui .bistro-hud-top .order-tickets {
+    grid-template-columns: repeat(4, minmax(0, var(--ticket-width)));
+  }
+}
+@media (max-width: 650px) {
+  .game-ui .bistro-hud-top .order-tickets {
+    grid-template-columns: repeat(3, minmax(0, var(--ticket-width)));
+  }
+  .game-ui .hud-layer .notification-region {
+    inset: auto .75rem 3.4rem;
+    width: auto;
+  }
+}
 .game-ui .star-meter:not([hidden]) {
   min-inline-size: 5.5rem;
   padding: .3rem .5rem;

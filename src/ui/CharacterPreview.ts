@@ -1,15 +1,13 @@
 import { t } from "../i18n";
 import {
   AbstractMesh,
-  AnimationGroup,
-  Bone,
+  type AnimationGroup,
   Camera,
   Color3,
   Color4,
   DirectionalLight,
   Engine,
   HemisphericLight,
-  Node,
   PBRMaterial,
   Scene,
   ShadowGenerator,
@@ -23,6 +21,7 @@ import { assetStreaming } from "../core/assets/AssetStreamingManager";
 import { CHARACTER_ANIMATION_ASSETS, type CharacterDefinition } from "../data/characters";
 import { buildEmbeddedClips } from "../entities/embeddedClips";
 import { HairPhysics } from "../entities/hairPhysics";
+import { bindModelClip } from "../entities/modelAnimation";
 import { qualityManager } from "../core/perf/QualityManager";
 import { bundledModelUrl } from "../core/assets/assetRegistry";
 import type { QualitySettings } from "../core/perf/qualityProfiles";
@@ -815,48 +814,14 @@ export class CharacterPreview {
     characterId: string,
     clipName: string,
   ): AnimationGroup | null {
-    const nodes = this.collectNodes(instance.rootNodes);
-    const bones = new Map<string, Bone>();
-    for (const skeleton of instance.skeletons) {
-      for (const bone of skeleton.bones) bones.set(bone.name, bone);
-    }
-
-    const resolveTarget = (oldTarget: unknown): Node | Bone | undefined => {
-      if (!(oldTarget instanceof Node)) return undefined;
-      if (oldTarget instanceof Bone) return bones.get(oldTarget.name) ?? nodes.get(oldTarget.name);
-      return nodes.get(oldTarget.name) ?? bones.get(oldTarget.name);
-    };
-
     const sourceGroup = source.animationGroups.find((group) => group.name === clipName);
     if (!sourceGroup) return null;
-
-    // Only the tracks whose node exists on this model: a track left pointing at nothing
-    // (the robots lack some of the pack's helper nodes) makes `start()` throw.
-    const group = new AnimationGroup(`preview-${characterId}-${clipName}`, this.scene);
-    for (const targeted of sourceGroup.targetedAnimations) {
-      const target = resolveTarget(targeted.target);
-      if (target) group.addTargetedAnimation(targeted.animation, target);
-    }
-    if (group.targetedAnimations.length === 0) {
-      group.dispose();
-      return null;
-    }
-    group.normalize(sourceGroup.from, sourceGroup.to);
+    const group = bindModelClip(this.scene, instance, sourceGroup, `preview-${characterId}-${clipName}`);
+    if (!group) return null;
     group.enableBlending = true;
     group.blendingSpeed = 0.08;
     group.loopAnimation = true;
     return group;
-  }
-
-  private collectNodes(rootNodes: readonly Node[]): Map<string, Node> {
-    const result = new Map<string, Node>();
-    for (const root of rootNodes) {
-      result.set(root.name, root);
-      for (const descendant of root.getDescendants()) {
-        if (!result.has(descendant.name)) result.set(descendant.name, descendant);
-      }
-    }
-    return result;
   }
 
   private convertMaterials(instance: ModelInstance, characterId: string): StandardMaterial[] {

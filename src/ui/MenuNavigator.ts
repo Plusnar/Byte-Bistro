@@ -41,7 +41,7 @@ export class MenuNavigator {
     const scope = this.scope();
     if (!scope) return false;
 
-    // The level map has its own arrow-key graph between stars; feed it keys, as the
+    // The level map has its own arrow-key graph between landmarks; feed it keys, as the
     // gamepad code on the map already does.
     if (scope.kind === "level" && this.mapTakes(command)) {
       const canvas = scope.element.querySelector<HTMLCanvasElement>("[data-ui='level-map-canvas']");
@@ -121,7 +121,7 @@ export class MenuNavigator {
     if (command === "pause" || command === "recipes") return false;
     const onButton = this.current !== null && this.current.isConnected && isShown(this.current) && this.current.closest("[data-ui='level-select']");
     if (onButton) {
-      // Down from "back", or any arrow from a button, returns to the map's stars.
+      // An arrow from a button returns to the map's landmarks.
       if (isDirection(command)) {
         this.clearFocus();
         return true;
@@ -169,10 +169,8 @@ export class MenuNavigator {
         return click("[data-action='resume']");
       case "cookbook":
         return click("[data-action='close-cookbook']");
-      case "level": {
-        if (click("[data-action='close-level-window']")) return true;
+      case "level":
         return click("[data-action='back-home']");
-      }
       case "home": {
         // Back on the home screen closes the settings drawer if it is open.
         const settings = scope.element.querySelector<HTMLDetailsElement>("details[open]");

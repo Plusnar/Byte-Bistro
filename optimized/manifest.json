@@ -398,6 +398,48 @@
         "textures": []
       }
     },
+    "src/assets/ingredients/cookie_dough.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "60a2b8d8898ab37215d3f5d7c947a031870875055e46d8ad9401055515d9f324",
+      "sourceBytes": 33416,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/cookie_dough.glb",
+      "outputHash": "8bbd42fa20ad9ab03973dbc505b1ac6c25ef6f534eb79fd109dde0b9cbc50106",
+      "outputBytes": 14824,
+      "meshopt": true,
+      "before": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/cookie_tray.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "68cc3553b329671671920b84ca90a856dbc3abfcf405e22c645f3b040351a14a",
+      "sourceBytes": 203556,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/cookie_tray.glb",
+      "outputHash": "17cfed5a4eaa797d3ba4f05067cf3a998ea18e08d7b3fd87ad4933a94daa000b",
+      "outputBytes": 75948,
+      "meshopt": true,
+      "before": {
+        "meshes": 25,
+        "primitives": 25,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    },
     "src/assets/ingredients/cooling_fluid.glb": {
       "profile": "staticProp",
       "profileKey": "4e621bd19fb7",
@@ -479,6 +521,111 @@
       "after": {
         "meshes": 5,
         "primitives": 5,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/gelato_mix.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "dd9d002ae89c3c8e8827e743dde0873e67a136854b80116848049dc009d1b0f4",
+      "sourceBytes": 33424,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/gelato_mix.glb",
+      "outputHash": "6e1a88a2058ed053b21a68c256b03501663afd9ec7df875cded89c0c159e15be",
+      "outputBytes": 14828,
+      "meshopt": true,
+      "before": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/gelato_parfait.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "ece6b030a43ea44e01e83a9cedc8f4ee2f704d683ddbacafee87bc41018f52c9",
+      "sourceBytes": 98196,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/gelato_parfait.glb",
+      "outputHash": "d64988ed93fe9f4b1861113462781b6241ddd48acff5135d7296efb0796fe320",
+      "outputBytes": 41344,
+      "meshopt": true,
+      "before": {
+        "meshes": 10,
+        "primitives": 10,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/oven_tray.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "170d36c2155a8be21c6cb2bd68bda2996f0fff159e1606f04aeef525f5b4d0f6",
+      "sourceBytes": 39648,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/oven_tray.glb",
+      "outputHash": "5eeadf416b4ec659c7bef9683f422f7a950894b00bbf1b753f0795a38f36cb53",
+      "outputBytes": 15912,
+      "meshopt": true,
+      "before": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/ram_cake_baked.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "df2d1734847e825a34932120324888b7b473d3a73e5e52fa285571abffd46b8d",
+      "sourceBytes": 185656,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/ram_cake_baked.glb",
+      "outputHash": "c6c8f41c2a74c9f42673a59fa9e87ff37e8579454e865f52ac0e2245befd1c42",
+      "outputBytes": 63332,
+      "meshopt": true,
+      "before": {
+        "meshes": 21,
+        "primitives": 21,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/ram_dough.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "58a6aae4f50088dec8813175cc9238e31e30941cf69d9efa4956065fbd28d736",
+      "sourceBytes": 33444,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/ram_dough.glb",
+      "outputHash": "a86321b338d0f80fe07e3a03ad59638ef4e72fb360d766803e9a0a58380231f3",
+      "outputBytes": 14848,
+      "meshopt": true,
+      "before": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
         "textures": []
       }
     },
@@ -1512,6 +1659,48 @@
         "textures": []
       }
     },
+    "src/assets/stations/mixer.glb": {
+      "profile": "prop",
+      "profileKey": "4a040b359e47",
+      "sourceHash": "8d5ff431515e50ff66074a588c931f4ff5f6cbec0f34d8c9bfd232a503d485c1",
+      "sourceBytes": 55648,
+      "status": "optimized",
+      "output": "optimized/src/assets/stations/mixer.glb",
+      "outputHash": "0407952bd4ac3b8752815c6da9a6720a46df27acf2e55088a9e86921977b5a70",
+      "outputBytes": 22668,
+      "meshopt": true,
+      "before": {
+        "meshes": 2,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "src/assets/stations/oven.glb": {
+      "profile": "prop",
+      "profileKey": "4a040b359e47",
+      "sourceHash": "f5add99cfae0f4e8eca1c7be0c2cbaf71881f87276478064c751b1770070b5b9",
+      "sourceBytes": 106576,
+      "status": "optimized",
+      "output": "optimized/src/assets/stations/oven.glb",
+      "outputHash": "b76a58b935a8fbc395f4a3d5996bb2ea3b4065be587e29fd5def4340b3e255cc",
+      "outputBytes": 40188,
+      "meshopt": true,
+      "before": {
+        "meshes": 2,
+        "primitives": 13,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 13,
+        "textures": []
+      }
+    },
     "src/assets/selection-street/Selection Street.glb": {
       "profile": "staticScene",
       "profileKey": "5801fe231243",
@@ -1605,6 +1794,27 @@
       "output": "optimized/src/assets/map-town/orbit-robot.glb",
       "outputHash": "51a61c8f541fa839f312b03f2980835cc5729ca5316361f02f8d3c2ec8504934",
       "outputBytes": 20988,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      }
+    },
+    "src/assets/map-town/orbit-rocket.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "79967205997c85bb177003cfaa773196330ecce96b722fe6361003f15ff051f6",
+      "sourceBytes": 48224,
+      "status": "optimized",
+      "output": "optimized/src/assets/map-town/orbit-rocket.glb",
+      "outputHash": "72b0d755065adb492a0d8a6483799732a510589b6a87ad1dd473acc7085f7bc4",
+      "outputBytes": 14172,
       "meshopt": true,
       "before": {
         "meshes": 1,

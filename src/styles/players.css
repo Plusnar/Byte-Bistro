@@ -11,17 +11,17 @@
   display: none;
 }
 .game-ui .selection-screen[data-step="pair"] .pair-select {
-  position: absolute;
+  position: fixed;
   inset: 0;
   display: grid;
-  align-content: center;
+  align-content: safe center;
   justify-items: center;
   gap: 1rem;
   padding: max(1.25rem, env(safe-area-inset-top)) 1rem max(1.25rem, env(safe-area-inset-bottom));
   overflow-y: auto;
   background:
-    radial-gradient(ellipse at 50% -10%, #1a5cc4aa 0%, transparent 60%),
-    linear-gradient(#082456, #061a3d);
+    linear-gradient(#03142d35, #03142d70),
+    #03142d url("/assets/ui/loading-circuit.webp") no-repeat center / 100% 100%;
 }
 .game-ui .pair-select h2 {
   margin: 0;
@@ -30,7 +30,7 @@
   text-align: center;
   text-shadow: 0 .2rem 0 #0006;
 }
-.game-ui .pair-select .pair-skip { font-size: .85rem; }
+.game-ui .pair-select .pair-computer { min-block-size: 2.75rem; }
 
 .game-ui .pair-panel.phone-room {
   display: grid;
@@ -38,14 +38,18 @@
   gap: 1.5rem;
   inline-size: min(56rem, 100%);
   max-block-size: none;
-  padding: 1.25rem;
+  padding: clamp(.9rem, 2.8vw, 1.6rem);
+  background: linear-gradient(140deg, #103267ef, #06152bf7);
   overflow: visible;
 }
-.game-ui .pair-panel .phone-room-diag { grid-column: 1 / -1; margin: 0; }
-@media (max-width: 760px) {
-  .game-ui .pair-panel.phone-room { grid-template-columns: 1fr; justify-items: center; }
+@media (max-width: 660px) {
+  .game-ui .pair-panel.phone-room { grid-template-columns: 1fr; justify-items: center; gap: .85rem; }
   .game-ui .pair-panel .phone-room-players { inline-size: 100%; }
+  .game-ui .pair-panel .phone-room-qr { max-inline-size: 9.5rem; }
+  .game-ui .pair-panel .phone-room-hint { font-size: .8rem; }
+  .game-ui .pair-panel .phone-room-slot { min-block-size: 2.9rem; padding-block: .3rem; }
 }
+.game-ui .phone-room-status:empty { display: none; }
 
 .game-ui .phone-room-slots { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; }
 .game-ui .phone-room-slot {
@@ -87,8 +91,17 @@
   color: #062a2a;
   animation: pair-ready 1.6s ease-in-out infinite;
 }
+.game-ui .phone-room-slot[data-state="online"] .phone-room-meta { color: #91f6cf; }
+.game-ui .phone-room-slot.just-connected { animation: phone-connected 480ms ease-out both; }
+@keyframes phone-connected {
+  from { transform: translateX(.55rem); background: color-mix(in srgb, var(--player) 44%, #04122d); }
+  to { transform: translateX(0); }
+}
 @keyframes pair-ready { 50% { transform: scale(1.03); } }
-@media (prefers-reduced-motion: reduce) { .game-ui .phone-room-continue[data-ready="true"] { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .phone-room-continue[data-ready="true"],
+  .game-ui .phone-room-slot.just-connected { animation: none; }
+}
 .game-ui .phone-room-tools { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; }
 .game-ui .phone-room-tools button, .game-ui .phone-room-join [data-act="retry"] {
   min-block-size: 2.4rem;

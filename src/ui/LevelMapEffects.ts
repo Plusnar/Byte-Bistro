@@ -17,7 +17,7 @@ const TURN_WIND_STRENGTH = .21;
 const ORBIT_MODELS = {
   ufo: "src/assets/disasters/ufo.glb",
   satellite: "src/assets/map-town/orbit-satellite.glb",
-  robot: "src/assets/map-town/orbit-robot.glb",
+  rocket: "src/assets/map-town/orbit-rocket.glb",
   meteor: "src/assets/map-town/orbit-meteor.glb",
 } as const;
 
@@ -33,22 +33,22 @@ interface Flight {
   readonly direction: 1 | -1;
   readonly duration: number;
   readonly pause: number;
-  readonly offset: number;
+  readonly delay: number;
   readonly pitch: number;
   readonly tumble: number;
 }
 
 const FLIGHTS: readonly Flight[] = [
-  { model: "ufo", size: 2.05, lane: .34, depth: -10, direction: 1, duration: 37, pause: 8, offset: 9, pitch: .16, tumble: .18 },
-  { model: "satellite", size: 1.63, lane: .65, depth: -15, direction: -1, duration: 43, pause: 9, offset: 10, pitch: .88, tumble: .54 },
-  { model: "satellite", size: 1.30, lane: -.63, depth: -19, direction: 1, duration: 49, pause: 11, offset: 56, pitch: 1.04, tumble: .36 },
-  { model: "robot", size: 1.37, lane: -.33, depth: -12, direction: 1, duration: 44, pause: 8, offset: 9, pitch: .13, tumble: .22 },
-  { model: "robot", size: 1.13, lane: -.44, depth: -16, direction: -1, duration: 46, pause: 9, offset: 12, pitch: .15, tumble: .25 },
-  { model: "meteor", size: 1.06, lane: .54, depth: -21, direction: 1, duration: 34, pause: 7, offset: 36, pitch: .43, tumble: 2.4 },
-  { model: "meteor", size: .81, lane: -.67, depth: -24, direction: -1, duration: 39, pause: 7, offset: 30, pitch: .35, tumble: 2.1 },
+  { model: "ufo", size: 2.05, lane: .34, depth: -10, direction: 1, duration: 37, pause: 8, delay: .4, pitch: .16, tumble: .18 },
+  { model: "satellite", size: 1.63, lane: .65, depth: -15, direction: -1, duration: 43, pause: 9, delay: 1.8, pitch: .88, tumble: .54 },
+  { model: "satellite", size: 1.30, lane: -.63, depth: -19, direction: 1, duration: 49, pause: 11, delay: 9, pitch: 1.04, tumble: .36 },
+  { model: "rocket", size: 2.25, lane: -.36, depth: -12, direction: 1, duration: 35, pause: 9, delay: 2.6, pitch: .20, tumble: .20 },
+  { model: "meteor", size: 1.06, lane: .54, depth: -21, direction: 1, duration: 34, pause: 7, delay: 4.5, pitch: .43, tumble: 2.4 },
+  { model: "meteor", size: .81, lane: -.67, depth: -24, direction: -1, duration: 39, pause: 7, delay: 8, pitch: .35, tumble: 2.1 },
 ];
 
 interface Traveler {
+  startsAt: number;
   readonly flight: Flight;
   readonly pivot: TransformNode;
   readonly instance: ModelInstance;
@@ -119,12 +119,16 @@ export class LevelMapSpace {
   private galaxy: Texture | null = null;
   private backdrop: Layer | null = null;
   private dust: ParticleSystem | null = null;
+  private orbitDust: ParticleSystem | null = null;
+  private dustTurn = 0;
+  private dustStep = 0;
   private animated = false;
   private elapsed = 0;
   private centerU = 0;
   private centerV = 0;
   private halfWidth = 0;
   private halfHeight = 0;
+  private flightCenterX = 0;
   private readonly travelers: Traveler[] = [];
   private disposed = false;
 
@@ -173,7 +177,49 @@ export class LevelMapSpace {
     dust.preWarmCycles = 28;
     dust.preWarmStepOffset = 5;
     this.dust = trackParticleSystem(dust);
-    if (this.animated) this.dust.start();
+    this.orbitDust = this.createOrbitDust(sprite);
+    if (this.animated) {
+      this.dust.start();
+      this.orbitDust.start();
+    }
+  }
+
+  private createOrbitDust(sprite: DynamicTexture): ParticleSystem {
+    const dust = new ParticleSystem("level-map-orbit-dust", 240, this.scene);
+    dust.particleTexture = sprite;
+    dust.emitter = Vector3.Zero();
+    dust.startPositionFunction = (_matrix, position) => {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 6.7 + Math.random() * 2.1;
+      position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, Math.random() * 10 - 5);
+    };
+    dust.minEmitPower = .04;
+    dust.maxEmitPower = .14;
+    dust.minLifeTime = 4;
+    dust.maxLifeTime = 7;
+    dust.minSize = .045;
+    dust.maxSize = .15;
+    dust.emitRate = 34;
+    dust.blendMode = ParticleSystem.BLENDMODE_ADD;
+    dust.addColorGradient(0, new Color4(.51, .77, 1, 0));
+    dust.addColorGradient(.16, new Color4(.64, .86, 1, .74), new Color4(.92, .74, 1, .68));
+    dust.addColorGradient(.72, new Color4(.55, .77, 1, .58));
+    dust.addColorGradient(1, new Color4(.55, .77, 1, 0));
+    dust.preWarmCycles = 45;
+    dust.preWarmStepOffset = 6;
+
+    const update = dust.updateFunction.bind(dust);
+    dust.updateFunction = (particles) => {
+      update(particles);
+      const cos = Math.cos(this.dustStep);
+      const sin = Math.sin(this.dustStep);
+      for (const { position } of particles) {
+        const x = position.x;
+        position.x = cos * x - sin * position.y;
+        position.y = sin * x + cos * position.y;
+      }
+    };
+    return trackParticleSystem(dust);
   }
 
   resize(aspect: number): void {
@@ -185,9 +231,17 @@ export class LevelMapSpace {
     this.updateTextureOffset();
   }
 
-  setCameraBounds(halfWidth: number, halfHeight: number): void {
+  setCameraBounds(halfWidth: number, halfHeight: number, offsetX: number): void {
     this.halfWidth = halfWidth;
     this.halfHeight = halfHeight;
+    this.flightCenterX = offsetX;
+  }
+
+  restartFlights(): void {
+    for (const traveler of this.travelers) {
+      traveler.startsAt = this.elapsed + traveler.flight.delay;
+      traveler.pivot.setEnabled(false);
+    }
   }
 
   async loadTravelers(): Promise<void> {
@@ -209,39 +263,49 @@ export class LevelMapSpace {
       model.position.y = -(bounds.minimumY + bounds.maximumY) * .5 * scale;
       for (const root of instance.rootNodes) root.parent = model;
       for (const mesh of pivot.getChildMeshes()) mesh.isPickable = false;
-      const traveler = { flight, pivot, instance };
+      const traveler = { flight, pivot, instance, startsAt: this.elapsed + flight.delay };
       this.travelers.push(traveler);
       this.updateTraveler(traveler, this.animated);
     }));
   }
 
-  update(delta: number, animated: boolean): void {
+  update(delta: number, animated: boolean, turnSpeedRatio = 0): void {
     if (animated !== this.animated) {
       this.animated = animated;
-      if (animated) this.dust?.start();
+      if (animated) {
+        this.dust?.start();
+        this.orbitDust?.start();
+      }
       else {
         this.dust?.stop();
         this.dust?.reset();
+        this.orbitDust?.stop();
+        this.orbitDust?.reset();
+        this.dustTurn = this.dustStep = 0;
       }
     }
-    if (animated) this.elapsed += delta;
+    if (animated) {
+      this.elapsed += delta;
+      this.dustTurn += (turnSpeedRatio - this.dustTurn) * (1 - Math.exp(-delta * 6));
+      this.dustStep = (.065 + .93 * this.dustTurn) * delta;
+    }
     for (const traveler of this.travelers) this.updateTraveler(traveler, animated);
     if (!animated) return;
     this.updateTextureOffset();
   }
 
-  private updateTraveler({ flight, pivot }: Traveler, animated: boolean): void {
-    const time = (this.elapsed + flight.offset) % (flight.duration + flight.pause);
-    const visible = animated && time < flight.duration;
+  private updateTraveler({ flight, pivot, startsAt }: Traveler, animated: boolean): void {
+    const time = (this.elapsed - startsAt) % (flight.duration + flight.pause);
+    const visible = animated && time >= 0 && time < flight.duration;
     if (visible !== pivot.isEnabled()) pivot.setEnabled(visible);
     if (!visible) return;
 
     const progress = time / flight.duration;
-    const hover = time * .84 + flight.offset;
+    const hover = time * .84 + flight.delay;
     // Wrap past either edge, including the model's width, at every aspect ratio and zoom.
     const edge = this.halfWidth + flight.size * 1.25;
     pivot.position.set(
-      (progress * 2 - 1) * edge * flight.direction,
+      this.flightCenterX + (progress * 2 - 1) * edge * flight.direction,
       this.halfHeight * flight.lane + Math.sin(hover) * .27 - (progress - .5) * .95,
       flight.depth + Math.cos(progress * Math.PI * 2) * 1.0,
     );
@@ -265,6 +329,7 @@ export class LevelMapSpace {
       pivot.dispose();
     }
     this.travelers.length = 0;
+    this.orbitDust?.dispose(false);
     this.dust?.dispose();
     this.backdrop?.dispose();
   }

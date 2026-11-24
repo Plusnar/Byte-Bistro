@@ -147,9 +147,6 @@
   box-shadow: 0 5px 0 var(--order-ink), 0 0 0 3px var(--order-cyan);
 }
 
-.game-ui .order-card[data-player="p1"] { border-color: #178fa6; }
-.game-ui .order-card[data-player="p2"] { border-color: #b8397f; }
-
 .game-ui .order-card-dish {
   position: relative;
   display: grid;
@@ -337,10 +334,9 @@
   box-shadow: 0 5px 0 var(--order-ink), 0 0 0 3px var(--order-green);
 }
 
-.game-ui .order-card[data-ready="1"] .order-card-name::after {
-  content: " • ENTREGAR";
-  color: #12913b;
-}
+/* Translated via data-i18n (hud.deliver); shown only once every ingredient is plated. */
+.game-ui .order-card-ready { display: none; }
+.game-ui .order-card[data-ready="1"] .order-card-ready { display: block; }
 
 /* ---------------------- outcome stamps and exit ----------------------- */
 
@@ -460,7 +456,6 @@
   .game-ui .order-panel { top: 64px; gap: 6px; }
   .game-ui .order-tickets { gap: 6px; }
   .game-ui .order-card { width: 76px; }
-  .game-ui .order-card[data-ready="1"] .order-card-name::after { content: ""; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -25,6 +25,7 @@ import {
   type MechanismConfig,
 } from "../data/mechanismConfig";
 import { ROBOT_ASSET_ID, ROBOT_PRESETS, type RobotConfig } from "../data/robotConfig";
+import { OVEN_ASSET_ID } from "../data/stationAssets";
 import { getIngredient } from "../data/ingredients";
 
 const createUid = (() => {
@@ -116,7 +117,11 @@ export interface EditorAssetEntry {
 
 const TILE_SCALE = { x: 0.6, y: 0.9, z: 0.6 } as const;
 
-/** Model shown in the editor for each kitchen tile (the game draws its own). */
+/**
+ * Model shown in the editor for each kitchen tile (the game draws its own). Kinds with a
+ * bespoke model use it instead: the oven as itself (OVEN_ASSET_ID), the mixer as a
+ * counter whose dressing adds the stand mixer (EditorScene.dressStation).
+ */
 const KITCHEN_STATION_MODEL: Readonly<Record<KitchenStationKind, KitchenModelName>> = {
   crate: "crate",
   counter: "kitchencounter_straight_A",
@@ -201,7 +206,7 @@ const MECHANISM_PRESETS: readonly EditorAssetEntry[] = [
 ];
 
 export const kitchenStationEntry = (kind: KitchenStationKind): EditorAssetEntry => ({
-  assetId: kitchenAssetId(KITCHEN_STATION_MODEL[kind]),
+  assetId: kind === "oven" ? OVEN_ASSET_ID : kitchenAssetId(KITCHEN_STATION_MODEL[kind]),
   get label() { return t("editor.kitchenPrefix", { name: STATION_KIND_LABEL[kind] }); },
   category: "station",
   role: "station",

@@ -45,6 +45,8 @@ export class QualityManager {
   private current: QualitySettings;
   private controller: AutoQualityController | null = null;
   private autoActive = false;
+  /** An automatic step decided at the end of a frame, applied before the next one. */
+  private pendingStep: QualityStep | null = null;
   private readonly engines = new Map<AbstractEngine, EngineRegistration>();
   private readonly listeners = new Set<Listener>();
   private readonly storage: Pick<Storage, "getItem" | "setItem"> | null;
@@ -111,15 +113,34 @@ export class QualityManager {
   setAutoActive(active: boolean): void {
     if (this.autoActive === active) return;
     this.autoActive = active;
+    this.pendingStep = null;
     this.controller?.reset();
   }
 
-  /** One presented frame's interval, from PerformanceManager. */
+  /**
+   * One presented frame's interval, from PerformanceManager.
+   *
+   * Samples arrive at the end of a frame, after it is drawn but before the browser shows
+   * it. Applying a step there would resize the canvas (setHardwareScalingLevel resizes the
+   * engine), which clears the frame just drawn: a blank frame, a visible blink, on every
+   * automatic change. So a decision is only queued here; `flushPending` applies it at the
+   * start of the next frame, before anything is drawn.
+   */
   sampleFrame(intervalMs: number): void {
     if (this.modeValue !== "auto" || !this.autoActive) return;
     const controller = this.ensureController();
     const step = controller.sample(intervalMs, this.now());
-    if (step) this.apply(this.settingsFor(step));
+    if (step) this.pendingStep = step;
+  }
+
+  /** Applies an automatic change decided last frame. Call before rendering a frame. */
+  flushPending(): void {
+    const step = this.pendingStep;
+    if (!step) return;
+    this.pendingStep = null;
+    // The mode may have changed in between; a manual choice wins over a stale decision.
+    if (this.modeValue !== "auto" || !this.autoActive) return;
+    this.apply(this.settingsFor(step));
   }
 
   /** For the perf overlay and the benchmark. */

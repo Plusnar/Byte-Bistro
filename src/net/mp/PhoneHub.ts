@@ -11,9 +11,9 @@
 import qrcode from "qrcode-generator";
 import type { InputManager } from "../../core/InputManager";
 import { MAX_PLAYERS, PLAYER_COLORS, playerLabel } from "../../data/players";
-import { t, type MessageKey } from "../../i18n";
+import { t } from "../../i18n";
 import { menuCommandFor, type MenuCommand } from "../../ui/menuInput";
-import { ApiError, callApi } from "./api";
+import { ApiError } from "./api";
 import { HostSession, type HostSnapshot, type PadState, type PhonePeer } from "./HostSession";
 import type { RoomPhase } from "./protocol";
 import type { RemoteInputDevice } from "./remoteInput";
@@ -42,7 +42,7 @@ export const qrSvg = (text: string): string => {
   code.addData(text);
   code.make();
   const count = code.getModuleCount();
-  const margin = 2;
+  const margin = 4;
   let path = "";
   for (let row = 0; row < count; row++) {
     for (let col = 0; col < count; col++) if (code.isDark(row, col)) path += `M${col + margin} ${row + margin}h1v1h-1z`;
@@ -65,10 +65,11 @@ export class PhoneHub {
   private attached: (RemoteInputDevice | null)[] = [];
   private padTimer = 0;
   private readonly knownNames = new Map<string, string>();
-  private showDiagnostics = false;
+  private readonly slots: HTMLElement[] = [];
   private disposed = false;
   private built = false;
   private readonly hooks = new AbortController();
+  private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   constructor(private readonly options: PhoneHubOptions) {}
 
@@ -103,12 +104,6 @@ export class PhoneHub {
   settlePlayers(): number {
     if (!this.session || this.connectedPlayers() === 0) return 0;
     return this.session.settlePlayers();
-  }
-
-  /** Back to pairing: new phones may join again. */
-  reopenPairing(): void {
-    this.unlock();
-    void this.open();
   }
 
   /** Lets new phones join (the room locks when the pairing is settled). */
@@ -250,14 +245,12 @@ export class PhoneHub {
         <button type="button" class="secondary-action" data-act="retry" hidden></button>
       </section>
       <section class="phone-room-players">
-        <ol class="phone-room-slots" data-ui="slots"></ol>
+        <ol class="phone-room-slots" data-ui="slots" aria-live="polite"></ol>
         <p class="phone-room-continue" data-ui="continue"></p>
         <div class="phone-room-tools">
           <button type="button" data-act="copy"></button>
-          <button type="button" data-act="diag"></button>
         </div>
-      </section>
-      <pre class="phone-room-diag" data-ui="diag" hidden></pre>`;
+      </section>`;
     panel.addEventListener("click", (event) => {
       const target = (event.target as HTMLElement).closest<HTMLElement>("[data-act]");
       if (!target) return;
@@ -265,10 +258,6 @@ export class PhoneHub {
       switch (target.dataset.act) {
         case "copy":
           if (session) void navigator.clipboard?.writeText(session.joinUrl).then(() => this.setStatus(t("mp.copied")), () => undefined);
-          return;
-        case "diag":
-          this.showDiagnostics = !this.showDiagnostics;
-          this.render();
           return;
         case "kick":
           if (target.dataset.player) session?.kick(target.dataset.player);
@@ -281,26 +270,11 @@ export class PhoneHub {
   }
 
   private qrFor = "";
-  /** Server-side estimate of today's free-quota use, refreshed while diagnostics show. */
-  private quotaLine = "";
-  private quotaAt = 0;
-
-  private refreshQuota(): void {
-    if (performance.now() - this.quotaAt < 10_000) return;
-    this.quotaAt = performance.now();
-    void callApi<{ workerRequestsPct: number; doRequestsPct: number; doGbSecondsPct: number; rooms: number; roomsPerDay: number; safetyRatio: number; allow: Record<string, boolean>; turn: { enabled: boolean; plannedGbThisMonth: number; monthlyGbBudget: number } }>("status")
-      .then((status) => {
-        this.quotaLine = `quota (estimate, % of ${Math.round(status.safetyRatio * 100)}% of Free): workers ${status.workerRequestsPct}% · DO requests ${status.doRequestsPct}% · DO GB-s ${status.doGbSecondsPct}% · rooms ${status.rooms}/${status.roomsPerDay} · allow ${Object.entries(status.allow).filter(([, on]) => on).map(([name]) => name).join(",") || "none"} · TURN ${status.turn.enabled ? `${status.turn.plannedGbThisMonth}/${status.turn.monthlyGbBudget} GB planned` : "off"}`;
-        if (this.showDiagnostics) this.render();
-      }, () => { this.quotaLine = "quota: unavailable"; });
-  }
-
   private render(): void {
     if (!this.built || this.disposed) return;
     const panel = this.options.panel;
     const q = <T extends HTMLElement = HTMLElement>(selector: string): T => panel.querySelector<T>(selector)!;
     q("[data-act=copy]").textContent = t("mp.copyLink");
-    q("[data-act=diag]").textContent = t("mp.diagnostics");
     q("[data-act=retry]").textContent = t("mp.retry");
     const status = q("[data-ui=status]");
     const snapshot = this.session?.snapshot() ?? null;
@@ -312,6 +286,7 @@ export class PhoneHub {
     q("[data-act=retry]").hidden = !(this.statusTone === "error" && !this.opening);
 
     if (!snapshot) {
+      this.qrFor = "";
       q("[data-ui=qr]").replaceChildren();
       q("[data-ui=code]").textContent = "······";
       q("[data-ui=hint]").textContent = "";
@@ -328,38 +303,54 @@ export class PhoneHub {
 
     const phones = snapshot?.phones ?? [];
     const bySlot = new Map(phones.map((phone) => [phone.info.slot, phone]));
-    q("[data-ui=slots]").replaceChildren(...Array.from({ length: MAX_PLAYERS }, (_, slot) => this.renderSlot(slot, bySlot.get(slot) ?? null)));
+    const list = q("[data-ui=slots]");
+    for (let slot = 0; slot < MAX_PLAYERS; slot++) {
+      const phone = bySlot.get(slot) ?? null;
+      const previous = this.slots[slot];
+      const online = Boolean(phone?.info.connected);
+      const state = phone ? (online ? "online" : "offline") : "empty";
+      const name = phone?.info.name ?? "";
+      const label = t(phone ? (online ? "pair.connected" : "mp.offline") : slot === 0 ? "pair.slotFirst" : "pair.slotEmpty");
+      if (previous?.dataset.state === state && previous.dataset.phone === phone?.id &&
+          previous.dataset.name === name && previous.dataset.label === label &&
+          previous.dataset.kick === t("mp.kick")) continue;
+      const row = this.renderSlot(slot, phone, state, label);
+      if (!this.reducedMotion.matches && online &&
+          (previous?.dataset.state !== "online" || previous.dataset.phone !== phone?.id)) {
+        row.classList.add("just-connected");
+        row.addEventListener("animationend", () => row.classList.remove("just-connected"), { once: true });
+        row.addEventListener("animationcancel", () => row.classList.remove("just-connected"), { once: true });
+      }
+      if (previous) previous.replaceWith(row);
+      else list.append(row);
+      this.slots[slot] = row;
+    }
     const connected = this.connectedPlayers();
     const prompt = q("[data-ui=continue]");
     prompt.textContent = connected === 0 ? t("pair.waitingFirst") : t("pair.pressA", { count: connected });
     prompt.dataset.ready = String(connected > 0);
 
-    const diag = q("[data-ui=diag]");
-    diag.hidden = !this.showDiagnostics || !snapshot;
-    if (this.showDiagnostics && snapshot) {
-      this.refreshQuota();
-      diag.textContent = `${this.diagnostics(snapshot)}
-${this.quotaLine}`;
-    }
   }
 
-  private renderSlot(slot: number, phone: PhonePeer | null): HTMLElement {
+  private renderSlot(slot: number, phone: PhonePeer | null, state: string, label: string): HTMLElement {
     const item = document.createElement("li");
     item.className = "phone-room-slot";
     item.style.setProperty("--player", PLAYER_COLORS[slot] ?? "#fff");
-    item.dataset.state = !phone ? "empty" : phone.info.connected ? "online" : "offline";
+    item.dataset.state = state;
+    if (phone) item.dataset.phone = phone.id;
+    item.dataset.name = phone?.info.name ?? "";
+    item.dataset.label = label;
+    item.dataset.kick = t("mp.kick");
     item.append(text("span", "phone-room-badge", playerLabel(slot)));
     const body = document.createElement("span");
     body.className = "phone-room-name";
     if (!phone) {
-      body.append(text("span", "phone-room-meta", t(slot === 0 ? "pair.slotFirst" : "pair.slotEmpty")));
+      body.append(text("span", "phone-room-meta", label));
       item.append(body);
       return item;
     }
     body.append(document.createTextNode(phone.info.name));
-    const transport = phone.info.connected ? t(`phone.transport.${phone.transport}` as MessageKey) : t("mp.offline");
-    const rtt = phone.path?.rttMs ?? phone.phoneRtt;
-    body.append(text("span", "phone-room-meta", transport + (phone.info.connected && rtt ? ` · ${Math.round(rtt)} ms` : "")));
+    body.append(text("span", "phone-room-meta", label));
     item.append(body);
     const kick = text("button", "phone-room-kick", "×") as HTMLButtonElement;
     kick.type = "button";
@@ -371,26 +362,4 @@ ${this.quotaLine}`;
     return item;
   }
 
-  private diagnostics(snapshot: HostSnapshot): string {
-    const lines = [
-      `room ${snapshot.code} · mode ${snapshot.policy.mode} · socket ${snapshot.socket} · relay ${snapshot.relayAllowed ? "on" : "off"} · https ${snapshot.policy.httpsAllowed ? "on" : "off"} · turn ${snapshot.policy.turnAvailable ? "on" : "off"} · locked ${snapshot.lobby?.locked ? "yes" : "no"}`,
-      `phones ${snapshot.phones.length}/${snapshot.lobby?.maxPlayers ?? "?"} · connected ${snapshot.phones.filter((phone) => phone.info.connected).length}`,
-    ];
-    for (const phone of snapshot.phones) {
-      const state = phone.device.state;
-      const path = phone.path;
-      lines.push([
-        `P${phone.info.slot + 1} ${phone.info.name}`,
-        `pad ${phone.layout}`,
-        `via ${phone.transport}${path ? ` (${path.localType}/${path.remoteType} ${path.protocol})` : ""}`,
-        `rtt ${Math.round(path?.rttMs ?? phone.phoneRtt)} ms (avg ${Math.round(phone.rtt.smoothed)}, jitter ${Math.round(phone.phoneJitter)})`,
-        `loss ${(state.loss.loss * 100).toFixed(1)}%`,
-        `rate ${phone.phoneRate} Hz · frame ${Math.round(state.frameIntervalMs)} ms`,
-        `in ${phone.traffic.receivedMessages} msg / ${(phone.traffic.receivedBytes / 1024).toFixed(1)} kB · out ${phone.traffic.sentMessages}`,
-        `frames ok ${state.framesAccepted} stale ${state.framesDropped}`,
-        `peer ${phone.peer?.state ?? "none"}${phone.negotiationFailures ? ` · failures ${phone.negotiationFailures}` : ""}`,
-      ].join(" · "));
-    }
-    return lines.join("\n");
-  }
 }

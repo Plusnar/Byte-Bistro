@@ -1,16 +1,4 @@
-/* Phone controllers: the home-screen "Players" button and the pairing panel (src/net/mp/PhoneHub.ts). */
-
-.game-ui .bistro-home-actions .bistro-phones-action {
-  --home-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='18' y='4' width='28' height='56' rx='6' fill='%23fff'/%3E%3Crect x='22' y='11' width='20' height='36' rx='2' fill='%230a4fb3'/%3E%3Ccircle cx='32' cy='53' r='3' fill='%230a4fb3'/%3E%3Ccircle cx='28' cy='25' r='4' fill='%23ffdf54'/%3E%3Ccircle cx='37' cy='31' r='3' fill='%2366f4cf'/%3E%3Ccircle cx='37' cy='22' r='3' fill='%23ff688d'/%3E%3C/svg%3E");
-  --home-glint: #c9fff1;
-  --home-top: #19d3a2;
-  --home-mid: #0a9a7a;
-  --home-bottom: #04584a;
-  --home-rim: #4dffd0;
-  position: fixed;
-  inset-block-start: max(var(--home-edge), env(safe-area-inset-top));
-  inset-inline-start: calc(max(var(--home-edge), env(safe-area-inset-left)) + var(--home-icon-size) + .6rem);
-}
+/* Phone-controller pairing panel. */
 
 .phone-room {
   inline-size: min(56rem, calc(100vw - 2rem));
@@ -123,14 +111,3 @@
   border-block-start: 1px solid #ffffff1a;
 }
 .phone-room-footer label { display: flex; gap: .4rem; align-items: center; font-weight: 700; flex: 1; min-inline-size: 12rem; }
-.phone-room-diag {
-  margin: 0 1.25rem 1.25rem;
-  padding: .75rem;
-  border-radius: .8rem;
-  background: #020a1c;
-  font: .78rem/1.45 ui-monospace, monospace;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: #c8f2ff;
-}
-.phone-room-diag[hidden] { display: none; }

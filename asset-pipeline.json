@@ -94,6 +94,11 @@
       "profile": "prop"
     },
     {
+      "$comment": "Oven and mixer stations: prop keeps the Door and Whisk nodes the game animates.",
+      "glob": "src/assets/stations/*.glb",
+      "profile": "prop"
+    },
+    {
       "path": "src/assets/selection-street/Selection Street.glb",
       "profile": "staticScene"
     },
@@ -111,6 +116,10 @@
     },
     {
       "path": "src/assets/map-town/orbit-robot.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "src/assets/map-town/orbit-rocket.glb",
       "profile": "staticProp"
     },
     {

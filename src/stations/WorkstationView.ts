@@ -1,16 +1,19 @@
 import type { PlayerIndex } from "../types/events";
 import {
   AbstractMesh,
+  Axis,
   Color3,
   Color4,
   DynamicTexture,
   Mesh,
   MeshBuilder,
   ParticleSystem,
+  Quaternion,
   StandardMaterial,
   TransformNode,
   Vector3,
   type Scene,
+  type Texture,
 } from "@babylonjs/core";
 import type { AssetManager, ModelInstance } from "../core/AssetManager";
 import { trackParticleSystem } from "../core/perf/effectBudget";
@@ -25,7 +28,10 @@ import {
 import { BOARD, KNIFE_SPOT, PLATE_STEP, STACKED_PLATE_SCALE } from "./stationDressing";
 import type { KitchenStationPlacement } from "../data/kitchenLayout";
 import { fitHolderToSize } from "../entities/modelFit";
+import { MIXER_ASSET_ID, MIXER_WHISK_NODE, OVEN_ASSET_ID, OVEN_DOOR_NODE } from "../data/stationAssets";
 import type { KitchenStationKind } from "../types/game";
+import { ingredientIllustration } from "../ui/illustrations";
+import { publicUrl } from "../utils/assetUrl";
 
 export type ProgressTone = "work" | "cook" | "burn";
 
@@ -41,6 +47,8 @@ export interface WorkstationViewState {
   readonly knifeInHand?: boolean;
   /** A cook is scrubbing a plate in this sink. */
   readonly washing?: boolean;
+  /** A cook is holding the mixer's button: the whisk spins. */
+  readonly mixing?: boolean;
 }
 
 interface BaseModel {
@@ -63,13 +71,32 @@ const CRATE_ICON_SIZE = 0.42;
 /** Target size of the crate body, a little under the 1.2 m tile. */
 const CRATE_BODY_SIZE = 1.1;
 
+/** Height of the mixer's base plate above the counter (scripts/model-stations.py). */
+const MIXER_BASE_HEIGHT = 0.04;
+/** The oven's wire rack, inside the cavity: a tray rests here, seen through the door. */
+const OVEN_RACK_HEIGHT = 0.355;
+/** How far the oven door swings open, in radians, and how long a full open-close takes. */
+const OVEN_DOOR_OPEN = 1.25;
+const OVEN_DOOR_SECONDS = 0.6;
+/** Whisk speed while a cook mixes, in radians per second. */
+const WHISK_SPIN = 22;
+
+/**
+ * Where a held item rests, when that is not on top of the station. Thrown items still land
+ * on `TOP_HEIGHT` (the oven's worktop); only the resting place moves inside.
+ */
+const ITEM_REST_HEIGHT: Partial<Readonly<Record<KitchenStationKind, number>>> = {
+  oven: OVEN_RACK_HEIGHT,
+};
+
 const TOP_HEIGHT: Readonly<Record<KitchenStationKind, number>> = {
   crate: 0.9,
   counter: COUNTER_HEIGHT,
   cutting_board: COUNTER_HEIGHT + 0.09,
   stove: 0.91,
-  oven: 0.91,
-  mixer: COUNTER_HEIGHT,
+  oven: 0.92,
+  // The bowl stands on the mixer's base plate, which adds a little to the counter.
+  mixer: COUNTER_HEIGHT + MIXER_BASE_HEIGHT,
   sink: COUNTER_HEIGHT,
   plate_rack: COUNTER_HEIGHT,
   dirty_return: COUNTER_HEIGHT,
@@ -92,6 +119,8 @@ export class WorkstationResources {
   /** One material per distinct keycap label ("E", "F", "ENTER", "RSHIFT"). */
   private readonly keyPrompts = new Map<string, StandardMaterial>();
   private readonly keyTextures: DynamicTexture[] = [];
+  private readonly crateLabels = new Map<string, StandardMaterial>();
+  private readonly crateTextures: Texture[] = [];
 
   constructor(private readonly scene: Scene, playerColors: readonly Color3[]) {
     this.highlight = playerColors.map((color, index) => this.flat(`ws-highlight-p${index + 1}`, color, 0.45));
@@ -167,9 +196,22 @@ export class WorkstationResources {
     return material;
   }
 
+  crateLabel(assets: AssetManager, ingredientId: string): StandardMaterial {
+    const cached = this.crateLabels.get(ingredientId);
+    if (cached) return cached;
+    const texture = assets.createTexture(publicUrl(ingredientIllustration(ingredientId)));
+    const material = this.flat(`ws-ingredient-${ingredientId}`, Color3.FromHexString("#102746"), 1);
+    material.diffuseColor.set(0, 0, 0);
+    material.emissiveTexture = texture;
+    this.crateTextures.push(texture);
+    this.crateLabels.set(ingredientId, material);
+    return material;
+  }
+
   dispose(): void {
     for (const material of this.materials) material.dispose();
     for (const texture of this.keyTextures) texture.dispose();
+    for (const texture of this.crateTextures) texture.dispose();
     this.warningTexture.dispose();
     this.fireTexture.dispose();
   }
@@ -208,6 +250,12 @@ export class WorkstationView {
   private readonly plateStacks: { clean: ModelInstance[]; dirty: ModelInstance[] } = { clean: [], dirty: [] };
   private readonly ownedMeshes: Mesh[] = [];
   private knife: TransformNode | null = null;
+  /** The oven door node, and how far through its open-close swing it is (1 = closed). */
+  private ovenDoor: TransformNode | null = null;
+  private doorSwing = 1;
+  private whisk: TransformNode | null = null;
+  private whiskAngle = 0;
+  private readonly swingRotation = new Quaternion();
   private fire: ParticleSystem | null = null;
   private water: ParticleSystem | null = null;
   private foam: ParticleSystem | null = null;
@@ -245,7 +293,7 @@ export class WorkstationView {
 
     this.itemAnchor = new TransformNode(`${this.root.name}-anchor`, scene);
     this.itemAnchor.parent = this.root;
-    this.itemAnchor.position.y = this.topHeight;
+    this.itemAnchor.position.y = ITEM_REST_HEIGHT[kind] ?? this.topHeight;
 
     this.highlight = MeshBuilder.CreateBox(
       `${this.root.name}-highlight`,
@@ -358,6 +406,25 @@ export class WorkstationView {
       const lift = state.chopping && !inHand ? Math.abs(Math.sin(this.clock * 16)) * 0.9 : 0;
       this.knife.rotation.x = Math.PI / 2 - lift;
     }
+
+    if (this.whisk && state.mixing) {
+      this.whiskAngle = (this.whiskAngle + deltaSeconds * WHISK_SPIN) % (Math.PI * 2);
+      Quaternion.RotationAxisToRef(Axis.Y, this.whiskAngle, this.swingRotation);
+      this.whisk.rotationQuaternion?.copyFrom(this.swingRotation);
+    }
+
+    if (this.ovenDoor && this.doorSwing < 1) {
+      this.doorSwing = Math.min(1, this.doorSwing + deltaSeconds / OVEN_DOOR_SECONDS);
+      // Up and back down in one swing: sin over half a turn opens then closes it.
+      const open = Math.sin(this.doorSwing * Math.PI) * OVEN_DOOR_OPEN;
+      Quaternion.RotationAxisToRef(Axis.X, open, this.swingRotation);
+      this.ovenDoor.rotationQuaternion?.copyFrom(this.swingRotation);
+    }
+  }
+
+  /** Swings the oven door open and shut, for a tray going in or coming out. */
+  swingDoor(): void {
+    if (this.ovenDoor) this.doorSwing = 0;
   }
 
   dispose(): void {
@@ -394,6 +461,14 @@ export class WorkstationView {
         const raw = getFoodDefinition(ingredientId)?.visuals.raw;
         if (raw) {
           this.crateIcon = this.addModelById(raw.assetId, 1, CRATE_ICON_HEIGHT, CRATE_ICON_SIZE);
+          const label = MeshBuilder.CreatePlane(`${this.root.name}-ingredient-label`, { size: 0.4 }, this.root.getScene());
+          label.parent = this.root;
+          label.position.y = 1.12;
+          label.position.z = -0.28;
+          label.billboardMode = Mesh.BILLBOARDMODE_ALL;
+          label.material = this.resources.crateLabel(this.assets, ingredientId);
+          label.isPickable = false;
+          this.ownedMeshes.push(label);
         }
         break;
       }
@@ -411,6 +486,18 @@ export class WorkstationView {
       case "stove":
         this.addModel({ name: "stove_single", scale: [0.6, 0.75, 0.52] });
         break;
+      case "oven": {
+        // Authored in metres at tile size, so no fitting: the rack height must stay exact.
+        const oven = this.addModelById(OVEN_ASSET_ID, 1, 0);
+        this.ovenDoor = oven ? this.animatedNode(oven, OVEN_DOOR_NODE) : null;
+        break;
+      }
+      case "mixer": {
+        this.addModel(counter);
+        const mixer = this.addModelById(MIXER_ASSET_ID, 1, COUNTER_HEIGHT);
+        this.whisk = mixer ? this.animatedNode(mixer, MIXER_WHISK_NODE) : null;
+        break;
+      }
       case "sink":
         this.addModel({ name: "kitchencounter_sink", scale: COUNTER_SCALE });
         break;
@@ -475,6 +562,18 @@ export class WorkstationView {
     if (fitToSize !== undefined) fitHolderToSize(holder, instance.rootNodes, fitToSize);
     this.models.push(this.track(instance, holder));
     return holder;
+  }
+
+  /**
+   * Finds a named node inside an instantiated model, ready to be rotated. Instances carry
+   * the view's name prefix, so the match is on the suffix. glTF nodes rotate by quaternion.
+   */
+  private animatedNode(holder: TransformNode, name: string): TransformNode | null {
+    const node = holder.getDescendants(false).find(
+      (child): child is TransformNode => child instanceof TransformNode && child.name.endsWith(name),
+    ) ?? null;
+    if (node && !node.rotationQuaternion) node.rotationQuaternion = Quaternion.Identity();
+    return node;
   }
 
   private addModel(model: BaseModel, parent: TransformNode = this.root): void {

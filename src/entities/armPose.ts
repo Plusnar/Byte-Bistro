@@ -14,12 +14,14 @@ import {
  * `carry` holds the item in front of the chest with both hands; `chop` holds a
  * knife in the right hand and brings it down on the board while the left hand
  * steadies the food; `wash` scrubs a plate down in the sink with both hands;
- * `spray` holds the extinguisher like `carry`, shaking with the jet.
+ * `spray` holds the extinguisher like `carry`, shaking with the jet; `mix` steadies the
+ * mixer's bowl with the left hand while the right works the head in small circles; `oven`
+ * bends down and reaches both hands in through the open door, then draws them back.
  */
-export type ArmPose = "none" | "carry" | "chop" | "wash" | "spray";
+export type ArmPose = "none" | "carry" | "chop" | "wash" | "spray" | "mix" | "oven";
 
 type PosedKind = Exclude<ArmPose, "none">;
-const POSED_KINDS: readonly PosedKind[] = ["carry", "chop", "wash", "spray"];
+const POSED_KINDS: readonly PosedKind[] = ["carry", "chop", "wash", "spray", "mix", "oven"];
 
 /**
  * Arm poses for the Mixamo-rigged cooks, solved on top of the animation.
@@ -46,6 +48,14 @@ const CHOP_STRIKE = 0.3;
 const CHOP_LEAN = 0.3;
 /** How far forward the torso leans over the sink, in radians. */
 const WASH_LEAN = 0.24;
+/** One circle of the hand on the mixer head, in seconds, and its radius in metres. */
+export const MIX_PERIOD = 0.42;
+const MIX_RADIUS = 0.03;
+/** How far forward the torso leans over the mixer, and down into the oven, in radians. */
+const MIX_LEAN = 0.14;
+const OVEN_LEAN = 0.42;
+/** One reach into the oven and back out, in seconds. */
+export const OVEN_REACH_PERIOD = 0.5;
 /** One scrubbing circle, in seconds. */
 export const WASH_PERIOD = 0.55;
 /** Radius of the scrubbing circles, in metres. */
@@ -99,6 +109,16 @@ const CHOP_DROP = 0.09;
 /** Both hands down in the basin, around the plate, palms down. */
 const WASH_LEFT = goal([-0.11, 0.86, 0.4], [0.35, -0.6, 0.7], [-0.8, -1, -0.3]);
 const WASH_RIGHT = goal([0.11, 0.86, 0.4], [-0.35, -0.6, 0.7], [0.8, -1, -0.3]);
+
+/** Left hand steadies the bowl on the mixer's base; right hand rests on the head. */
+const MIX_LEFT = goal([-0.13, 0.96, 0.36], [0.4, -0.35, 0.8], [-0.8, -1, -0.2]);
+const MIX_RIGHT = goal([0.1, 1.09, 0.34], [-0.2, -0.45, 0.85], [0.9, -0.8, -0.3]);
+
+/** Both hands low and forward, palms up as if under a tray, at the oven's open door. */
+const OVEN_LEFT = goal([-0.13, 0.66, 0.3], [0.25, -0.1, 0.95], [-0.7, -1, -0.5]);
+const OVEN_RIGHT = goal([0.13, 0.66, 0.3], [-0.25, -0.1, 0.95], [0.7, -1, -0.5]);
+/** How much farther in the hands go at the deepest point of the reach. */
+const OVEN_PUSH = 0.12;
 
 /**
  * Height of the knife through one chop, 1 at the top and 0 on the board: a quick
@@ -181,6 +201,25 @@ const poseGoal = (kind: PosedKind, clock: number): PoseGoal => {
         ),
         // The torso dips into each strike, which reads from above where the hands may not.
         lean: CHOP_LEAN * (0.8 + 0.2 * (1 - lift)),
+      };
+    }
+    case "mix": {
+      const angle = (clock / MIX_PERIOD) * Math.PI * 2;
+      const circle = new Vector3(Math.cos(angle) * MIX_RADIUS, 0, Math.sin(angle) * MIX_RADIUS);
+      return {
+        left: MIX_LEFT,
+        right: offset(MIX_RIGHT, circle),
+        lean: MIX_LEAN,
+      };
+    }
+    case "oven": {
+      // In and back out once over the reach: a sine over half a turn.
+      const depth = Math.sin(Math.min(1, clock / OVEN_REACH_PERIOD) * Math.PI);
+      const push = new Vector3(0, -0.04 * depth, OVEN_PUSH * depth);
+      return {
+        left: offset(OVEN_LEFT, push),
+        right: offset(OVEN_RIGHT, push),
+        lean: OVEN_LEAN * (0.7 + 0.3 * depth),
       };
     }
     case "wash": {
@@ -312,9 +351,9 @@ const refresh = (nodes: readonly TransformNode[]): void => {
 export class ArmPoser {
   private readonly observer: Observer<Scene>;
   private pose: ArmPose = "none";
-  private readonly weights: Record<PosedKind, number> = { carry: 0, chop: 0, wash: 0, spray: 0 };
+  private readonly weights: Record<PosedKind, number> = { carry: 0, chop: 0, wash: 0, spray: 0, mix: 0, oven: 0 };
   /** Seconds each pose has been held, from 0 each time it starts. */
-  private readonly clocks: Record<PosedKind, number> = { carry: 0, chop: 0, wash: 0, spray: 0 };
+  private readonly clocks: Record<PosedKind, number> = { carry: 0, chop: 0, wash: 0, spray: 0, mix: 0, oven: 0 };
   private knife: TransformNode | null = null;
   private readonly posed: ReadonlyMap<TransformNode, PosedJoint>;
 
@@ -402,9 +441,9 @@ export class ArmPoser {
     return this.weights.chop;
   }
 
-  /** How far into a pose that leans over a counter (chopping, washing) the arms are, 0..1. */
+  /** How far into a pose that leans over a station (chop, wash, mix, oven) the arms are, 0..1. */
   get reachBlend(): number {
-    return Math.min(1, this.weights.chop + this.weights.wash);
+    return Math.min(1, this.weights.chop + this.weights.wash + this.weights.mix + this.weights.oven);
   }
 
   /** Whether the knife is in the cook's hand rather than on the board. */

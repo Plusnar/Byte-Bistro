@@ -1,10 +1,13 @@
 import type { FoodState, KitchenStationKind, RecipeComponent } from "../types/game";
 import { localizedRecord } from "../i18n";
+import { publicModelUrl } from "../core/assets/assetRegistry";
 import {
   INGREDIENT_IDS,
+  OVEN_TRAY_ASSET,
   ingredientCrateModelId,
   ingredientModelId,
 } from "./ingredientAssets";
+import { STATION_ASSETS } from "./stationAssets";
 
 /** Side of one kitchen grid tile in world units; every station occupies one tile. */
 export const KITCHEN_TILE = 1.2;
@@ -75,6 +78,7 @@ const RESTAURANT_MODELS = [
   "pan_A",
   "pot_A",
   "pot_A_stew",
+  "bowl_small",
   "crate",
 ] as const;
 
@@ -87,13 +91,14 @@ export const kitchenAssetId = (name: KitchenModelName): string => `library:${mod
 
 /** AssetManager definitions for every model the kitchen gameplay can spawn. */
 export const KITCHEN_ASSETS: readonly { id: string; url: string; required: boolean }[] = [
-  ...RESTAURANT_MODELS,
-  "barrel" as const,
-].map((name) => ({
-  id: kitchenAssetId(name),
-  url: `${import.meta.env.BASE_URL}asset-library/${modelPath(name)}`,
-  required: true,
-}));
+  ...[...RESTAURANT_MODELS, "barrel" as const].map((name) => ({
+    id: kitchenAssetId(name),
+    url: publicModelUrl(`asset-library/${modelPath(name)}`),
+    required: true,
+  })),
+  OVEN_TRAY_ASSET,
+  ...STATION_ASSETS,
+];
 
 /**
  * A single-unit ingredient model from the bespoke art set.
@@ -105,13 +110,6 @@ const INGREDIENT_ITEM_SIZE = 0.34;
 
 const ingredientVisual = (id: string, scale: number): ModelVisual => ({
   assetId: ingredientModelId(id),
-  scale,
-  fitToSize: INGREDIENT_ITEM_SIZE,
-});
-
-/** A prepared ingredient, which borrows art from the scenario set rather than the bespoke one. */
-const preparedVisual = (assetId: string, scale: number): ModelVisual => ({
-  assetId,
   scale,
   fitToSize: INGREDIENT_ITEM_SIZE,
 });
@@ -158,27 +156,24 @@ export const FOOD_DEFINITIONS: Readonly<Record<string, FoodDefinition>> = {
    * Prepared ingredients: what the mixer turns a bowlful into. They are ordinary foods
    * from here on, which is why multi-step recipes need no new matching rule — a dough is
    * just an ingredient that happens to be made rather than fetched.
-   *
-   * Their art already existed (see `INGREDIENT_SCENARIO_VISUALS`), left over from the
-   * machine pipeline that was never wired up.
    */
   ram_dough: {
     ingredientId: "ram_dough",
     chop: false,
     cook: "tray",
-    visuals: { raw: preparedVisual("food-bread", 0.7) },
+    visuals: { raw: ingredientVisual("ram_dough", 0.85) },
   },
   cookie_dough: {
     ingredientId: "cookie_dough",
     chop: false,
     cook: "tray",
-    visuals: { raw: preparedVisual("food-bowl", 0.8) },
+    visuals: { raw: ingredientVisual("cookie_dough", 0.85) },
   },
   gelato_mix: {
     ingredientId: "gelato_mix",
     chop: false,
     cook: null,
-    visuals: { raw: preparedVisual("food-bowl", 0.8) },
+    visuals: { raw: ingredientVisual("gelato_mix", 0.85) },
   },
 };
 

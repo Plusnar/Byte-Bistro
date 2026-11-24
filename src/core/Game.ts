@@ -1,7 +1,7 @@
 import { applyTranslations, initLanguage, onLanguageChange, t } from "../i18n";
 import type { AbstractEngine, Scene as BabylonScene } from "@babylonjs/core";
 import { createGameEngine, rendererName } from "./render/createGameEngine";
-import { getShiftDuration, isDevelopmentMode } from "../config";
+import { getShiftDuration } from "../config";
 import { CHARACTERS, DEFAULT_CHARACTER_ID, RECIPES, getCharacter } from "../data";
 import type { CharacterDefinition } from "../data/characters";
 import { CHARACTER_ANIMATION_ASSETS } from "../data/characters";
@@ -186,8 +186,7 @@ export class Game {
       onQuitToMenu: () => this.quitToMenu(),
       onCookbookVisibilityChange: (visible) => this.kitchenScene?.setCookbookOpen(visible),
       onOpenAccount: () => void this.openAccount(),
-      onOpenPhones: () => this.openPairing(),
-      onPairSkip: () => this.settlePairing(true),
+      onPlayOnComputer: () => this.playOnComputer(),
       onOpenCollection: (view) => openCollection(view, this.persistentState),
       onOpenEditor: () => { void this.openEditor(); },
       onLevelChange: (entry) => this.onLevelChosen(entry),
@@ -209,11 +208,9 @@ export class Game {
       root: this.ui.root(),
       splashStep: () => (this.ui.isSplashVisible && !this.editor ? this.ui.splashStep : null),
     });
-    // Phones are the controllers: the session starts by pairing them. Automated runs
-    // (`?autostart`) go straight to a shift; development builds may skip with the keyboard.
+    // Offer phone pairing and local play after loading. Automated runs go straight to a shift.
     const autostarting = new URLSearchParams(window.location.search).has("autostart");
     if (!autostarting) this.ui.setSplashStep("pair");
-    this.ui.setPairSkipVisible(isDevelopmentMode());
     // Priority 1: only what the menu shows. The kitchen scene is not built yet.
     this.characterPreview = new CharacterPreview(this.ui.characterPreviewCanvas(), {
       characters: CHARACTERS,
@@ -278,6 +275,9 @@ export class Game {
     // The splash is opaque and covers the whole canvas. Drawing the kitchen behind it —
     // glow layer and all — at 60 fps used to cost every menu frame for nothing.
     if (this.ui.isSplashVisible) return;
+    // An automatic quality step decided at the end of the last frame lands here, before
+    // drawing: its canvas resize then clears nothing the player was about to see.
+    qualityManager.flushPending();
     this.sceneManager.render();
   };
 
@@ -354,8 +354,7 @@ export class Game {
     performance.mark("bb:menu-ready");
     void this.loading?.hide();
     this.unloadUnusedAssets();
-    // The QR code is the first thing the players need.
-    void this.ensurePhoneHub();
+    if (this.ui.splashStep === "pair") void this.ensurePhoneHub();
     // Priority 2 starts only now, so it never competed with the menu for bandwidth.
     whenIdle(() => {
       void this.preloadGameplay();
@@ -656,41 +655,44 @@ export class Game {
         return hub;
       });
       const hub = await this.phoneHubLoading;
-      if (this.disposed) {
+      if (this.disposed || this.ui.splashStep !== "pair") {
         hub.dispose();
         return null;
       }
       this.phoneHub = hub;
       await hub.open();
+      if (this.phoneHub !== hub) return null;
       // A reloaded page takes its room back, possibly locked from an earlier pairing.
       if (this.ui.isSplashVisible && this.ui.splashStep === "pair") hub.unlock();
       return hub;
     } catch (error: unknown) {
       this.phoneHubLoading = null;
+      if (this.disposed || this.ui.splashStep !== "pair") return null;
       console.error("Phone controllers could not be opened.", error);
       this.ui.notify(t("mp.failed"), "error");
       return null;
     }
   }
 
-  /** "Players" on the menu: back to the QR code, where phones may join or leave. */
-  private openPairing(): void {
-    if (this.editor) return;
-    this.ui.setSplashStep("pair");
-    if (this.phoneHub) this.phoneHub.reopenPairing();
-    else void this.ensurePhoneHub();
+  private playOnComputer(): void {
+    if (!this.ui.isSplashVisible || this.ui.splashStep !== "pair") return;
+    this.phoneHub?.dispose();
+    this.phoneHub = null;
+    this.phoneHubLoading = null;
+    this.finishPairing(1);
   }
 
-  /**
-   * Player one pressed A on the pairing screen: the phones connected now are the players.
-   * `keyboard` (development only) continues without phones, as two keyboard players.
-   */
-  private settlePairing(keyboard = false): void {
-    const players = keyboard ? 2 : this.phoneHub?.settlePlayers() ?? 0;
+  /** Player one pressed A on their phone: the connected phones become the players. */
+  private settlePairing(): void {
+    const players = this.phoneHub?.settlePlayers() ?? 0;
     if (players === 0) {
       this.ui.notify(t("pair.needOne"), "warning");
       return;
     }
+    this.finishPairing(players);
+  }
+
+  private finishPairing(players: number): void {
     this.ui.setPlayerCount(players);
     this.kitchenScene?.setCookCount(players);
     this.navigator.clearFocus();

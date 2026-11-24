@@ -46,11 +46,29 @@ const crateUrl: Readonly<Record<IngredientAssetId, string>> = {
   data_cream: bundledModelUrl("src/assets/ingredients/data_cream.glb"),
 };
 
-export const INGREDIENT_ASSETS: readonly { id: string; url: string; required: boolean }[] =
-  INGREDIENT_IDS.flatMap((id) => [
+const preparedItems = {
+  ram_dough: bundledModelUrl("src/assets/ingredients/ram_dough.glb"),
+  cookie_dough: bundledModelUrl("src/assets/ingredients/cookie_dough.glb"),
+  gelato_mix: bundledModelUrl("src/assets/ingredients/gelato_mix.glb"),
+  ram_cake_baked: bundledModelUrl("src/assets/ingredients/ram_cake_baked.glb"),
+  cookie_tray: bundledModelUrl("src/assets/ingredients/cookie_tray.glb"),
+  gelato_parfait: bundledModelUrl("src/assets/ingredients/gelato_parfait.glb"),
+} as const;
+
+export const OVEN_TRAY_ASSET_ID = "cookware:oven-tray";
+export const OVEN_TRAY_ASSET = {
+  id: OVEN_TRAY_ASSET_ID,
+  url: bundledModelUrl("src/assets/ingredients/oven_tray.glb"),
+  required: true,
+};
+
+export const INGREDIENT_ASSETS: readonly { id: string; url: string; required: boolean }[] = [
+  ...INGREDIENT_IDS.flatMap((id) => [
     { id: ingredientModelId(id), url: itemUrl[id], required: true },
     { id: ingredientCrateModelId(id), url: crateUrl[id], required: true },
-  ]);
+  ]),
+  ...Object.entries(preparedItems).map(([id, url]) => ({ id: ingredientModelId(id), url, required: true })),
+];
 
 /** Every asset id this module declares, for the manifest-resolution test. */
 export const INGREDIENT_ASSET_IDS: ReadonlySet<string> = new Set(

@@ -17,8 +17,12 @@ import { MAX_RENDER_SCALE, MIN_RENDER_SCALE, type QualityLevel } from "./quality
  *     comfortably under for UP_AFTER_MS — the gap between the two thresholds is the
  *     hysteresis;
  *   - no two changes closer than MIN_INTERVAL_MS;
- *   - an upgrade that has to be undone soon after blocks upgrades for an exponentially
- *     growing back-off, so a device on the edge settles instead of flickering.
+ *   - an upgrade that has to be undone within REVERT_WINDOW_MS blocks upgrades for an
+ *     exponentially growing back-off, so a device on the edge settles instead of
+ *     flickering; the back-off relaxes again after BACKOFF_RELAX_MS without a change;
+ *   - at a 30 fps cap (frames pinned near 33 ms), a step down that did not make frames
+ *     meaningfully faster is undone once and the target becomes that pace, so a capped
+ *     device does not slide down the whole ladder for nothing.
  */
 export interface QualityStep {
   readonly level: QualityLevel;
@@ -55,12 +59,29 @@ export interface AutoQualityOptions {
 }
 
 export const HITCH_MS = 250;
-const REVERT_WINDOW_MS = 12_000;
+/**
+ * A step down this soon after a step up counts as undoing it. Wide on purpose: a shift's
+ * load swings (a disaster, a burst of particles) arrive tens of seconds apart.
+ */
+const REVERT_WINDOW_MS = 60_000;
 const BASE_BACKOFF_MS = 30_000;
 const MAX_BACKOFF_MS = 8 * 60_000;
+/** After this long without any change the back-off starts over from its base. */
+const BACKOFF_RELAX_MS = 5 * 60_000;
+/** A step down must cut the average frame time by at least this share to count. */
+const MIN_STEP_GAIN = 0.1;
+/**
+ * The pace of a frame-rate cap (battery saver, a 30 Hz display, a throttled tab), and how
+ * close the average must sit to it to be read as one. A device that is merely slow (50 ms
+ * a frame, say) still steps down: lower quality may well help it.
+ */
+const CAPPED_FRAME_MS = 1000 / 30;
+const CAP_TOLERANCE_MS = 2.5;
+/** Samples on a new step before its average is trusted for that comparison. */
+const SETTLE_SAMPLES = 30;
 
 export class AutoQualityController {
-  readonly targetFrameMs: number;
+  private target: number;
   private readonly downThreshold: number;
   private readonly upThreshold: number;
   private readonly downAfterMs: number;
@@ -78,9 +99,12 @@ export class AutoQualityController {
   private lastUpgradeAt = Number.NEGATIVE_INFINITY;
   private upgradeBlockedUntil = Number.NEGATIVE_INFINITY;
   private backoffMs = BASE_BACKOFF_MS;
+  /** The average just before the last step down, until the new step has been judged. */
+  private averageBeforeDown: number | null = null;
+  private samplesOnStep = 0;
 
   constructor(options: AutoQualityOptions) {
-    this.targetFrameMs = options.targetFrameMs;
+    this.target = options.targetFrameMs;
     this.downThreshold = options.downThreshold ?? 1.2;
     this.upThreshold = options.upThreshold ?? 1.05;
     this.downAfterMs = options.downAfterMs ?? 2_000;
@@ -90,6 +114,11 @@ export class AutoQualityController {
     this.minIndex = Math.max(0, options.minIndex ?? 0);
     this.maxIndex = Math.min(QUALITY_LADDER.length - 1, options.maxIndex ?? QUALITY_LADDER.length - 1);
     this.index = clamp(options.startIndex ?? this.minIndex, this.minIndex, this.maxIndex);
+  }
+
+  /** Frame interval being held, in ms; rises to the measured pace on a capped display. */
+  get targetFrameMs(): number {
+    return this.target;
   }
 
   get step(): QualityStep {
@@ -120,13 +149,28 @@ export class AutoQualityController {
     if (!Number.isFinite(frameMs) || frameMs <= 0 || frameMs > HITCH_MS) return null;
     this.average = this.hasAverage ? this.average + (frameMs - this.average) * this.smoothing : frameMs;
     this.hasAverage = true;
+    this.samplesOnStep += 1;
 
-    const slow = this.average > this.targetFrameMs * this.downThreshold;
-    const fast = this.average <= this.targetFrameMs * this.upThreshold;
+    const slow = this.average > this.target * this.downThreshold;
+    const fast = this.average <= this.target * this.upThreshold;
     this.slowSince = slow ? this.slowSince ?? now : null;
     this.fastSince = fast ? this.fastSince ?? now : null;
 
     if (now - this.lastChangeAt < this.minIntervalMs) return null;
+    if (now - this.lastChangeAt >= BACKOFF_RELAX_MS) this.backoffMs = BASE_BACKOFF_MS;
+
+    // Judge the last step down once it has settled: no real gain means the frame rate is
+    // capped from outside, so the lost quality bought nothing. Take it back and hold the
+    // pace that was measured instead of the one hoped for.
+    if (this.averageBeforeDown !== null && this.samplesOnStep >= SETTLE_SAMPLES) {
+      const before = this.averageBeforeDown;
+      this.averageBeforeDown = null;
+      const capped = Math.abs(before - CAPPED_FRAME_MS) <= CAP_TOLERANCE_MS;
+      if (capped && this.average > before * (1 - MIN_STEP_GAIN) && this.index > this.minIndex) {
+        this.target = Math.max(this.target, before);
+        return this.move(this.index - 1, now);
+      }
+    }
 
     if (slow && this.slowSince !== null && now - this.slowSince >= this.downAfterMs && this.index < this.maxIndex) {
       // Undoing a recent upgrade means this device sits on the edge: wait longer next time.
@@ -134,7 +178,10 @@ export class AutoQualityController {
         this.upgradeBlockedUntil = now + this.backoffMs;
         this.backoffMs = Math.min(MAX_BACKOFF_MS, this.backoffMs * 2);
       }
-      return this.move(this.index + 1, now);
+      const before = this.average;
+      const step = this.move(this.index + 1, now);
+      this.averageBeforeDown = before;
+      return step;
     }
     if (fast && this.fastSince !== null && now - this.fastSince >= this.upAfterMs
       && this.index > this.minIndex && now >= this.upgradeBlockedUntil) {
@@ -151,6 +198,8 @@ export class AutoQualityController {
     this.fastSince = null;
     // The new step changes the cost of a frame: measure it afresh.
     this.hasAverage = false;
+    this.samplesOnStep = 0;
+    this.averageBeforeDown = null;
     return this.step;
   }
 }

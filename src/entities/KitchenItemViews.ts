@@ -12,6 +12,7 @@ import type { AssetManager, ModelInstance } from "../core/AssetManager";
 import { foodVisualFor, getFoodDefinition, kitchenAssetId, type ModelVisual } from "../data/kitchen";
 import { fitHolderToSize, tintInstance } from "./modelFit";
 import { INGREDIENT_SCENARIO_VISUALS } from "../data/scenarioAssets";
+import { OVEN_TRAY_ASSET_ID } from "../data/ingredientAssets";
 import {
   findMatchingRecipe,
   isCookwareBurnt,
@@ -137,6 +138,8 @@ export class KitchenItemViews {
         break;
       case "pan":
       case "pot":
+      case "tray":
+      case "bowl":
         complete = this.addCookware(view, item.kind, item.contents, isCookwareBurnt(item));
         break;
       case "extinguisher":
@@ -172,7 +175,7 @@ export class KitchenItemViews {
 
   private addCookware(
     view: ItemView,
-    kind: "pan" | "pot",
+    kind: "pan" | "pot" | "tray" | "bowl",
     contents: readonly FoodItem[],
     burnt: boolean,
   ): boolean {
@@ -180,6 +183,20 @@ export class KitchenItemViews {
       const model = contents.length > 0 ? "pot_A_stew" : "pot_A";
       const complete = this.addModel(view, kitchenAssetId(model), COOKWARE_SCALE * 0.85, 0, 0, 0);
       if (burnt) this.addSmoke(view, 0.3);
+      return complete;
+    }
+    if (kind === "tray" || kind === "bowl") {
+      const assetId = kind === "tray" ? OVEN_TRAY_ASSET_ID : kitchenAssetId("bowl_small");
+      const y = kind === "tray" ? 0.035 : 0.075;
+      const size = kind === "tray" ? 0.53 : 0.36;
+      let complete = this.addModel(view, assetId, 1, 0, 0, 0, { assetId, scale: 1, fitToSize: size });
+      const radius = contents.length > 1 ? 0.095 : 0;
+      contents.forEach((food, index) => {
+        const angle = index * Math.PI * 2 / contents.length;
+        complete = this.addFood(view, food, contents.length > 1 ? 0.48 : CONTAINED_FOOD_SCALE,
+          y, Math.cos(angle) * radius, Math.sin(angle) * radius) && complete;
+      });
+      if (burnt) this.addSmoke(view, 0.2);
       return complete;
     }
     let complete = this.addModel(view, kitchenAssetId("pan_A"), COOKWARE_SCALE, 0, 0, 0);
@@ -215,7 +232,6 @@ export class KitchenItemViews {
     visual?: ModelVisual,
   ): boolean {
     const holder = new TransformNode(`${view.root.name}-part`, this.scene);
-    holder.parent = view.root;
     holder.position.set(x, y, z);
     holder.scaling.setAll(scale);
     const instance = this.assets.instantiateLoaded(assetId, {
@@ -229,9 +245,11 @@ export class KitchenItemViews {
       return false;
     }
     if (visual?.fitToSize !== undefined) {
-      // Authored scale is unreliable across the hand-made art; measure and normalise.
+      // Measure before parenting so station height and carry-anchor transforms cannot
+      // shift a model below its local origin when the item changes state.
       fitHolderToSize(holder, instance.rootNodes, visual.fitToSize * scale);
     }
+    holder.parent = view.root;
     for (const rootNode of instance.rootNodes) {
       for (const node of [rootNode, ...rootNode.getDescendants()]) {
         if (!(node instanceof AbstractMesh)) continue;

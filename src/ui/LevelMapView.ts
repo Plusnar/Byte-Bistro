@@ -11,6 +11,7 @@ import { LEVEL_MAP_URL, neighbourInDirection } from "../data/levelMap";
 import { planetRoadPoint, planetStopAngle } from "../data/mapRoute";
 import { fitHolderToSize } from "../entities/modelFit";
 import { GALAXY_URL, LevelMapSpace, ORBIT_ASSETS, PlanetWind } from "./LevelMapEffects";
+import { LevelMapWalkers, MAP_WALKER_ASSETS } from "./LevelMapWalkers";
 
 const LANDMARKS = [
   { mesh: "landmark-church", fallback: "" },
@@ -22,6 +23,7 @@ const MAP_MODEL = "sao-bento-planet";
 const BUS_MODEL = "rainha-bus";
 const BUS_ANGULAR_SPEED = 1.62;
 const SNAP_DISTANCE = 0.0001;
+const PREVIEW_ZOOM = .17;
 
 interface Place {
   readonly mesh: AbstractMesh;
@@ -36,7 +38,9 @@ export class LevelMapView {
   private readonly planetRoot: TransformNode;
   private readonly assets: AssetManager;
   private readonly space: LevelMapSpace;
+  private readonly walkers: LevelMapWalkers;
   private readonly observer: ResizeObserver;
+  private readonly details: HTMLElement | null;
   private readonly unregisterQuality: () => void;
   private readonly stopMapQuality: () => void;
   private readonly shadows: ShadowGenerator;
@@ -50,6 +54,7 @@ export class LevelMapView {
   private readonly orientation = Matrix.Identity();
   private readonly navigationPose = Matrix.Identity();
   private readonly cameraTarget = new Vector3(0, .14, 0);
+  private readonly focusCenter = new Vector3();
   private readonly wheels: TransformNode[] = [];
   private ready: Promise<boolean> | null = null;
   private keys: readonly string[] = [];
@@ -61,10 +66,11 @@ export class LevelMapView {
   private angle = 0;
   private stop = 0;
   private destination = 0;
-  private openOnArrival = false;
-  private zoomRequested = false;
+  private confirmation: ((focused: boolean) => void) | null = null;
   private zoom = 0;
   private aspect = 1;
+  private safeWidth = 1;
+  private safeHeight = 1;
   private wind: PlanetWind | null = null;
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly options: { onPick: (key: string | null) => void }) {
@@ -100,9 +106,11 @@ export class LevelMapView {
       { id: MAP_MODEL, url: LEVEL_MAP_URL, priority: "background", required: true },
       { id: BUS_MODEL, url: bundledModelUrl("src/assets/map-vehicles/rainha-585.glb"), priority: "background", required: true },
       ...ORBIT_ASSETS,
+      ...MAP_WALKER_ASSETS,
     ]);
     this.planetRoot = new TransformNode("planet-root", this.scene);
     this.space = new LevelMapSpace(this.scene, this.assets);
+    this.walkers = new LevelMapWalkers(this.scene, this.assets, this.planetRoot);
     this.canvas.inert = true;
     this.scene.onPointerObservable.add((info) => {
       if (info.type !== PointerEventTypes.POINTERUP && info.type !== PointerEventTypes.POINTERMOVE) return;
@@ -110,14 +118,12 @@ export class LevelMapView {
       const key = (picked?.pickedMesh?.metadata?.levelKey as string | undefined) || null;
       if (info.type === PointerEventTypes.POINTERMOVE) {
         this.canvas.style.cursor = key ? "pointer" : "";
-      } else if (key) {
-        this.travelTo(key, true);
-      } else {
-        this.options.onPick(null);
-      }
+      } else if (key) this.options.onPick(key);
     });
+    this.details = canvas.parentElement?.querySelector<HTMLElement>(".level-window") ?? null;
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(canvas);
+    if (this.details) this.observer.observe(this.details);
   }
 
   whenReady(): Promise<boolean> {
@@ -165,35 +171,32 @@ export class LevelMapView {
   }
 
   select(key: string | null): void {
-    if (!key || !this.bus) return;
-    if (key === this.places[this.destination]?.key) this.zoomRequested = true;
-    else this.travelTo(key, false);
+    const destination = this.places.findIndex((place) => place.key === key);
+    if (destination < 0 || destination === this.destination || !this.bus) return;
+    this.finishConfirmation(false);
+    this.destination = destination;
+    this.stop = planetStopAngle(this.angle, destination);
+    if (this.reducedMotion.matches) this.arrive(Math.sign(this.stop - this.angle));
+  }
+
+  focusSelectedLevel(): Promise<boolean> {
+    if (!this.active || !this.bus || this.canvas.inert || this.confirmation) return Promise.resolve(false);
+    return new Promise((resolve) => { this.confirmation = resolve; });
+  }
+
+  private finishConfirmation(focused: boolean): void {
+    const resolve = this.confirmation;
+    this.confirmation = null;
+    resolve?.(focused);
   }
 
   isMoving(): boolean {
     return Math.abs(this.angle - this.stop) > SNAP_DISTANCE;
   }
 
-  private travelTo(key: string, open: boolean): void {
-    const destination = this.places.findIndex((place) => place.key === key);
-    if (destination < 0 || !this.bus) return;
-    this.zoomRequested = true;
-    this.openOnArrival = open;
-    this.destination = destination;
-    this.stop = planetStopAngle(this.angle, destination);
-    if (this.reducedMotion.matches || !this.isMoving()) {
-      this.arrive(Math.sign(this.stop - this.angle));
-      if (this.reducedMotion.matches) this.updateZoom(0, true);
-    }
-  }
-
   private arrive(direction: number): void {
     this.angle = this.stop;
     this.poseBus(direction);
-    if (this.openOnArrival) {
-      this.openOnArrival = false;
-      this.options.onPick(this.places[this.destination]?.key || null);
-    }
   }
 
   neighbour(key: string | null, dx: number, dy: number): string | null {
@@ -215,11 +218,15 @@ export class LevelMapView {
     this.active = active;
     if (active) {
       this.resize();
+      this.space.restartFlights();
       void this.whenReady();
       this.engine.runRenderLoop(this.frame);
     } else {
       this.engine.stopRenderLoop(this.frame);
       this.space.update(0, false);
+      this.walkers.update(0, false);
+      this.finishConfirmation(false);
+      this.zoom = 0;
     }
   }
 
@@ -227,37 +234,53 @@ export class LevelMapView {
     if (this.disposed) return;
     this.engine.resize();
     this.aspect = this.engine.getAspectRatio(this.camera) || 1;
+    const width = this.canvas.clientWidth;
+    this.safeWidth = width > 720 && this.details ? Math.max(.7, 1 - (this.details.offsetWidth + 28) / width) : 1;
+    this.safeHeight = width > 0 && width <= 720 ? .62 : 1;
+    const baseline = this.baseHalfHeight();
+    const halfWidth = baseline * this.aspect;
+    this.space.setCameraBounds(halfWidth, baseline, halfWidth * (1 - this.safeWidth));
     this.space.resize(this.aspect);
     this.frameCamera();
   }
 
   private updateZoom(delta: number, reduced: boolean): void {
-    const target = this.zoomRequested && !this.isMoving() ? 1 : 0;
+    const target = this.isMoving() ? 0 : this.confirmation ? 1 : PREVIEW_ZOOM;
     if (target === this.zoom) return;
     const remaining = target - this.zoom;
-    this.zoom = reduced || Math.abs(remaining) < .002 ? target : this.zoom + remaining * (1 - Math.exp(-delta * 5.5));
+    this.zoom = reduced || Math.abs(remaining) < .005 ? target : this.zoom + remaining * (1 - Math.exp(-delta * 8));
     this.frameCamera();
   }
 
+  private baseHalfHeight(): number {
+    return Math.max(9.10 / this.safeHeight, 8.70 / (this.aspect * this.safeWidth));
+  }
+
   private frameCamera(): void {
-    const halfHeight = Math.max(9.10, 8.70 / this.aspect) * (1 - this.zoom * .07);
-    const lift = this.zoom * .48;
-    this.camera.position.y = 1.65 + lift;
-    this.cameraTarget.y = .14 + lift;
+    const halfHeight = this.baseHalfHeight() * (1 - this.zoom * .37);
+    const halfWidth = halfHeight * this.aspect;
+    const focus = Math.max(0, (this.zoom - PREVIEW_ZOOM) / (1 - PREVIEW_ZOOM));
+    const landmark = this.places[this.destination];
+    if (landmark) Vector3.TransformCoordinatesToRef(landmark.center, this.planetRoot.getWorldMatrix(), this.focusCenter);
+    const x = halfWidth * (1 - this.safeWidth) + this.focusCenter.x * focus;
+    const y = -halfHeight * (1 - this.safeHeight) + (this.focusCenter.y + .7) * focus;
+    this.camera.position.set(x, 1.65 + y, 24);
+    this.cameraTarget.set(x, .14 + y, 0);
     this.camera.setTarget(this.cameraTarget);
     this.camera.orthoTop = halfHeight;
     this.camera.orthoBottom = -halfHeight;
-    this.camera.orthoLeft = -halfHeight * this.aspect;
-    this.camera.orthoRight = halfHeight * this.aspect;
-    this.space.setCameraBounds(this.camera.orthoRight, halfHeight);
+    this.camera.orthoLeft = -halfWidth;
+    this.camera.orthoRight = halfWidth;
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.finishConfirmation(false);
     this.observer.disconnect();
     this.engine.stopRenderLoop(this.frame);
     this.space.dispose();
+    this.walkers.dispose();
     for (const instance of this.instances) instance.dispose();
     this.assets.dispose();
     this.stopMapQuality();
@@ -271,7 +294,6 @@ export class LevelMapView {
     if (this.disposed) return;
     const delta = Math.min(this.engine.getDeltaTime() / 1000, .1);
     const reduced = this.reducedMotion.matches;
-    this.space.update(delta, !reduced);
     this.gamepadElapsed += delta;
     if (this.gamepadElapsed >= .08) {
       this.gamepadElapsed = 0;
@@ -291,8 +313,11 @@ export class LevelMapView {
     }
     const turnSpeedRatio = delta > 0 ? (this.angle - previousAngle) / (delta * BUS_ANGULAR_SPEED) : 0;
     this.wind?.update(delta, reduced, turnSpeedRatio);
+    this.space.update(delta, !reduced, turnSpeedRatio);
+    this.walkers.update(delta, !reduced);
     this.updateZoom(delta, reduced);
     this.scene.render();
+    if (this.confirmation && this.zoom === 1 && !this.isMoving()) this.finishConfirmation(true);
   };
 
   private poseBus(direction: number): void {
@@ -397,6 +422,8 @@ export class LevelMapView {
     await this.scene.whenReadyAsync();
     if (this.disposed) return false;
     void this.space.loadTravelers().catch((error: unknown) => console.warn("Level map travelers could not load", error));
+    const terrain = meshes.find((mesh) => mesh.name === "planet-terrain");
+    if (terrain) void this.walkers.load(terrain).catch((error: unknown) => console.warn("Level map walkers could not load", error));
     return true;
   }
 }
