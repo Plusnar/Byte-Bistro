@@ -54,11 +54,12 @@ O jogo é ambientado em **São Bento do Sul (SC)** como forma de divulgar a cida
 
 **No computador**, clique em **Jogar pelo computador** na tela de pareamento para abrir o modo local de um jogador. **Para jogar com celulares**, use a mesma sala para conectar de um a quatro jogadores. Cada pessoa usa o próprio celular como controle.
 
-1. **Conecte os celulares.** Leia o QR Code ou abra o [controle no navegador](https://byte-bistro.pages.dev/controller) e digite o código de seis caracteres. O primeiro celular é o P1. Os seguintes ficam nas vagas P2, P3 e P4, cada um com sua cor.
+1. **Conecte os celulares.** Leia o QR Code ou abra o [controle no navegador](https://byte-bistro.pages.dev/controller) e digite o código de seis caracteres. O primeiro celular é o P1. Os seguintes ficam nas vagas P2, P3 e P4. Cada jogador tem sua cor, na ordem em que entra: **verde** (P1), **azul** (P2), **vermelho** (P3) e **amarelo** (P4).
 2. **O P1 aperta A** quando todos entrarem. A sala é trancada e quem cair pode se reconectar à mesma vaga.
 3. **O P1 navega pelos menus.** Use as setas, **A** para confirmar e **B** para voltar. O seletor gira o globo para trazer o local escolhido ao topo.
 4. **Cada pessoa escolhe um cozinheiro.** Use ← e → para trocar, **A** para confirmar e **B** para desfazer. Quando todos estiverem prontos, o P1 começa a partida com **A**.
 5. **Prepare e entregue os pedidos.** A fila mostra pratos, ingredientes e prazos. Pegue ingredientes nas caixas, use as estações de preparo, monte os pratos e entregue no balcão antes que o tempo acabe.
+6. **Cuidado com os pedidos perdidos.** Cada prato não entregue dispara um evento na cozinha (veja [Eventos da cozinha](#eventos-da-cozinha)).
 
 O botão **PT | EN** troca o idioma do jogo.
 
@@ -66,7 +67,7 @@ O botão **PT | EN** troca o idioma do jogo.
 
 ### Controle no celular
 
-Segure o celular deitado. O layout acompanha a etapa do jogo.
+Segure o celular deitado. O layout acompanha a etapa do jogo, e o fundo do controle usa a cor do jogador (o mesmo tema para todos, só muda a cor).
 
 | Navegação dos menus pelo P1 | Controle durante a partida |
 | --- | --- |
@@ -76,14 +77,18 @@ Segure o celular deitado. O layout acompanha a etapa do jogo.
 | --- | --- |
 | Menus (P1) | Setas para navegar, **A** para confirmar e **B** para voltar |
 | Seleção de personagem | ← → para trocar, **A** para confirmar e **B** para desfazer |
-| Partida | Analógico para mover e correr. **A** pega, larga ou entrega, **X** usa estações e ferramentas, **B** dá uma avançada e **Y** chama os colegas |
+| Partida | Analógico para mover: o cozinheiro sempre corre na velocidade máxima, para qualquer lado que o dedo empurrar. **A** pega, larga ou entrega, **X** usa estações e ferramentas, **B** dá uma avançada e **Y** chama os colegas |
 | Atalhos na partida | Livro de receitas e pausa nos botões centrais |
 
 O ✕ no canto abre as opções do celular, incluindo nome, tela cheia, saída da sala e diagnóstico da conexão.
 
+![Fundo do controle nas cores vermelha e amarela](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/controle-cores.webp)
+
+**Vibração:** no Android o celular vibra nos botões e quando um evento começa. O Safari do iPhone não tem API de vibração; no iOS 18 ou mais novo o controle usa o "tic" de um interruptor escondido (um tic por botão, três seguidos nos eventos). Em iPhones mais antigos fica só o retorno visual.
+
 ### Mais jogadores, mesma cozinha
 
-- **1 a 4 cozinheiros.** Com um, a câmera segue o cozinheiro. Com dois, ela se divide quando eles se afastam. Com três ou quatro, uma câmera enquadra todo o grupo.
+- **1 a 4 cozinheiros.** Cada um leva uma etiqueta **P1–P4** na cor do jogador flutuando sobre a cabeça, para não confundir cozinheiros com a mesma roupa. Com um, a câmera segue o cozinheiro. Com dois, ela se divide quando eles se afastam. Com três ou quatro, uma câmera enquadra todo o grupo.
 - As metas de estrelas acompanham o tamanho da equipe. A avançada pode derrubar os colegas, e os eventos da cozinha afetam todos os cozinheiros.
 - Gamepads físicos também funcionam na partida.
 
@@ -98,6 +103,29 @@ O ✕ no canto abre as opções do celular, incluindo nome, tela cheia, saída d
 | Cortar, lavar, usar o extintor ou mirar e arremessar | Segure `F` |
 | Livro de receitas | `Tab` |
 | Pausar | `Esc` |
+
+### Fila de pedidos
+
+Cada pedido mostra só ícones, sem fundo nem nome do prato: o prato, a barra de tempo e os ingredientes. Embaixo de cada ingrediente aparecem as estações por onde ele passa, na ordem (tábua, fogão, forno, batedeira). O passo atual pisca em âmbar e os já feitos ganham um ✓. A borda do prato mostra a cor de quem está fazendo o pedido, fica vermelha quando o tempo acaba e verde com o selo **Entregar** quando está pronto.
+
+Os avisos da partida aparecem ao lado do relógio, embaixo à direita, em cartões escuros com texto claro e borda colorida por tipo.
+
+### Receitas e estações
+
+- **Casamento** é a fase inicial e pede só **Bolo de memória RAM** e **Cookies de cache**.
+- Também existem **Pizza de RAM**, **Rosquinhas de cache**, **Gelato refrigerante** e **Parfait de dados**, prontas para as próximas fases.
+- **Forno** e **batedeira** têm modelos próprios (feitos no Blender). A porta do forno abre ao colocar ou tirar a bandeja, que fica visível na grade; o batedor gira enquanto se mistura. Os cozinheiros têm poses próprias para bater na tigela e para alcançar dentro do forno. No editor de mapas, os dois são obrigatórios.
+
+### Eventos da cozinha
+
+Quando um prato não é entregue, a cozinha sofre um evento aleatório: controles invertidos, invasão alienígena, tempestade de raios, chuva de tomates, picape desgovernada, pia estourada ou invasão de ratos.
+
+- Uma **faixa listrada de perigo** sobe um pouco na borda de baixo, de ponta a ponta, com a arte, o nome e a dica do evento, e desce depois do aviso.
+- Quando o evento começa, **a tela treme**, os **celulares vibram** e uma **vinheta vermelha** aparece ao redor da tela; ela some em fade out no fim.
+- Um **relógio pequeno** à esquerda dos pedidos conta o aviso e o tempo do evento, e some quando ele acaba.
+- O selo de **caos** (incêndio) fica no canto superior direito, sem cobrir os pedidos.
+
+![Faixa de alerta da tempestade de raios subindo na borda da tela](https://raw.githubusercontent.com/Plusnar/Byte-Bistro/main/docs/images/alerta-evento.webp)
 
 ### Receitas, pausa e resultados
 
@@ -207,7 +235,8 @@ O site fica no **Cloudflare Pages** e as salas num **Worker** separado (o Pages 
 | **Babylon.js** | Motor 3D no navegador (WebGL): cenas, câmeras, luzes, colisão e animações |
 | **Vite** | Servidor de desenvolvimento e empacotamento para publicar |
 | **HTML e CSS** | Menus, interface do jogo e do editor |
-| **Blender** | Modelagem 3D dos pacotes próprios (Casamento, Schlachtfest, Praça, Igreja Matriz), do mapa de São Bento do Sul e do cenário em volta das fases |
+| **Blender** | Modelagem 3D dos pacotes próprios (Casamento, Schlachtfest, Praça, Igreja Matriz), do mapa de São Bento do Sul, do cenário em volta das fases, do forno, da batedeira e dos pratos |
+| **ChatGPT (via Codex CLI)** | Geração das ilustrações dos pratos novos, de ícones do HUD e das artes dos eventos |
 | **glTF / GLB** | Formato dos modelos 3D usado pelo jogo |
 | **Cloudflare Pages** | Hospedagem da versão online |
 | **Cloudflare Workers + Durable Objects (SQLite)** | Salas dos celulares: sinalização, relay WebSocket com Hibernation, limites e cota |
@@ -229,7 +258,7 @@ Testes: `npm test` (unitários), `npm run mp:test:integration` (servidor, com `m
 
 ## Status
 
-Em desenvolvimento. Estão previstos novas fases e receitas, andares no modo construção, som e ajustes de equilíbrio. O controle por celular foi testado de forma automatizada (4 celulares simulados num navegador); testes em celulares e redes móveis reais estão em andamento.
+Em desenvolvimento. O modo gráfico **Automático** ajusta a qualidade sem piscar a tela e não desce de nível à toa quando o navegador limita o jogo a 30 fps. Estão previstos novas fases e receitas, andares no modo construção, som e ajustes de equilíbrio. O controle por celular foi testado de forma automatizada (4 celulares simulados num navegador); testes em celulares e redes móveis reais estão em andamento.
 
 ## Direitos autorais
 
