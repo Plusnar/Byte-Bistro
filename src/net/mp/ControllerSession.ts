@@ -37,6 +37,7 @@ import {
   type RoomToClient,
   type TransportKind,
   type TransportPolicy,
+  type PhoneTheme,
 } from "./protocol";
 import { RoomSocket } from "./roomSocket";
 
@@ -59,6 +60,8 @@ export interface ControllerView {
   readonly layout: PadLayout;
   /** This phone drives the menus (player 1). */
   readonly leader: boolean;
+  /** A disaster playing in the kitchen: the pad shows its background. Null otherwise. */
+  readonly theme: PhoneTheme | null;
   /** Why the current transport is not WebRTC, for the diagnostics line. */
   readonly fallbackReason: string;
   readonly sent: number;
@@ -94,6 +97,7 @@ export class ControllerSession {
   private cook: ControllerView["cook"] = null;
   private phase: RoomPhase = "lobby";
   private layout: PadLayout = "wait";
+  private theme: PhoneTheme | null = null;
   private leader = false;
   private relayAllowed = true;
   private transportValue: TransportKind = "none";
@@ -151,6 +155,7 @@ export class ControllerSession {
       cook: this.cook,
       phase: this.phase,
       layout: this.layout,
+      theme: this.theme,
       leader: this.leader,
       fallbackReason: this.fallbackReason,
       sent: this.traffic.sentMessages,
@@ -457,6 +462,11 @@ export class ControllerSession {
         if (message.layout === this.layout && message.leader === this.leader) return;
         this.layout = message.layout;
         this.leader = message.leader;
+        this.emit();
+        return;
+      case "theme":
+        if (message.event === this.theme) return;
+        this.theme = message.event;
         this.emit();
         return;
     }

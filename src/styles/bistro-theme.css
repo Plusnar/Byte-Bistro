@@ -323,23 +323,33 @@
   inset: 0;
   pointer-events: none;
 }
+/*
+ * Room the queue leaves for the two disaster markers: the penalty clock at its left and,
+ * on wide layouts, the fire chip in the top-right corner (disaster.css). Each is only
+ * reserved while it is shown; the ticket columns shrink to fit rather than run under it.
+ */
 .game-ui .bistro-hud-top .order-panel {
-  inset: max(.6rem, env(safe-area-inset-top)) auto auto max(.7rem, env(safe-area-inset-left));
-  max-inline-size: calc(100% - 1.4rem);
+  --queue-left: 0px;
+  --queue-right: 0px;
+  inset: max(.6rem, env(safe-area-inset-top)) auto auto calc(max(.7rem, env(safe-area-inset-left)) + var(--queue-left));
+  max-inline-size: calc(100% - 1.4rem - var(--queue-left) - var(--queue-right));
   transform: none;
 }
 .game-ui .bistro-hud-top .order-panel.is-empty:not(:has([data-outcome])) { display: none; }
-/* While a missed order's penalty clock is up, the queue steps right to make room for it. */
 .game-ui:has(.penalty-clock:not([hidden])) .bistro-hud-top .order-panel {
-  left: calc(max(.7rem, env(safe-area-inset-left)) + clamp(2.9rem, 5.4vw, 3.6rem) + .55rem);
-  max-inline-size: calc(100% - clamp(2.9rem, 5.4vw, 3.6rem) - 2rem);
+  --queue-left: calc(clamp(2.9rem, 5.4vw, 3.6rem) + .55rem);
+}
+@media (min-width: 651px) {
+  .game-ui:has(.disaster-chaos-chip:not([hidden])) .bistro-hud-top .order-panel {
+    --queue-right: 10.5rem;
+  }
 }
 .game-ui .bistro-hud-top .order-panel:has([data-outcome]) .order-tickets { display: grid; }
 .game-ui .bistro-hud-top .order-tickets {
   --ticket-width: clamp(7.25rem, 13.5vw, 12rem);
   display: grid;
   position: relative;
-  grid-template-columns: repeat(6, var(--ticket-width));
+  grid-template-columns: repeat(6, minmax(0, var(--ticket-width)));
   justify-content: start;
   gap: clamp(.3rem, .7vw, .65rem);
 }

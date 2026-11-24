@@ -712,7 +712,8 @@ export class Game {
     }
     const kitchen = this.kitchenScene;
     if (!kitchen || kitchen.shiftPhase !== "playing" || this.overlayOpen()) return menu;
-    return slot < kitchen.cookCount ? { layout: "game", leader } : WAITING;
+    // A disaster playing in the kitchen dresses every cook's pad in its background.
+    return slot < kitchen.cookCount ? { layout: "game", leader, theme: kitchen.activeDisaster } : WAITING;
   }
 
   /** A dialog (account, collection, confirm box) is open over the game. */

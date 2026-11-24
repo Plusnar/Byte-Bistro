@@ -158,8 +158,38 @@ input { font: inherit; -webkit-user-select: text; user-select: text; touch-actio
   box-shadow: inset 0 0 3rem #000;
   overflow: hidden;
   touch-action: none;
+  /* Its own stacking context, so the disaster art below sits over the pad's background
+     but under every control. */
+  isolation: isolate;
 }
 .pad[hidden] { display: none; }
+
+/*
+ * A disaster playing in the kitchen: the pad's background becomes its art, darkened so
+ * the stick and buttons stay readable, and fades back out when it ends. Only the
+ * background changes.
+ */
+.pad::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(#00000094, #0000007a), var(--theme-art, none) center / cover no-repeat;
+  opacity: 0;
+  transition: opacity .35s ease;
+  pointer-events: none;
+}
+.pad[data-theme]::before { opacity: 1; }
+.pad[data-theme="inverted"] { --theme-art: url("/assets/ui/phone/inverted.webp"); }
+.pad[data-theme="ufo"] { --theme-art: url("/assets/ui/phone/ufo.webp"); }
+.pad[data-theme="lightning"] { --theme-art: url("/assets/ui/phone/lightning.webp"); }
+.pad[data-theme="tomatoes"] { --theme-art: url("/assets/ui/phone/tomatoes.webp"); }
+.pad[data-theme="tesla"] { --theme-art: url("/assets/ui/phone/tesla.webp"); }
+.pad[data-theme="flood"] { --theme-art: url("/assets/ui/phone/flood.webp"); }
+.pad[data-theme="rats"] { --theme-art: url("/assets/ui/phone/rats.webp"); }
+@media (prefers-reduced-motion: reduce) {
+  .pad::before { transition: none; }
+}
 
 .corner-btn, .round-btn {
   display: grid;

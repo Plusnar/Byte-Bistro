@@ -119,6 +119,11 @@ export class PunishmentSystem {
     return null;
   }
 
+  /** The disaster actually playing, not just warned of; what the phones theme themselves on. */
+  get active(): DisasterKind | null {
+    return this.state.name === "active" ? this.state.disaster.kind : null;
+  }
+
   get pending(): readonly DisasterKind[] {
     return this.queue;
   }

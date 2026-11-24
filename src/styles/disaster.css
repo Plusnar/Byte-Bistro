@@ -28,11 +28,16 @@
   50% { filter: brightness(1.35); }
 }
 
-/* The fire alarm chip, top left over the kitchen. */
+/*
+ * The fire alarm chip. Top right, the one corner the HUD leaves free: the order queue
+ * grows from the top left, notifications sit on the right lower down, the shift clock
+ * bottom right. On a narrow screen the queue spans the whole top, so it drops to the
+ * bottom centre instead.
+ */
 .game-ui .disaster-chaos-chip {
   position: absolute;
-  left: 16px;
-  top: 16px;
+  top: max(.6rem, env(safe-area-inset-top));
+  right: max(.75rem, env(safe-area-inset-right));
   padding: 7px 18px;
   border: 2px solid #ffd0a1;
   border-radius: 999px;
@@ -44,6 +49,15 @@
   letter-spacing: 0.08em;
   white-space: nowrap;
   animation: disaster-chip-pulse 0.9s ease-in-out infinite;
+}
+@media (max-width: 650px) {
+  .game-ui .disaster-chaos-chip {
+    top: auto;
+    right: auto;
+    bottom: max(4.4rem, calc(env(safe-area-inset-bottom) + 3.8rem));
+    left: 50%;
+    translate: -50% 0;
+  }
 }
 @keyframes disaster-chip-pulse {
   0%, 100% { transform: scale(1); }

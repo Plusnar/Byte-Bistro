@@ -22,6 +22,7 @@ import {
   type LobbySnapshot,
   type PadLayout,
   type PhoneButton,
+  type PhoneTheme,
   type PhoneToHost,
   type RoomPhase,
   type RoomToClient,
@@ -52,14 +53,25 @@ export interface PhonePeer {
   /** What this phone's pad shows; only "game" drives a cook. */
   layout: PadLayout;
   lastUiMessage: string;
+  /** Last background theme sent, so it is only resent when the disaster changes. */
+  lastThemeMessage: string;
   /** Last button event turned into a menu command, so a resent one is not run twice. */
   lastMenuSeq: number;
 }
+
+/**
+ * Marks a phone that has not been told its theme yet (new, or just reconnected), so the
+ * next refresh sends one even when it is "none": a phone that dropped mid-disaster must
+ * not keep the old background.
+ */
+const UNSENT_THEME = "?";
 
 /** What one phone's pad should show, decided by the game. */
 export interface PadState {
   readonly layout: PadLayout;
   readonly leader: boolean;
+  /** A disaster playing in the kitchen: the pad wears its background. */
+  readonly theme?: PhoneTheme | null;
 }
 
 export interface HostSnapshot {
@@ -233,8 +245,14 @@ export class HostSession {
       }
       if (!phone.info.connected) continue;
       const json = `${pad.layout}|${pad.leader}`;
-      if (json === phone.lastUiMessage) continue;
-      if (this.sendToPhone(phone, { t: "ui", layout: pad.layout, leader: pad.leader })) phone.lastUiMessage = json;
+      if (json !== phone.lastUiMessage &&
+        this.sendToPhone(phone, { t: "ui", layout: pad.layout, leader: pad.leader })) phone.lastUiMessage = json;
+      // Only a pad in play is themed: a disaster ending mid-menu still clears it.
+      const theme = pad.layout === "game" ? pad.theme ?? null : null;
+      const themeKey = theme ?? "";
+      if (themeKey !== phone.lastThemeMessage && this.sendToPhone(phone, { t: "theme", event: theme })) {
+        phone.lastThemeMessage = themeKey;
+      }
     }
   }
 
@@ -402,6 +420,7 @@ export class HostSession {
           lastCookMessage: "",
           layout: "wait",
           lastUiMessage: "",
+          lastThemeMessage: UNSENT_THEME,
           lastMenuSeq: -1,
         };
         this.phones.set(info.id, phone);
@@ -422,6 +441,7 @@ export class HostSession {
       if (!info.connected) {
         phone.lastCookMessage = "";
         phone.lastUiMessage = "";
+        phone.lastThemeMessage = UNSENT_THEME;
       }
       this.sendCook(phone);
     }
@@ -471,6 +491,7 @@ export class HostSession {
           phone.device.state.timing = P2P_SAFETY;
           phone.lastCookMessage = "";
           phone.lastUiMessage = "";
+          phone.lastThemeMessage = UNSENT_THEME;
           this.sendCook(phone);
           this.refreshPads();
           void this.refreshDiagnostics();

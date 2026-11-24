@@ -224,7 +224,16 @@ export type HostToPhone =
   | { readonly t: "cook"; readonly slot: number | null; readonly color: string; readonly label: string }
   | { readonly t: "phase"; readonly phase: RoomPhase }
   | { readonly t: "buzz"; readonly ms: number }
-  | { readonly t: "ui"; readonly layout: PadLayout; readonly leader: boolean };
+  | { readonly t: "ui"; readonly layout: PadLayout; readonly leader: boolean }
+  | { readonly t: "theme"; readonly event: PhoneTheme | null };
+
+/**
+ * A disaster playing in the kitchen, which the phone shows as its pad's background while
+ * it lasts; null is the normal pad. Mirrors DisasterKind (src/systems/disasters/types.ts),
+ * kept as a plain list here because the room Worker imports this file too.
+ */
+export type PhoneTheme = "inverted" | "ufo" | "lightning" | "tomatoes" | "tesla" | "flood" | "rats";
+export const PHONE_THEMES: readonly PhoneTheme[] = ["inverted", "ufo", "lightning", "tomatoes", "tesla", "flood", "rats"];
 
 /**
  * What the phone's pad shows, decided by the host for each phone:
@@ -303,6 +312,9 @@ export const parseHostToPhone = (value: unknown): HostToPhone | null => {
     case "ui":
       return (PAD_LAYOUTS as readonly unknown[]).includes(value.layout) && typeof value.leader === "boolean"
         ? { t: "ui", layout: value.layout as PadLayout, leader: value.leader } : null;
+    case "theme":
+      return value.event === null || (PHONE_THEMES as readonly unknown[]).includes(value.event)
+        ? { t: "theme", event: value.event as PhoneTheme | null } : null;
     default:
       return null;
   }

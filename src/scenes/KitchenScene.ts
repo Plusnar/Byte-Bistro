@@ -1535,6 +1535,11 @@ export class KitchenScene implements ManagedScene {
     return best;
   }
 
+  /** The disaster playing right now, if any (not the warning before it). */
+  get activeDisaster(): DisasterKind | null {
+    return this.punishment.active;
+  }
+
   /**
    * Sets off a disaster at once, skipping the wait for a failed order. For testing
    * from the console in development: `__bbGame.kitchenScene.punish("tesla")`.
