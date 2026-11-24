@@ -1,4 +1,5 @@
 import { t } from "../i18n";
+import { publicUrl } from "../utils/assetUrl";
 
 /** What a disaster card shows: its glyph, title and one line of advice. */
 export interface DisasterCard {
@@ -8,9 +9,13 @@ export interface DisasterCard {
 }
 
 /**
- * The HUD side of the chaos: the imminent-disaster card with its countdown, the
- * chip naming the disaster in progress, the red vignette of a kitchen on fire,
- * and the white flash of a lightning strike.
+ * The HUD side of the chaos: a small penalty clock beside the order queue, the red
+ * vignette of a kitchen on fire, and the white flash of a lightning strike.
+ *
+ * A failed order sets off a disaster. Its whole countdown — the warning before it starts,
+ * then the time it has left — lives in that one clock, which shows the disaster's glyph
+ * and leaves when it ends. Its name and advice are on the clock's label (tooltip and
+ * screen readers); the warning sound still announces it.
  *
  * Everything is drawn into GameUI's disaster layer and owned here, so the scene
  * only says what is happening and when.
@@ -18,81 +23,92 @@ export interface DisasterCard {
 export class DisasterOverlay {
   private readonly vignette: HTMLElement;
   private readonly chaosChip: HTMLElement;
-  private readonly status: HTMLElement;
+  private readonly clock: HTMLElement;
+  private readonly clockGlyph: HTMLElement;
+  private readonly clockSeconds: HTMLElement;
   private readonly flashLayer: HTMLElement;
-  private warning: { readonly element: HTMLElement; readonly count: HTMLElement; readonly bar: HTMLElement } | null = null;
-  private warningTotal = 0;
+  /** What the clock is counting, so text is only rewritten when it changes. */
+  private phase: "idle" | "warning" | "active" = "idle";
+  private card: DisasterCard | null = null;
   private lastCount = -1;
 
-  constructor(private readonly layer: HTMLElement) {
+  constructor(layer: HTMLElement) {
     this.vignette = this.make("div", "disaster-vignette");
     this.chaosChip = this.make("div", "disaster-chaos-chip");
     this.chaosChip.hidden = true;
-    this.status = this.make("div", "disaster-status");
-    this.status.hidden = true;
+    this.clock = this.make("div", "penalty-clock");
+    this.clock.hidden = true;
+    this.clock.setAttribute("role", "timer");
+    const face = document.createElement("img");
+    face.className = "penalty-clock-face";
+    face.alt = "";
+    face.src = publicUrl("assets/ui/hud/penalty_clock.webp");
+    this.clockGlyph = this.make("span", "penalty-clock-glyph");
+    this.clockGlyph.setAttribute("aria-hidden", "true");
+    this.clockSeconds = this.make("strong", "penalty-clock-seconds");
+    this.clock.append(face, this.clockGlyph, this.clockSeconds);
     this.flashLayer = this.make("div", "disaster-flash");
-    layer.append(this.vignette, this.chaosChip, this.status, this.flashLayer);
+    layer.append(this.vignette, this.chaosChip, this.clock, this.flashLayer);
   }
 
-  /** Shows the imminent-disaster card counting down from `seconds`. */
+  /** Starts the clock on the warning before a disaster, counting down from `seconds`. */
   showWarning(card: DisasterCard, seconds: number): void {
-    this.hideWarning();
-    const element = this.make("section", "disaster-warning");
-    element.setAttribute("role", "alert");
-    const stripeTop = this.make("div", "disaster-stripes");
-    const body = this.make("div", "disaster-warning-body");
-    const icon = this.make("div", "disaster-warning-icon", card.icon);
-    icon.setAttribute("aria-hidden", "true");
-    const copy = this.make("div", "disaster-warning-copy");
-    copy.append(
-      this.make("small", "disaster-warning-eyebrow", t("disaster.imminent")),
-      this.make("strong", "disaster-warning-title", card.title),
-      this.make("p", "disaster-warning-detail", card.detail),
-      this.make("p", "disaster-warning-cause", t("disaster.penalty")),
-    );
-    const count = this.make("div", "disaster-warning-count");
-    body.append(icon, copy, count);
-    const track = this.make("div", "disaster-warning-track");
-    const bar = this.make("div", "disaster-warning-bar");
-    track.append(bar);
-    const stripeBottom = this.make("div", "disaster-stripes");
-    element.append(stripeTop, body, track, stripeBottom);
-    this.layer.append(element);
-    this.warning = { element, count, bar };
-    this.warningTotal = Math.max(0.1, seconds);
-    this.lastCount = -1;
+    this.enter("warning", card);
     this.updateWarning(seconds);
   }
 
-  /** Moves the countdown on; `remaining` is in seconds. */
+  /** Moves the warning countdown on; `remaining` is in seconds. */
   updateWarning(remaining: number): void {
-    const warning = this.warning;
-    if (!warning) return;
-    const whole = Math.max(0, Math.ceil(remaining));
-    if (whole !== this.lastCount) {
-      this.lastCount = whole;
-      warning.count.textContent = whole.toString();
-      // Restart the pop on each new number.
-      warning.count.classList.remove("is-ticking");
-      void warning.count.offsetWidth;
-      warning.count.classList.add("is-ticking");
-    }
-    warning.bar.style.setProperty("--left", `${Math.max(0, Math.min(1, remaining / this.warningTotal)) * 100}%`);
+    if (this.phase === "warning") this.tick(remaining);
   }
 
   hideWarning(): void {
-    this.warning?.element.remove();
-    this.warning = null;
+    if (this.phase === "warning") this.leave();
   }
 
-  /** The chip naming the disaster in progress, or none. */
+  /** The disaster in progress and its time left, or none: the clock goes away. */
   setStatus(card: DisasterCard | null, secondsLeft = 0): void {
-    if (!card) {
-      this.status.hidden = true;
+    // Out of time is over, as far as the player is concerned: some disasters play an
+    // exit afterwards (the saucer flying off), and a clock sitting on 0 through it read
+    // as stuck.
+    if (!card || secondsLeft <= 0) {
+      if (this.phase === "active") this.leave();
       return;
     }
-    this.status.hidden = false;
-    this.status.textContent = `${card.icon} ${t("disaster.active", { name: card.title, seconds: Math.ceil(secondsLeft) })}`;
+    if (this.phase !== "active" || this.card !== card) this.enter("active", card);
+    this.tick(secondsLeft);
+  }
+
+  private enter(phase: "warning" | "active", card: DisasterCard): void {
+    this.phase = phase;
+    this.card = card;
+    this.lastCount = -1;
+    this.clock.dataset.phase = phase;
+    this.clockGlyph.textContent = card.icon;
+    const label = phase === "warning"
+      ? `${t("disaster.imminent")}: ${card.title}. ${card.detail} ${t("disaster.penalty")}`
+      : `${card.title}. ${card.detail}`;
+    this.clock.title = label;
+    this.clock.setAttribute("aria-label", label);
+    this.clock.hidden = false;
+  }
+
+  private leave(): void {
+    this.phase = "idle";
+    this.card = null;
+    this.clock.hidden = true;
+    delete this.clock.dataset.phase;
+  }
+
+  /** Writes whole seconds, and pops the number as each one turns over. */
+  private tick(remaining: number): void {
+    const whole = Math.max(0, Math.ceil(remaining));
+    if (whole === this.lastCount) return;
+    this.lastCount = whole;
+    this.clockSeconds.textContent = whole.toString();
+    this.clockSeconds.classList.remove("is-ticking");
+    void this.clockSeconds.offsetWidth;
+    this.clockSeconds.classList.add("is-ticking");
   }
 
   /** 0..1 how much of the kitchen is burning; 0 clears the alarm. */
@@ -117,15 +133,14 @@ export class DisasterOverlay {
 
   /** Back to a calm screen, as at the start of a shift. */
   reset(): void {
-    this.hideWarning();
-    this.setStatus(null);
+    this.leave();
     this.setChaos(0);
     this.flashLayer.classList.remove("is-flashing");
   }
 
   dispose(): void {
     this.reset();
-    for (const element of [this.vignette, this.chaosChip, this.status, this.flashLayer]) element.remove();
+    for (const element of [this.vignette, this.chaosChip, this.clock, this.flashLayer]) element.remove();
   }
 
   private make(tag: string, className: string, text?: string): HTMLElement {

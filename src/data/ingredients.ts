@@ -112,8 +112,8 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     emissiveColor: "#2b80bb",
     shape: "cylinder",
   }),
-  cookie_dough: ingredient({
-    id: "cookie_dough",
+  donut_dough: ingredient({
+    id: "donut_dough",
     category: "mixture",
     baseQuality: 0.9,
     baseCorruption: 0.01,
@@ -142,8 +142,8 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     emissiveColor: "#31b6b2",
     shape: "sphere",
   }),
-  ram_cake_baked: ingredient({
-    id: "ram_cake_baked",
+  ram_pizza: ingredient({
+    id: "ram_pizza",
     category: "dish",
     baseQuality: 0.95,
     baseCorruption: 0,
@@ -152,8 +152,8 @@ export const INGREDIENTS: Record<string, IngredientData> = {
     emissiveColor: "#3573c4",
     shape: "cylinder",
   }),
-  cookie_tray: ingredient({
-    id: "cookie_tray",
+  cache_donuts: ingredient({
+    id: "cache_donuts",
     category: "dish",
     baseQuality: 0.93,
     baseCorruption: 0,

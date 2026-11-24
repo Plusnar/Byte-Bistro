@@ -163,11 +163,11 @@ export const FOOD_DEFINITIONS: Readonly<Record<string, FoodDefinition>> = {
     cook: "tray",
     visuals: { raw: ingredientVisual("ram_dough", 0.85) },
   },
-  cookie_dough: {
-    ingredientId: "cookie_dough",
+  donut_dough: {
+    ingredientId: "donut_dough",
     chop: false,
     cook: "tray",
-    visuals: { raw: ingredientVisual("cookie_dough", 0.85) },
+    visuals: { raw: ingredientVisual("donut_dough", 0.85) },
   },
   gelato_mix: {
     ingredientId: "gelato_mix",
@@ -200,12 +200,12 @@ export const MIX_RECIPES: readonly MixRecipe[] = [
     output: "ram_dough",
   },
   {
-    id: "mix_cookie_dough",
+    id: "mix_donut_dough",
     inputs: [
       { ingredientId: "cache_fragment", state: "chopped" },
       { ingredientId: "binary_sugar", state: "raw" },
     ],
-    output: "cookie_dough",
+    output: "donut_dough",
   },
   {
     id: "mix_gelato",

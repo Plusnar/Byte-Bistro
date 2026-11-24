@@ -1,7 +1,6 @@
 /*
- * Disasters and chaos, drawn over the kitchen. The card follows the HUD's space
- * skin (cosmic.css): deep blue surfaces, cyan lines, rounded 17px corners, with
- * hazard stripes and the order red for danger.
+ * Disasters and chaos, drawn over the kitchen: the penalty clock beside the order
+ * queue, the fire vignette and chip, and the lightning flash.
  */
 .game-ui .disaster-layer {
   position: absolute;
@@ -29,140 +28,90 @@
   50% { filter: brightness(1.35); }
 }
 
-/* Top left, which the HUD leaves free: the order tickets sit in the middle. */
-.game-ui .disaster-chaos-chip,
-.game-ui .disaster-status {
+/* The fire alarm chip, top left over the kitchen. */
+.game-ui .disaster-chaos-chip {
   position: absolute;
   left: 16px;
+  top: 16px;
   padding: 7px 18px;
+  border: 2px solid #ffd0a1;
   border-radius: 999px;
+  background: linear-gradient(#ff5c3a, #c2183f);
+  box-shadow: var(--space-shadow);
+  color: #fff6ea;
+  font-size: 0.92rem;
   font-weight: 900;
   letter-spacing: 0.08em;
-  font-size: 0.92rem;
   white-space: nowrap;
-  box-shadow: var(--space-shadow);
-}
-.game-ui .disaster-chaos-chip {
-  top: 16px;
-  border: 2px solid #ffd0a1;
-  background: linear-gradient(#ff5c3a, #c2183f);
-  color: #fff6ea;
   animation: disaster-chip-pulse 0.9s ease-in-out infinite;
-}
-.game-ui .disaster-status {
-  top: 60px;
-  border: 2px solid var(--space-gold);
-  background: linear-gradient(#594261, #34213e);
-  color: #ffe0a1;
 }
 @keyframes disaster-chip-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.07); }
 }
 
-/* The imminent-disaster card. */
-.game-ui .disaster-warning {
+/*
+ * The penalty clock: a missed order's disaster, counted down in one small clock at the
+ * left of the order queue (which steps aside while it is shown, see bistro-theme.css).
+ * Amber while the disaster is coming, red while it runs; gone when it ends.
+ */
+.game-ui .penalty-clock {
+  --penalty-size: clamp(2.9rem, 5.4vw, 3.6rem);
   position: absolute;
-  left: 50%;
-  top: 38%;
-  width: min(560px, calc(100vw - 32px));
-  transform: translate(-50%, -50%);
-  overflow: hidden;
-  border: 2px solid var(--order-red);
-  border-radius: var(--ui-radius);
-  background: var(--space-surface);
-  box-shadow: 0 0 0 4px #3c1b3f, 0 0 46px #ff688d88, var(--space-shadow);
-  color: var(--space-white);
-  animation: disaster-warning-in 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both,
-    disaster-warning-shake 0.5s ease-in-out 0.45s infinite;
-}
-@keyframes disaster-warning-in {
-  from { transform: translate(-50%, -50%) scale(0.4) rotate(-6deg); opacity: 0; }
-  to { transform: translate(-50%, -50%) scale(1) rotate(0); opacity: 1; }
-}
-@keyframes disaster-warning-shake {
-  0%, 100% { transform: translate(-50%, -50%) rotate(0); }
-  25% { transform: translate(calc(-50% - 2px), -50%) rotate(-0.6deg); }
-  75% { transform: translate(calc(-50% + 2px), -50%) rotate(0.6deg); }
-}
-
-.game-ui .disaster-stripes {
-  height: 12px;
-  background: repeating-linear-gradient(-45deg, var(--space-gold) 0 14px, #1b1030 14px 28px);
-  background-size: 40px 12px;
-  animation: disaster-stripes-move 0.6s linear infinite;
-}
-@keyframes disaster-stripes-move {
-  from { background-position: 0 0; }
-  to { background-position: 40px 0; }
-}
-
-.game-ui .disaster-warning-body {
+  top: max(.6rem, env(safe-area-inset-top));
+  left: max(.7rem, env(safe-area-inset-left));
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px 10px;
-}
-.game-ui .disaster-warning-icon {
-  display: grid;
+  width: var(--penalty-size);
+  height: var(--penalty-size);
   place-items: center;
-  width: 72px;
-  height: 72px;
-  border: 2px solid var(--order-red);
+  border: 3px solid #ffb020;
+  border-radius: .7rem;
+  background: #082044;
+  box-shadow: 0 .25rem .75rem #030d21c0;
+  box-sizing: border-box;
+  animation: penalty-clock-in .3s cubic-bezier(.2, 1.5, .4, 1) both;
+}
+.game-ui .penalty-clock[hidden] { display: none; }
+.game-ui .penalty-clock[data-phase="active"] { border-color: #ff5d78; }
+.game-ui .penalty-clock-face {
+  grid-area: 1 / 1;
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  opacity: .55;
+}
+.game-ui .penalty-clock-seconds {
+  grid-area: 1 / 1;
+  color: #fff;
+  font: 900 clamp(1rem, 2vw, 1.3rem)/1 var(--bistro-font, Nunito, sans-serif);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 0 #030d21, 0 0 6px #030d21;
+}
+.game-ui .penalty-clock[data-phase="warning"] .penalty-clock-seconds { color: #ffd166; }
+.game-ui .penalty-clock-seconds.is-ticking { animation: penalty-clock-pop .3s ease-out; }
+/* Which disaster it is, as a badge on the corner. */
+.game-ui .penalty-clock-glyph {
+  position: absolute;
+  right: -.45rem;
+  bottom: -.45rem;
+  display: grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  place-items: center;
+  border: 2px solid #ffb020;
   border-radius: 50%;
-  background: radial-gradient(#6a274e, #2a1236);
-  font-size: 2.4rem;
-  box-shadow: 0 0 18px #ff688d99;
-  animation: disaster-icon-pulse 0.7s ease-in-out infinite;
+  background: #2a1236;
+  font-size: .82rem;
+  line-height: 1;
 }
-@keyframes disaster-icon-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.12); }
+.game-ui .penalty-clock[data-phase="active"] .penalty-clock-glyph { border-color: #ff5d78; }
+@keyframes penalty-clock-in {
+  from { opacity: 0; transform: scale(.5); }
+  to { opacity: 1; transform: scale(1); }
 }
-.game-ui .disaster-warning-copy { display: grid; gap: 3px; min-width: 0; }
-.game-ui .disaster-warning-eyebrow {
-  color: var(--order-red);
-  font-weight: 900;
-  letter-spacing: 0.22em;
-  font-size: 0.78rem;
-}
-.game-ui .disaster-warning-title {
-  color: var(--space-gold);
-  font-size: 1.55rem;
-  font-weight: 900;
-  line-height: 1.05;
-  text-shadow: 0 2px 0 #3c1b3f;
-}
-.game-ui .disaster-warning-detail { margin: 0; color: var(--space-white); font-weight: 700; }
-.game-ui .disaster-warning-cause { margin: 0; color: var(--space-muted); font-size: 0.8rem; }
-.game-ui .disaster-warning-count {
-  min-width: 58px;
-  color: var(--order-red);
-  font-size: 3rem;
-  font-weight: 900;
-  text-align: center;
-  text-shadow: 0 0 16px #ff688d;
-}
-.game-ui .disaster-warning-count.is-ticking { animation: disaster-count-pop 0.35s ease-out; }
-@keyframes disaster-count-pop {
-  from { transform: scale(1.6); }
+@keyframes penalty-clock-pop {
+  from { transform: scale(1.45); }
   to { transform: scale(1); }
-}
-.game-ui .disaster-warning-track {
-  height: 8px;
-  margin: 0 20px 14px;
-  border: 1px solid #3978b8;
-  border-radius: 999px;
-  background: #091a40;
-  overflow: hidden;
-}
-.game-ui .disaster-warning-bar {
-  --left: 100%;
-  width: var(--left);
-  height: 100%;
-  background: linear-gradient(90deg, #ff95b4, #e94578);
-  transition: width 0.12s linear;
 }
 
 /* Lightning. */
@@ -181,17 +130,9 @@
   100% { opacity: 0; }
 }
 
-@media (max-width: 640px) {
-  .game-ui .disaster-warning-body { grid-template-columns: auto 1fr; }
-  .game-ui .disaster-warning-count { grid-column: 1 / -1; font-size: 2.2rem; }
-  .game-ui .disaster-warning-icon { width: 56px; height: 56px; font-size: 1.8rem; }
-  .game-ui .disaster-warning-title { font-size: 1.2rem; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .game-ui .disaster-warning,
-  .game-ui .disaster-stripes,
-  .game-ui .disaster-warning-icon,
+  .game-ui .penalty-clock,
+  .game-ui .penalty-clock-seconds.is-ticking,
   .game-ui .disaster-chaos-chip,
   .game-ui .disaster-vignette.is-on { animation: none; }
 }

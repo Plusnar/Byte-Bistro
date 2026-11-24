@@ -48,10 +48,10 @@ const crateUrl: Readonly<Record<IngredientAssetId, string>> = {
 
 const preparedItems = {
   ram_dough: bundledModelUrl("src/assets/ingredients/ram_dough.glb"),
-  cookie_dough: bundledModelUrl("src/assets/ingredients/cookie_dough.glb"),
+  donut_dough: bundledModelUrl("src/assets/ingredients/donut_dough.glb"),
   gelato_mix: bundledModelUrl("src/assets/ingredients/gelato_mix.glb"),
-  ram_cake_baked: bundledModelUrl("src/assets/ingredients/ram_cake_baked.glb"),
-  cookie_tray: bundledModelUrl("src/assets/ingredients/cookie_tray.glb"),
+  ram_pizza: bundledModelUrl("src/assets/ingredients/ram_pizza.glb"),
+  cache_donuts: bundledModelUrl("src/assets/ingredients/cache_donuts.glb"),
   gelato_parfait: bundledModelUrl("src/assets/ingredients/gelato_parfait.glb"),
 } as const;
 

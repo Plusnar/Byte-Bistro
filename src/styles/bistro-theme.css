@@ -329,6 +329,11 @@
   transform: none;
 }
 .game-ui .bistro-hud-top .order-panel.is-empty:not(:has([data-outcome])) { display: none; }
+/* While a missed order's penalty clock is up, the queue steps right to make room for it. */
+.game-ui:has(.penalty-clock:not([hidden])) .bistro-hud-top .order-panel {
+  left: calc(max(.7rem, env(safe-area-inset-left)) + clamp(2.9rem, 5.4vw, 3.6rem) + .55rem);
+  max-inline-size: calc(100% - clamp(2.9rem, 5.4vw, 3.6rem) - 2rem);
+}
 .game-ui .bistro-hud-top .order-panel:has([data-outcome]) .order-tickets { display: grid; }
 .game-ui .bistro-hud-top .order-tickets {
   --ticket-width: clamp(7.25rem, 13.5vw, 12rem);

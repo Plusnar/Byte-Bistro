@@ -1,7 +1,6 @@
 import { translate } from "../i18n";
 import type { MovementBounds } from "../entities/Player";
 import { DEFAULT_KITCHEN_LAYOUT } from "./kitchenLayout";
-import { RECIPES } from "./recipes";
 import { STATION_KIND_LABEL } from "./kitchen";
 import { INGREDIENT_IDS } from "./ingredientAssets";
 import { getIngredient } from "./ingredients";
@@ -130,6 +129,9 @@ const WEDDING_REQUIREMENTS: ScenarioRequirements = {
   requiresFloor: true,
 };
 
+/** What the wedding orders: only the first two dishes a new crew learns. */
+export const WEDDING_MENU: readonly string[] = ["ram_cake", "cache_cookies"];
+
 export const WEDDING_SCENARIO: ScenarioDefinition = {
   id: "wedding",
   get displayName() { return translate("scenarios.wedding.name"); },
@@ -139,7 +141,10 @@ export const WEDDING_SCENARIO: ScenarioDefinition = {
   difficultyId: "standard",
   lighting: WEDDING_LIGHTING,
   receptionArea: DEFAULT_KITCHEN_LAYOUT.receptionArea,
-  recipeIds: RECIPES.map((recipe) => recipe.id),
+  // The opening level stays easy: two dishes, board and stove only. The baked and mixed
+  // recipes (pizza, donuts, parfait) wait for later levels; the oven and mixer are still
+  // required so the hall is ready for them.
+  recipeIds: WEDDING_MENU,
   requirements: WEDDING_REQUIREMENTS,
   // The official wedding: the hall as built in the editor.
   levelId: "casamento",

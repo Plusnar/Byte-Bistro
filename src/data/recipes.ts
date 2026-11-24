@@ -94,8 +94,8 @@ export const RECIPES: readonly RecipeData[] = [
    * there on, which is why none of this needed a new matching rule.
    */
   recipe({
-    id: "ram_cake_baked",
-    finalItemId: "ram_cake_baked",
+    id: "ram_pizza",
+    finalItemId: "ram_pizza",
     components: [
       { ingredientId: "ram_dough", state: "cooked" },
       { ingredientId: "cache_cream", state: "chopped" },
@@ -117,10 +117,10 @@ export const RECIPES: readonly RecipeData[] = [
     color: "#7ab8ff",
   }),
   recipe({
-    id: "cookie_tray",
-    finalItemId: "cookie_tray",
+    id: "cache_donuts",
+    finalItemId: "cache_donuts",
     components: [
-      { ingredientId: "cookie_dough", state: "cooked" },
+      { ingredientId: "donut_dough", state: "cooked" },
       { ingredientId: "binary_sugar", state: "raw" },
     ],
     ingredients: [
