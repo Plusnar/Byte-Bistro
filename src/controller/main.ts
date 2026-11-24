@@ -15,6 +15,7 @@ import { initLanguage, t, type MessageKey } from "../i18n";
 import { ControllerSession, type ControllerStatus, type ControllerView } from "../net/mp/ControllerSession";
 import { BUTTONS, isRoomCode, normalizeRoomCode, type PadLayout, type PhoneButton, type TransportKind } from "../net/mp/protocol";
 import { dpadDirection, stickVector, type DpadDirection } from "./stick";
+import { createHaptics } from "./haptics";
 
 initLanguage(null);
 document.documentElement.lang = t("phone.pageTitle").startsWith("Controle") ? "pt-BR" : "en";
@@ -164,14 +165,10 @@ const keepAwake = async (): Promise<void> => {
 };
 document.addEventListener("visibilitychange", () => void keepAwake(), { signal: pageHooks.signal });
 
-const vibrate = (ms: number): void => {
-  // Android Chrome vibrates; iOS has no Vibration API, the visual press feedback remains.
-  try {
-    navigator.vibrate?.(ms);
-  } catch {
-    // Ignored.
-  }
-};
+// Android vibrates; iOS 18+ ticks through a hidden switch (see haptics.ts).
+const haptics = createHaptics();
+pageHooks.signal.addEventListener("abort", () => haptics.dispose(), { once: true });
+const vibrate = (ms: number): void => haptics.buzz(ms);
 
 const fullscreenAvailable = Boolean(document.fullscreenEnabled || (document as Document & { webkitFullscreenEnabled?: boolean }).webkitFullscreenEnabled);
 q("[data-action=fullscreen]").hidden = !fullscreenAvailable;

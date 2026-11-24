@@ -152,66 +152,118 @@
 }
 
 /*
- * The disaster alert: a card that rises from the bottom-right corner as a disaster is
- * announced (it may cover the shift clock), holds while the warning counts down, then
- * drops back out of sight. Every disaster uses the same card; only its art and text change.
+ * The disaster alert: a hazard-striped band across the whole bottom edge, corner to corner.
+ * It rises just a little as a disaster is announced (it may cover the shift clock), holds
+ * while the warning counts down, then sinks back out of sight. Every disaster uses the
+ * same band; only its art and text change.
  */
 .game-ui .disaster-alert {
+  --hazard: repeating-linear-gradient(-45deg, #ffc21a 0 1rem, #14100a 1rem 2rem);
   position: absolute;
-  right: max(.75rem, env(safe-area-inset-right));
-  bottom: max(.75rem, env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 2;
-  width: min(25rem, calc(100vw - 1.5rem));
-  overflow: hidden;
-  border: 3px solid #ff5d78;
-  border-radius: 1rem;
-  background: #0b1d3a;
-  box-shadow: 0 .6rem 1.6rem #030d21d0, 0 0 0 4px #ff5d7833;
-  color: #f4f9ff;
-  transform: translateY(calc(100% + 2rem));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(.6rem, 2vw, 1.2rem);
+  min-height: clamp(4.2rem, 11vh, 5.8rem);
+  padding: calc(.75rem + 10px) max(1rem, env(safe-area-inset-right)) calc(max(.6rem, env(safe-area-inset-bottom)) + 10px) max(1rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+  background: linear-gradient(#1c0a10f2, #0b0610f7);
+  box-shadow: 0 -.4rem 1.4rem #00000099;
+  color: #fff4e0;
+  transform: translateY(110%);
 }
+/* The hazard stripes along both edges, crawling sideways like a warning tape. */
+.game-ui .disaster-alert::before,
+.game-ui .disaster-alert::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: var(--hazard);
+  background-size: 2.83rem 100%;
+  animation: disaster-tape 0.9s linear infinite;
+}
+.game-ui .disaster-alert::before { top: 0; }
+.game-ui .disaster-alert::after { bottom: 0; animation-direction: reverse; }
 .game-ui .disaster-alert[hidden] { display: none; }
 .game-ui .disaster-alert.is-rising { animation: disaster-alert-rise 3.4s cubic-bezier(.2, .9, .3, 1) both; }
 .game-ui .disaster-alert-art {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 7;
+  flex: none;
+  width: clamp(4.2rem, 11vw, 6.4rem);
+  aspect-ratio: 16 / 10;
   object-fit: cover;
-  border-bottom: 3px solid #ff5d78;
+  border: 3px solid #ffc21a;
+  border-radius: .55rem;
+  box-shadow: 0 0 0 3px #14100a;
 }
-.game-ui .disaster-alert-copy { display: grid; gap: .15rem; padding: .6rem .85rem .75rem; }
+.game-ui .disaster-alert-copy { display: grid; gap: .1rem; min-width: 0; max-width: 46rem; }
 .game-ui .disaster-alert-eyebrow {
-  color: #ff8fa3;
-  font: 900 .72rem/1 var(--bistro-font, Nunito, sans-serif);
-  letter-spacing: .18em;
+  color: #ffc21a;
+  font: 900 clamp(.62rem, 1.1vw, .74rem)/1 var(--bistro-font, Nunito, sans-serif);
+  letter-spacing: .2em;
   text-transform: uppercase;
 }
 .game-ui .disaster-alert-title {
-  color: #ffd166;
-  font: 900 clamp(1.05rem, 2.2vw, 1.4rem)/1.1 var(--bistro-font, Nunito, sans-serif);
-  text-shadow: 0 2px 0 #030d21;
+  color: #fff;
+  font: 900 clamp(1.05rem, 2.3vw, 1.55rem)/1.05 var(--bistro-font, Nunito, sans-serif);
+  text-shadow: 0 2px 0 #000;
   overflow-wrap: anywhere;
 }
 .game-ui .disaster-alert-detail {
   margin: 0;
-  color: #dbe9ff;
-  font: 700 clamp(.8rem, 1.5vw, .95rem)/1.3 var(--bistro-font, Nunito, sans-serif);
+  color: #ffdcb5;
+  font: 700 clamp(.78rem, 1.4vw, .95rem)/1.25 var(--bistro-font, Nunito, sans-serif);
   overflow-wrap: anywhere;
 }
 @keyframes disaster-alert-rise {
-  0% { transform: translateY(calc(100% + 2rem)); }
-  13% { transform: translateY(0); }
-  87% { transform: translateY(0); }
-  100% { transform: translateY(calc(100% + 2rem)); }
+  0% { transform: translateY(110%); }
+  12% { transform: translateY(0); }
+  88% { transform: translateY(0); }
+  100% { transform: translateY(110%); }
+}
+@keyframes disaster-tape {
+  from { background-position: 0 0; }
+  to { background-position: 2.83rem 0; }
 }
 @media (max-width: 650px) {
-  .game-ui .disaster-alert-art { aspect-ratio: 16 / 6; }
+  .game-ui .disaster-alert-art { display: none; }
+}
+
+/*
+ * While a disaster plays, a red vignette closes in around the screen; when it ends, the
+ * vignette fades away. Separate from the fire vignette above, which follows the chaos.
+ */
+.game-ui .disaster-event-vignette {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, #ff1f45a8 130%);
+  box-shadow: inset 0 0 5rem #ff1f4552;
+  transition: opacity 1.1s ease-out;
+  pointer-events: none;
+}
+.game-ui .disaster-event-vignette.is-on {
+  opacity: 1;
+  transition-duration: .35s;
+  animation: disaster-event-pulse 1.6s ease-in-out infinite;
+}
+@keyframes disaster-event-pulse {
+  0%, 100% { filter: brightness(.85); }
+  50% { filter: brightness(1.15); }
 }
 @media (prefers-reduced-motion: reduce) {
-  /* No slide: the card simply shows for the same time, then goes. */
+  /* No slide or crawl: the band simply shows for the same time, then goes. */
   .game-ui .disaster-alert.is-rising { animation: disaster-alert-still 3.4s steps(1, end) both; }
+  .game-ui .disaster-alert::before,
+  .game-ui .disaster-alert::after,
+  .game-ui .disaster-event-vignette.is-on { animation: none; }
 }
 @keyframes disaster-alert-still {
   from { transform: none; }
-  to { transform: translateY(calc(100% + 2rem)); }
+  to { transform: translateY(110%); }
 }

@@ -29,6 +29,8 @@ export class DisasterOverlay {
   private readonly clockGlyph: HTMLElement;
   private readonly clockSeconds: HTMLElement;
   private readonly flashLayer: HTMLElement;
+  /** Red vignette around the screen while a disaster plays; fades out when it ends. */
+  private readonly eventVignette: HTMLElement;
   /** The alert card that rises from the bottom corner as a disaster is announced. */
   private readonly alert: HTMLElement;
   private readonly alertArt: HTMLImageElement;
@@ -55,6 +57,7 @@ export class DisasterOverlay {
     this.clockSeconds = this.make("strong", "penalty-clock-seconds");
     this.clock.append(face, this.clockGlyph, this.clockSeconds);
     this.flashLayer = this.make("div", "disaster-flash");
+    this.eventVignette = this.make("div", "disaster-event-vignette");
 
     // One card, reused for every disaster: art on top, then what it is and what to do.
     // Its whole rise, hold and fall is one CSS animation, so no timer has to own it; it
@@ -77,12 +80,12 @@ export class DisasterOverlay {
       if (event.target === this.alert) this.alert.hidden = true;
     });
 
-    layer.append(this.vignette, this.chaosChip, this.clock, this.alert, this.flashLayer);
+    layer.append(this.vignette, this.eventVignette, this.chaosChip, this.clock, this.alert, this.flashLayer);
   }
 
   /**
-   * Raises the alert card for a disaster about to break out: its art, name and advice,
-   * in the current language. It rises from the bottom corner, holds, then drops away.
+   * Raises the alert band for a disaster about to break out: its art, name and advice,
+   * in the current language, across the bottom edge. It rises a little, holds, then sinks.
    */
   private raiseAlert(card: DisasterCard): void {
     this.alertArt.src = publicUrl(`assets/ui/disasters/${card.kind}.webp`);
@@ -131,6 +134,7 @@ export class DisasterOverlay {
     this.card = card;
     this.lastCount = -1;
     this.clock.dataset.phase = phase;
+    this.eventVignette.classList.toggle("is-on", phase === "active");
     this.clockGlyph.textContent = card.icon;
     const label = phase === "warning"
       ? `${t("disaster.imminent")}: ${card.title}. ${card.detail} ${t("disaster.penalty")}`
@@ -145,6 +149,8 @@ export class DisasterOverlay {
     this.card = null;
     this.clock.hidden = true;
     delete this.clock.dataset.phase;
+    // The CSS transition fades it out rather than cutting it.
+    this.eventVignette.classList.remove("is-on");
   }
 
   /** Writes whole seconds, and pops the number as each one turns over. */
@@ -189,7 +195,7 @@ export class DisasterOverlay {
 
   dispose(): void {
     this.reset();
-    for (const element of [this.vignette, this.chaosChip, this.clock, this.alert, this.flashLayer]) element.remove();
+    for (const element of [this.vignette, this.eventVignette, this.chaosChip, this.clock, this.alert, this.flashLayer]) element.remove();
   }
 
   private make(tag: string, className: string, text?: string): HTMLElement {
