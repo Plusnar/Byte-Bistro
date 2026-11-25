@@ -162,7 +162,9 @@ export class LevelMapView {
   }
 
   setLevels(keys: readonly string[]): void {
-    this.keys = LANDMARKS.map((landmark, index) => index === 0 ? keys[0] ?? "" : landmark.fallback);
+    // The official levels take the landmarks in order (church: wedding, SGD: Schlachtfest);
+    // the rest stay "coming soon".
+    this.keys = LANDMARKS.map((landmark, index) => keys[index] ?? landmark.fallback);
     this.places.forEach((place, index) => {
       place.key = this.keys[index] ?? "";
       place.mesh.metadata = { levelKey: place.key };

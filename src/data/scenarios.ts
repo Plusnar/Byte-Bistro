@@ -150,7 +150,28 @@ export const WEDDING_SCENARIO: ScenarioDefinition = {
   levelId: "casamento",
 };
 
-export const SCENARIOS: readonly ScenarioDefinition[] = [WEDDING_SCENARIO];
+/** What the Schlachtfest serves: a cutlet from the oven and stove, and a draught. */
+export const SCHLACHTFEST_MENU: readonly string[] = ["ssd_schnitzel", "thermal_paste_beer"];
+
+/**
+ * The town's Schlachtfest: the second official level. Same kitchen rules as the wedding,
+ * its own menu, and the parades and partying robots of its map (src/data/levels).
+ */
+export const SCHLACHTFEST_SCENARIO: ScenarioDefinition = {
+  id: "schlachtfest",
+  get displayName() { return translate("scenarios.schlachtfest.name"); },
+  get description() { return translate("scenarios.schlachtfest.description"); },
+  thumbnailUrl: publicUrl("images/scenarios/wedding.png"),
+  shiftDurationSeconds: 210,
+  difficultyId: "standard",
+  lighting: WEDDING_LIGHTING,
+  receptionArea: null,
+  recipeIds: SCHLACHTFEST_MENU,
+  requirements: WEDDING_REQUIREMENTS,
+  levelId: "schlachtfest",
+};
+
+export const SCENARIOS: readonly ScenarioDefinition[] = [WEDDING_SCENARIO, SCHLACHTFEST_SCENARIO];
 
 export const DEFAULT_SCENARIO_ID = WEDDING_SCENARIO.id;
 

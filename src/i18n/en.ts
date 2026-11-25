@@ -320,6 +320,8 @@ export const en: Messages = {
     donut_dough: { name: "Donut dough", short: "Donut dough" },
     cache_cookies: { name: "Cache cookies", short: "Cookies" },
     gelato_mix: { name: "Gelato mix", short: "Gelato mix" },
+    ssd_schnitzel: { name: "SSD Schnitzel", short: "Schnitzel" },
+    thermal_paste_beer: { name: "Thermal Paste Draught", short: "Draught" },
     cooling_gelato: { name: "Cooling gelato", short: "Gelato" },
   },
   recipes: {
@@ -370,6 +372,26 @@ export const en: Messages = {
       step3: "Pour the pot onto a clean plate.",
       step4: "Take the plate to the delivery counter.",
     },
+    ssd_schnitzel: {
+      name: "SSD Schnitzel",
+      short: "SCHNITZEL",
+      description: "Baked RAM dough, fried RAM module and data cream: the fastest cutlet at the fair.",
+      step1: "Chop two RAM modules and the data cream on the board.",
+      step2: "Mix one chopped RAM with binary sugar in the mixer: it becomes RAM dough.",
+      step3: "Bake the RAM dough in the oven. The window is short!",
+      step4: "Fry the other chopped RAM in the pan on the stove.",
+      step5: "Plate it: baked dough, fried RAM and chopped data cream.",
+      step6: "Serve the plate at the delivery counter.",
+    },
+    thermal_paste_beer: {
+      name: "Thermal Paste Draught",
+      short: "DRAUGHT",
+      description: "Gelato mix, cooling fluid and binary sugar: cold enough to cool any processor.",
+      step1: "Chop two cooling fluids and the data cream on the board.",
+      step2: "Mix one chopped fluid with the data cream in the mixer: it becomes gelato mix.",
+      step3: "Plate it: gelato mix, chopped fluid and binary sugar.",
+      step4: "Serve the plate at the delivery counter.",
+    },
     cooling_gelato: {
       name: "Cooling gelato",
       short: "COOLING GELATO",
@@ -389,6 +411,10 @@ export const en: Messages = {
     wedding: {
       name: "ChatGPT ♡ Gemini Wedding",
       description: "The wedding reception. Serve the robot guests before time runs out.",
+    },
+    schlachtfest: {
+      name: "Schlachtfest",
+      description: "Serve the fair's food and drinks. Watch out for the partying robots. They might be a little... disoriented?",
     },
   },
   credits: {

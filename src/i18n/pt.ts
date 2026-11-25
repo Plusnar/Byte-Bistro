@@ -324,6 +324,8 @@ export const pt = {
     donut_dough: { name: "Massa de rosquinha", short: "Massa de rosquinha" },
     cache_cookies: { name: "Cookies de cache", short: "Cookies" },
     gelato_mix: { name: "Mistura de gelato", short: "Mistura de gelato" },
+    ssd_schnitzel: { name: "Schnitzel de SSD", short: "Schnitzel" },
+    thermal_paste_beer: { name: "Chopp de Pasta Térmica", short: "Chopp" },
     cooling_gelato: { name: "Gelato refrigerante", short: "Gelato" },
   },
   recipes: {
@@ -374,6 +376,26 @@ export const pt = {
       step3: "Despeje a panela em um prato limpo.",
       step4: "Entregue o prato no balcão de entrega.",
     },
+    ssd_schnitzel: {
+      name: "Schnitzel de SSD",
+      short: "SCHNITZEL",
+      description: "Massa de RAM assada, Módulo de RAM frito e Creme de dados: o empanado mais rápido da festa.",
+      step1: "Corte dois Módulos de RAM e o Creme de dados na tábua.",
+      step2: "Bata uma RAM picada com Açúcar binário na batedeira: vira Massa de RAM.",
+      step3: "Asse a Massa de RAM no forno. A janela é curta!",
+      step4: "Frite a outra RAM picada na frigideira do fogão.",
+      step5: "Monte no prato: massa assada, RAM frita e Creme de dados picado.",
+      step6: "Entregue o prato no balcão de entrega.",
+    },
+    thermal_paste_beer: {
+      name: "Chopp de Pasta Térmica",
+      short: "CHOPP",
+      description: "Mistura de gelato, Fluido refrigerante e Açúcar binário: gelado o bastante para resfriar qualquer processador.",
+      step1: "Corte dois Fluidos refrigerantes e o Creme de dados na tábua.",
+      step2: "Bata um Fluido picado com o Creme de dados na batedeira: vira Mistura de gelato.",
+      step3: "Monte no prato: Mistura de gelato, Fluido picado e Açúcar binário.",
+      step4: "Entregue o prato no balcão de entrega.",
+    },
     cooling_gelato: {
       name: "Gelato refrigerante",
       short: "GELATO REFRIGERANTE",
@@ -393,6 +415,10 @@ export const pt = {
     wedding: {
       name: "Casamento ChatGPT ♡ Gemini",
       description: "A recepção do casamento. Sirva os convidados robôs antes do tempo acabar.",
+    },
+    schlachtfest: {
+      name: "Schlachtfest",
+      description: "Sirva as bebidas e comidas da festa. Cuidado com os robôs que estão festejando. Eles podem estar um pouco... desnorteados?",
     },
   },
   credits: {

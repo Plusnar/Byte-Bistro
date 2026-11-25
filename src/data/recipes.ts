@@ -160,6 +160,59 @@ export const RECIPES: readonly RecipeData[] = [
     reward: 380,
     color: "#8ff6ef",
   }),
+
+  /*
+   * The Schlachtfest menu: a fried cutlet and a draught. Both start at the mixer, the
+   * cutlet also needs the oven and the stove.
+   */
+  recipe({
+    id: "ssd_schnitzel",
+    finalItemId: "ssd_schnitzel",
+    components: [
+      { ingredientId: "ram_dough", state: "cooked" },
+      { ingredientId: "ram_module", state: "cooked" },
+      { ingredientId: "data_cream", state: "chopped" },
+    ],
+    ingredients: [
+      { ingredientId: "ram_module", quantity: 2 },
+      { ingredientId: "binary_sugar", quantity: 1 },
+      { ingredientId: "data_cream", quantity: 1 },
+    ],
+    steps: [
+      { stationId: "cutting_board", step: 1 },
+      { stationId: "mixer", step: 2 },
+      { stationId: "oven", step: 3 },
+      { stationId: "stove", step: 4 },
+      { stationId: "plate_rack", step: 5 },
+      { stationId: "delivery", step: 6 },
+    ],
+    effects: { memory: 30, energy: 12, temperature: 8 },
+    reward: 480,
+    color: "#e8a33a",
+  }),
+  recipe({
+    id: "thermal_paste_beer",
+    finalItemId: "thermal_paste_beer",
+    components: [
+      { ingredientId: "gelato_mix", state: "raw" },
+      { ingredientId: "cooling_fluid", state: "chopped" },
+      { ingredientId: "binary_sugar", state: "raw" },
+    ],
+    ingredients: [
+      { ingredientId: "cooling_fluid", quantity: 2 },
+      { ingredientId: "data_cream", quantity: 1 },
+      { ingredientId: "binary_sugar", quantity: 1 },
+    ],
+    steps: [
+      { stationId: "cutting_board", step: 1 },
+      { stationId: "mixer", step: 2 },
+      { stationId: "plate_rack", step: 3 },
+      { stationId: "delivery", step: 4 },
+    ],
+    effects: { temperature: -28, stability: 10 },
+    reward: 360,
+    color: "#2fd1b8",
+  }),
 ];
 
 export const getRecipeById = (recipeId: string): RecipeData | undefined =>

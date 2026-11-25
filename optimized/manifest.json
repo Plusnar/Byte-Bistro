@@ -722,6 +722,48 @@
         "textures": []
       }
     },
+    "src/assets/ingredients/ssd_schnitzel.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "93bac3355dfeb18c32e8d496ec16815501e2ea9cb219d78c99eff710dfe236af",
+      "sourceBytes": 173624,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/ssd_schnitzel.glb",
+      "outputHash": "647a11e3ae710db03a020d998417a3e8f6db648d8eb99114bd1485d20272d95c",
+      "outputBytes": 62832,
+      "meshopt": true,
+      "before": {
+        "meshes": 19,
+        "primitives": 19,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/thermal_paste_beer.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "f1f563658f016098f0fce9d84b10ec27de17cab2fbdee16b202201df0160411d",
+      "sourceBytes": 144824,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/thermal_paste_beer.glb",
+      "outputHash": "abdc3799868f5e61ec0ce99f8b60f032a4468c01642faa6af53d4d4dfb44a3de",
+      "outputBytes": 61780,
+      "meshopt": true,
+      "before": {
+        "meshes": 14,
+        "primitives": 14,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    },
     "src/assets/scenario/factory-box-large.glb": {
       "profile": "staticProp",
       "profileKey": "4e621bd19fb7",

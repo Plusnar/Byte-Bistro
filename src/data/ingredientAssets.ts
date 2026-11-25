@@ -53,6 +53,8 @@ const preparedItems = {
   ram_pizza: bundledModelUrl("src/assets/ingredients/ram_pizza.glb"),
   cache_donuts: bundledModelUrl("src/assets/ingredients/cache_donuts.glb"),
   gelato_parfait: bundledModelUrl("src/assets/ingredients/gelato_parfait.glb"),
+  ssd_schnitzel: bundledModelUrl("src/assets/ingredients/ssd_schnitzel.glb"),
+  thermal_paste_beer: bundledModelUrl("src/assets/ingredients/thermal_paste_beer.glb"),
 } as const;
 
 export const OVEN_TRAY_ASSET_ID = "cookware:oven-tray";

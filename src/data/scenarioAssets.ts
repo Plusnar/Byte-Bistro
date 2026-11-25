@@ -193,5 +193,7 @@ export const INGREDIENT_SCENARIO_VISUALS: Readonly<Record<string, IngredientScen
   ram_pizza: { assetId: ingredientModelId("ram_pizza"), scale: 0.51 },
   cache_donuts: { assetId: ingredientModelId("cache_donuts"), scale: 0.46 },
   gelato_parfait: { assetId: ingredientModelId("gelato_parfait"), scale: 0.49 },
+  ssd_schnitzel: { assetId: ingredientModelId("ssd_schnitzel"), scale: 0.5 },
+  thermal_paste_beer: { assetId: ingredientModelId("thermal_paste_beer"), scale: 0.48 },
   cooling_gelato: { assetId: "food-gelato", scale: 1.7 },
 };
