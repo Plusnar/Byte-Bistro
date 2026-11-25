@@ -956,3 +956,151 @@
     width: auto;
   }
 }
+
+/* ---------------------------------------------------------------------------------------
+ * Collection-style dialogs (Items, account): a ✕ in the top-right corner instead of a
+ * "Close" button at the bottom, cards that open on click, and the item detail view.
+ * ------------------------------------------------------------------------------------- */
+.bistro-collection { position: relative; }
+.bistro-collection > .bistro-close {
+  position: absolute;
+  inset-block-start: .7rem;
+  inset-inline-end: .7rem;
+  display: grid;
+  inline-size: 2.6rem;
+  block-size: 2.6rem;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  border: 2px solid var(--bistro-cyan);
+  border-radius: 50%;
+  background: var(--bistro-blue);
+  color: #fff;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.bistro-collection > h2 { padding-inline-end: 3.2rem; }
+.bistro-collection-grid article { position: relative; }
+.bistro-collection .bistro-card-open {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.bistro-collection .bistro-card-open:hover { background: #ffffff38; }
+.bistro-collection .bistro-card-open:focus-visible { outline: 3px solid var(--bistro-orange); outline-offset: 2px; }
+.bistro-item-detail {
+  display: grid;
+  grid-column: 1 / -1;
+  justify-items: center;
+  gap: .5rem;
+  padding: 1rem;
+  border: 1px solid var(--bistro-blue);
+  border-radius: 1rem;
+  background: var(--bistro-aqua);
+  text-align: center;
+}
+.bistro-item-detail img {
+  inline-size: clamp(7rem, 26vw, 10rem);
+  block-size: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+.bistro-item-detail[data-locked="true"] img { filter: grayscale(.85); opacity: .7; }
+.bistro-item-detail h3 { margin: 0; font-size: 1.35rem; }
+.bistro-item-detail p { max-inline-size: 30rem; margin: 0; font-size: 1.02rem; line-height: 1.4; }
+
+/* ---------------------------------------------------------------------------------------
+ * Recipe book in the same light "paper" look as the Items dialog, instead of the blue
+ * panel that cosmic.css, tech-theme.css and the panel frame above give it.
+ * ------------------------------------------------------------------------------------- */
+.game-ui .cookbook-overlay .cookbook-window {
+  position: relative;
+  border: 2px solid var(--bistro-cyan);
+  border-radius: 1.25rem;
+  background: var(--bistro-paper);
+  background-image: none;
+  color: var(--bistro-ink);
+  box-shadow: 0 1.2rem 3rem #020b1fb0;
+}
+.game-ui .cookbook-overlay :is(.modal-header, .modal-footer, .cookbook-nav, .cookbook-detail) {
+  border-color: #b9d8ee;
+  background: transparent;
+  background-image: none;
+  color: var(--bistro-ink);
+}
+.game-ui .cookbook-overlay .cookbook-detail { background: #ffffffa8; border-radius: 1rem; }
+.game-ui .cookbook-overlay :is(.recipe-section, .recipe-steps li, .effect-chip, .ingredient-list li) {
+  border: 1px solid var(--bistro-blue);
+  background: var(--bistro-aqua);
+  color: var(--bistro-ink);
+}
+.game-ui .cookbook-overlay :is(h2, h3, h4, strong, p, small, span, li, .panel-kicker, .ui-kicker, .recipe-reward, .step-marker) {
+  color: var(--bistro-ink);
+  text-shadow: none;
+}
+.game-ui .cookbook-overlay .recipe-reward { color: #b15c00; }
+/* The header's close button becomes the same ✕ disc as the other dialogs. */
+.game-ui .cookbook-overlay .modal-header-actions .icon-button {
+  display: grid;
+  inline-size: 2.6rem;
+  block-size: 2.6rem;
+  padding: 0;
+  place-items: center;
+  border: 2px solid var(--bistro-cyan);
+  border-radius: 50%;
+  background: var(--bistro-blue);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+.game-ui .cookbook-overlay .modal-header-actions .icon-button span { display: none; }
+
+/* Maps need an account: signed out, "Criar mapa" and "Meus mapas" wear a lock (a click
+   asks to sign in instead of opening them). */
+.game-ui .bistro-home-actions .menu-map-action[data-locked] { position: relative; }
+.game-ui .bistro-home-actions .menu-map-action[data-locked]::after {
+  content: "🔒";
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bistro-paper, #fff8ea);
+  box-shadow: 0 1px 4px #0006;
+  font-size: 12px;
+  line-height: 1;
+}
+.my-maps[data-locked] > summary { opacity: 0.85; }
+.my-maps[data-locked] > summary::after { content: "🔒"; }
+
+/* On the TV, the sign-in form says it can be typed on player 1's phone. */
+.bistro-profile .bistro-phone-typing {
+  margin: 0;
+  padding: .45rem .7rem;
+  border-radius: .6rem;
+  background: color-mix(in srgb, var(--bistro-aqua, #2bb3c0) 16%, transparent);
+  color: var(--bistro-ink, #24304a);
+  font-weight: 800;
+  text-align: center;
+}
+
+/* 24 avatars: a compact scrolling grid instead of one long row. */
+.bistro-collection .bistro-avatars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.4rem, 1fr));
+  gap: .35rem;
+  max-block-size: 12.5rem;
+  overflow-y: auto;
+  padding: .2rem;
+}
+.bistro-collection .bistro-avatars button { padding: .15rem; border-radius: .7rem; }
+.bistro-collection .bistro-avatars img { inline-size: 100%; block-size: auto; aspect-ratio: 1; }
+.bistro-collection .bistro-avatar-label { margin: 0; font-weight: 800; }

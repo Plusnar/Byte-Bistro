@@ -22,12 +22,12 @@ export interface AccountsEnv {
 
 export type AccountError =
   | "not-configured" | "not-found" | "bad-request" | "forbidden-origin" | "rate-limited"
-  | "unauthorized" | "wrong-login" | "username-taken" | "locked" | "conflict" | "too-large";
+  | "unauthorized" | "wrong-login" | "username-taken" | "locked" | "conflict" | "too-large" | "too-many";
 
 const STATUS: Readonly<Record<AccountError, number>> = {
   "not-configured": 503, "not-found": 404, "bad-request": 400, "forbidden-origin": 403,
   "rate-limited": 429, unauthorized: 401, "wrong-login": 401, "username-taken": 409,
-  locked: 429, conflict: 409, "too-large": 413,
+  locked: 429, conflict: 409, "too-large": 413, "too-many": 409,
 };
 
 export const SESSION_COOKIE = "bb_session";
@@ -37,6 +37,11 @@ const MAX_BODY_BYTES = 4_096;
 /** A save is the game's snapshot plus a little envelope; the column holds 128 KiB. */
 export const MAX_SNAPSHOT_BYTES = 131_072;
 const MAX_SAVE_BODY_BYTES = MAX_SNAPSHOT_BYTES + 1_024;
+/** A saved map: the editor's JSON. Hundreds of objects fit easily under 1 MiB. */
+export const MAX_MAP_BYTES = 1_048_576;
+/** Maps one account may keep. */
+export const MAX_MAPS_PER_USER = 30;
+const SLOT_ID_PATTERN = /^slot-[a-z0-9-]{1,48}$/;
 
 /** Wrong passwords in a row before an account locks, and the lock that follows. */
 export const LOCK_AFTER = 5;
@@ -136,7 +141,19 @@ export const handleAccounts = async (request: Request, env: AccountsEnv, now = D
 
   if (route === "me" && request.method === "GET") {
     const user = await currentUser(db, request, now);
-    return user ? json({ user: publicUser(user) }) : fail("unauthorized");
+    if (!user) return fail("unauthorized");
+    // A player who keeps coming back stays signed in: past half its life, the session is
+    // swapped for a fresh 30-day one (the old token stops working).
+    const token = readCookie(request, SESSION_COOKIE)!;
+    const tokenHash = await hashToken(token);
+    const session = await db.prepare("SELECT created_at FROM sessions WHERE token_hash = ?")
+      .bind(tokenHash).first<{ created_at: number }>();
+    if (session && now - session.created_at > SESSION_MS / 2) {
+      await db.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(tokenHash).run();
+      const cookie = await openSession(db, user.id, now);
+      return json({ user: publicUser(user) }, 200, { "Set-Cookie": cookie });
+    }
+    return json({ user: publicUser(user) });
   }
 
   if (route === "register" && request.method === "POST") {
@@ -222,6 +239,7 @@ export const handleAccounts = async (request: Request, env: AccountsEnv, now = D
     if (typeof body?.password !== "string") return fail("bad-request");
     if (!(await verifyPassword(body.password, storedHash(user)))) return fail("wrong-login");
     await db.batch([
+      db.prepare("DELETE FROM maps WHERE user_id = ?").bind(user.id),
       db.prepare("DELETE FROM saves WHERE user_id = ?").bind(user.id),
       db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(user.id),
       db.prepare("DELETE FROM users WHERE id = ?").bind(user.id),
@@ -260,6 +278,50 @@ export const handleAccounts = async (request: Request, env: AccountsEnv, now = D
         "UPDATE saves SET snapshot = ?, revision = revision + 1, updated_at = ? WHERE user_id = ? AND revision = ?",
       ).bind(text, now, user.id, expected).run();
       return updated.meta.changes === 1 ? json({ revision: expected + 1 }) : fail("conflict");
+    }
+  }
+
+  if (route === "maps" || route.startsWith("maps/")) {
+    const user = await currentUser(db, request, now);
+    if (!user) return fail("unauthorized");
+    const slotId = route === "maps" ? null : decodeURIComponent(route.slice("maps/".length));
+    if (slotId !== null && !SLOT_ID_PATTERN.test(slotId)) return fail("bad-request");
+    if (slotId === null && request.method === "GET") {
+      const rows = await db.prepare(
+        "SELECT slot_id, name, updated_at FROM maps WHERE user_id = ? ORDER BY updated_at DESC",
+      ).bind(user.id).all<{ slot_id: string; name: string; updated_at: number }>();
+      return json({ maps: rows.results.map((row) => ({ slotId: row.slot_id, name: row.name, updatedAt: row.updated_at })) });
+    }
+    if (slotId !== null && request.method === "GET") {
+      const row = await db.prepare("SELECT map FROM maps WHERE user_id = ? AND slot_id = ?")
+        .bind(user.id, slotId).first<{ map: string }>();
+      return row ? json({ map: JSON.parse(row.map) as unknown }) : fail("not-found");
+    }
+    if (slotId !== null && request.method === "PUT") {
+      const body = await readBody(request, MAX_MAP_BYTES + 1_024);
+      if (!body) return fail("too-large");
+      const map = body.map as Record<string, unknown> | undefined;
+      if (typeof map !== "object" || map === null || Array.isArray(map) || map.version !== 1 || !Array.isArray(map.objects)) {
+        return fail("bad-request");
+      }
+      const text = JSON.stringify(map);
+      if (new TextEncoder().encode(text).length > MAX_MAP_BYTES) return fail("too-large");
+      const name = (typeof map.name === "string" ? map.name : "").trim().slice(0, 80) || slotId;
+      const existing = await db.prepare("SELECT 1 AS found FROM maps WHERE user_id = ? AND slot_id = ?")
+        .bind(user.id, slotId).first();
+      if (!existing) {
+        const count = await db.prepare("SELECT count(*) AS n FROM maps WHERE user_id = ?").bind(user.id).first<{ n: number }>();
+        if ((count?.n ?? 0) >= MAX_MAPS_PER_USER) return fail("too-many");
+      }
+      await db.prepare(
+        `INSERT INTO maps (user_id, slot_id, name, map, updated_at) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(user_id, slot_id) DO UPDATE SET name = excluded.name, map = excluded.map, updated_at = excluded.updated_at`,
+      ).bind(user.id, slotId, name, text, now).run();
+      return json({ slotId, updatedAt: now });
+    }
+    if (slotId !== null && request.method === "DELETE") {
+      await db.prepare("DELETE FROM maps WHERE user_id = ? AND slot_id = ?").bind(user.id, slotId).run();
+      return json({ ok: true });
     }
   }
 

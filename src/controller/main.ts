@@ -16,6 +16,8 @@ import { ControllerSession, type ControllerStatus, type ControllerView } from ".
 import { BUTTONS, isRoomCode, normalizeRoomCode, type PadLayout, type PhoneButton, type TransportKind } from "../net/mp/protocol";
 import { dpadDirection, stickVector, type DpadDirection } from "./stick";
 import { createHaptics } from "./haptics";
+import { accountErrorText } from "../core/accountErrors";
+import type { AccountForm } from "../net/mp/protocol";
 
 initLanguage(null);
 document.documentElement.lang = t("phone.pageTitle").startsWith("Controle") ? "pt-BR" : "en";
@@ -99,6 +101,23 @@ app.innerHTML = `
       <button class="primary" type="button" data-action="close-sheet">OK</button>
     </div>
   </section>
+  <section class="sheet account-sheet" data-ui="account-sheet" hidden>
+    <form class="account-form" data-ui="account-form">
+      <h2 data-ui="account-title"></h2>
+      <p class="account-help">${esc("phone.accountHelp")}</p>
+      <label class="field"><span>${esc("account.username")}</span>
+        <input name="account-user" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required></label>
+      <small class="account-rule" data-ui="account-user-rule">${esc("account.usernameRules")}</small>
+      <label class="field"><span>${esc("account.password")}</span>
+        <input name="account-pass" type="password" maxlength="128" required></label>
+      <small class="account-rule" data-ui="account-pass-rule">${esc("account.passwordRules")}</small>
+      <p class="account-error" data-ui="account-error" role="alert"></p>
+      <div class="sheet-actions">
+        <button class="secondary" type="button" data-action="account-cancel">${esc("common.cancel")}</button>
+        <button class="primary" type="submit" data-ui="account-submit"></button>
+      </div>
+    </form>
+  </section>
 `;
 
 const q = <T extends HTMLElement = HTMLElement>(selector: string): T => app.querySelector<T>(selector)!;
@@ -114,6 +133,12 @@ const joinForm = q<HTMLFormElement>("[data-ui=join-form]");
 const codeInput = joinForm.elements.namedItem("code") as HTMLInputElement;
 const nameInput = joinForm.elements.namedItem("name") as HTMLInputElement;
 const sheetName = q<HTMLInputElement>("input[name=sheet-name]");
+const accountSheet = q("[data-ui=account-sheet]");
+const accountForm = q<HTMLFormElement>("[data-ui=account-form]");
+const accountUser = accountForm.elements.namedItem("account-user") as HTMLInputElement;
+const accountPass = accountForm.elements.namedItem("account-pass") as HTMLInputElement;
+/** Which of the TV's forms the sheet shows; a new one starts empty. */
+let accountFormId = -1;
 
 let session: ControllerSession | null = null;
 let view: ControllerView | null = null;
@@ -262,6 +287,9 @@ app.addEventListener("click", (event) => {
       return;
     case "close-sheet":
       sheet.hidden = true;
+      return;
+    case "account-cancel":
+      session.cancelForm();
       return;
     case "fullscreen":
       void toggleFullscreen();
@@ -553,7 +581,42 @@ function render(next: ControllerView): void {
   q("[data-ui=pause-veil]").hidden = !(next.phase === "paused" && waiting);
 
   if (!sheet.hidden) renderDiagnostics();
+  renderAccountForm(next.form);
 }
+
+/**
+ * The TV's sign-in dialog, typed here with the phone's own keyboard. The password goes to
+ * the TV and is cleared from this page right after sending; nothing is kept on the phone.
+ */
+function renderAccountForm(form: AccountForm | null): void {
+  accountSheet.hidden = !form;
+  if (!form) {
+    accountFormId = -1;
+    accountPass.value = "";
+    return;
+  }
+  const creating = form.mode === "register";
+  if (form.id !== accountFormId) {
+    accountFormId = form.id;
+    accountPass.value = "";
+    releaseEverything();
+    sheet.hidden = true;
+    accountPass.setAttribute("autocomplete", creating ? "new-password" : "current-password");
+    q("[data-ui=account-title]").textContent = t(creating ? "account.createTitle" : "account.title");
+    q("[data-ui=account-submit]").textContent = t(creating ? "account.register" : "account.login");
+    q("[data-ui=account-user-rule]").hidden = !creating;
+    q("[data-ui=account-pass-rule]").hidden = !creating;
+  }
+  q("[data-ui=account-error]").textContent = form.error ? t(accountErrorText(form.error)) : "";
+  for (const control of accountForm.querySelectorAll("button, input")) (control as HTMLButtonElement).disabled = form.busy === true;
+}
+
+accountForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!session || !accountForm.reportValidity()) return;
+  session.submitForm(accountUser.value.trim(), accountPass.value);
+  accountPass.value = "";
+}, { signal: pageHooks.signal });
 
 function renderDiagnostics(): void {
   if (!view) return;

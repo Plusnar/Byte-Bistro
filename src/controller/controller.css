@@ -454,6 +454,17 @@ input { font: inherit; -webkit-user-select: text; user-select: text; touch-actio
 .sheet-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .sheet-actions > * { flex: 1 1 8rem; }
 
+/* ------------------------------------------------------------------ account form */
+
+/* The TV's sign-in dialog, typed on player 1's phone: a sheet over the pad. */
+.account-sheet { inset: 0; max-block-size: none; border-radius: 0; align-content: center; justify-items: center; z-index: 12; }
+.account-form { display: grid; gap: .6rem; inline-size: min(100%, 26rem); }
+.account-form h2 { margin: 0; font-size: 1.25rem; color: var(--yellow); }
+.account-help { margin: 0; font-size: .85rem; opacity: .85; }
+.account-rule { font-size: .75rem; opacity: .75; margin-block-start: -.3rem; }
+.account-rule[hidden] { display: none; }
+.account-error { margin: 0; min-block-size: 1.2em; color: #ff8a8a; font-weight: 800; font-size: .9rem; }
+
 @media (prefers-reduced-motion: reduce) {
   .status-icon { animation-duration: 3s; }
   .face-btn, .dpad-arm { transition: none; }

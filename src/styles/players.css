@@ -92,6 +92,26 @@
   animation: pair-ready 1.6s ease-in-out infinite;
 }
 .game-ui .phone-room-slot[data-state="online"] .phone-room-meta { color: #91f6cf; }
+/* Host or guest, shown on every slot: P1 hosts (menus, start), P2–P4 are guests. */
+.game-ui .phone-room-name { display: grid; gap: .1rem; }
+.game-ui .phone-room-role {
+  justify-self: start;
+  padding: .08rem .55rem;
+  border-radius: 999px;
+  background: #ffffff14;
+  color: #dbeaff;
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.game-ui .phone-room-slot[data-role="host"] .phone-room-role {
+  background: linear-gradient(#ffe08a, #f4b400);
+  color: #2a1a00;
+}
+.game-ui .phone-room-slot[data-role="host"] {
+  border-width: 3px;
+}
 .game-ui .phone-room-slot.just-connected { animation: phone-connected 480ms ease-out both; }
 @keyframes phone-connected {
   from { transform: translateX(.55rem); background: color-mix(in srgb, var(--player) 44%, #04122d); }
@@ -132,10 +152,6 @@
 /* ------------------------------------------------------------------ selection street */
 
 .game-ui .pick-hint[hidden] { display: none; }
-/* Three and four stand further up the street, between one and two: their plates float
-   over their heads, clear of the front pair and of the buttons below. */
-.game-ui .selection-screen[data-step="characters"] .pick-hint-p3 { left: 31%; bottom: 47%; }
-.game-ui .selection-screen[data-step="characters"] .pick-hint-p4 { left: 51%; bottom: 47%; }
 .game-ui .pick-hint-p3, .game-ui .pick-hint-p4 { border-color: color-mix(in srgb, var(--player-color) 70%, #102445); }
 .game-ui .pick-hint-p3 .pick-badge, .game-ui .pick-hint-p4 .pick-badge { background: var(--player-color); }
 .game-ui .pick-hint .pick-ready {

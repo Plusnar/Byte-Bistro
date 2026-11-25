@@ -62,16 +62,26 @@
   align-self: end;
 }
 
-/* Beside each cook rather than at the edges of a card. */
+/* Under each cook, in the same row and order as the cooks: P1, P2, P3, P4 left to right
+   (CharacterPreview SLOTS). Centred on the cook's position with translateX. */
 .game-ui .selection-screen[data-step="characters"] .pick-hint {
-  bottom: 16%;
+  --plate-x: 50%;
+  bottom: 14%;
+  left: var(--plate-x);
+  right: auto;
   z-index: 1;
+  transform: translateX(-50%);
 }
-.game-ui .selection-screen[data-step="characters"] .pick-hint-p1 { left: 7%; }
-.game-ui .selection-screen[data-step="characters"] .pick-hint-p2 { right: 7%; }
+/* Under each cook: the row is centred for the number of players (--pick-players, set by
+   GameUI), 18% of the width apart, like the cooks' spots in CharacterPreview. */
+.game-ui .selection-screen[data-step="characters"] .pick-hint {
+  --plate-x: calc(49% + (var(--pick-slot, 0) - (var(--pick-players, 4) - 1) / 2) * 18%);
+}
+.game-ui .selection-screen[data-step="characters"] .pick-hint-p1 { --pick-slot: 0; }
+.game-ui .selection-screen[data-step="characters"] .pick-hint-p2 { --pick-slot: 1; }
+.game-ui .selection-screen[data-step="characters"] .pick-hint-p3 { --pick-slot: 2; }
+.game-ui .selection-screen[data-step="characters"] .pick-hint-p4 { --pick-slot: 3; }
 
 @media (max-width: 860px) {
-  .game-ui .selection-screen[data-step="characters"] .pick-hint { bottom: 18%; }
-  .game-ui .selection-screen[data-step="characters"] .pick-hint-p1 { left: 3%; }
-  .game-ui .selection-screen[data-step="characters"] .pick-hint-p2 { right: 3%; }
+  .game-ui .selection-screen[data-step="characters"] .pick-hint { bottom: 16%; }
 }

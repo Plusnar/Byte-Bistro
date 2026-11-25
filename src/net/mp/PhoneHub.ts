@@ -15,7 +15,7 @@ import { t } from "../../i18n";
 import { menuCommandFor, type MenuCommand } from "../../ui/menuInput";
 import { ApiError } from "./api";
 import { HostSession, type HostSnapshot, type PadState, type PhonePeer } from "./HostSession";
-import type { RoomPhase } from "./protocol";
+import type { AccountForm, PhoneToHost, RoomPhase } from "./protocol";
 import type { RemoteInputDevice } from "./remoteInput";
 
 export interface PhoneHubOptions {
@@ -31,6 +31,8 @@ export interface PhoneHubOptions {
   readonly onMenuCommand: (slot: number, command: MenuCommand) => void;
   /** The pairing panel's players changed (joined, left, reconnected). */
   readonly onPlayersChanged?: () => void;
+  /** Player 1 answered the account form on their phone. */
+  readonly onAccountForm?: (message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" }>) => void;
 }
 
 /** How often the pads are re-checked against the game's state. Sends only on change. */
@@ -63,6 +65,7 @@ export class PhoneHub {
   private opening: Promise<HostSession | null> | null = null;
   private inputs: readonly InputManager[] = [];
   private attached: (RemoteInputDevice | null)[] = [];
+  private accountForm: AccountForm | null = null;
   private padTimer = 0;
   private readonly knownNames = new Map<string, string>();
   private readonly slots: HTMLElement[] = [];
@@ -119,6 +122,17 @@ export class PhoneHub {
     this.session?.setLocked(false);
   }
 
+  /** Shows the account form on player 1's phone (null closes it). */
+  setAccountForm(form: AccountForm | null): void {
+    this.accountForm = form;
+    this.session?.setForm(form);
+  }
+
+  /** Player 1's phone is connected and can type for the TV. */
+  get leaderConnected(): boolean {
+    return [...(this.session?.phones.values() ?? [])].some((phone) => phone.info.slot === 0 && phone.info.connected);
+  }
+
   /** Re-sends what each pad should show; call when the game's screen changes. */
   refreshPads(): void {
     this.session?.setPhase(this.options.phase());
@@ -164,6 +178,8 @@ export class PhoneHub {
           const command = menuCommandFor(button);
           if (command) this.options.onMenuCommand(slot, command);
         };
+        session.onForm = (message) => this.options.onAccountForm?.(message);
+        session.setForm(this.accountForm);
         session.setPadSource(this.options.padFor);
         window.clearInterval(this.padTimer);
         this.padTimer = window.setInterval(() => this.refreshPads(), PAD_REFRESH_MS);
@@ -317,7 +333,7 @@ export class PhoneHub {
       const previous = this.slots[slot];
       const online = Boolean(phone?.info.connected);
       const state = phone ? (online ? "online" : "offline") : "empty";
-      const name = phone?.info.name ?? "";
+      const name = "";
       const label = t(phone ? (online ? "pair.connected" : "mp.offline") : slot === 0 ? "pair.slotFirst" : "pair.slotEmpty");
       if (previous?.dataset.state === state && previous.dataset.phone === phone?.id &&
           previous.dataset.name === name && previous.dataset.label === label &&
@@ -346,25 +362,24 @@ export class PhoneHub {
     item.style.setProperty("--player", PLAYER_COLORS[slot] ?? "#fff");
     item.dataset.state = state;
     if (phone) item.dataset.phone = phone.id;
-    item.dataset.name = phone?.info.name ?? "";
+    // Players are P1–P4 only: no names on the shared screen. P1 hosts (drives the menus,
+    // starts the match); everyone else is a guest.
+    item.dataset.name = "";
+    item.dataset.role = slot === 0 ? "host" : "guest";
     item.dataset.label = label;
     item.dataset.kick = t("mp.kick");
     item.append(text("span", "phone-room-badge", playerLabel(slot)));
     const body = document.createElement("span");
     body.className = "phone-room-name";
-    if (!phone) {
-      body.append(text("span", "phone-room-meta", label));
-      item.append(body);
-      return item;
-    }
-    body.append(document.createTextNode(phone.info.name));
-    body.append(text("span", "phone-room-meta", label));
+    const role = text("span", "phone-room-role", t(slot === 0 ? "pair.host" : "pair.guest"));
+    body.append(role, text("span", "phone-room-meta", label));
     item.append(body);
+    if (!phone) return item;
     const kick = text("button", "phone-room-kick", "×") as HTMLButtonElement;
     kick.type = "button";
     kick.dataset.act = "kick";
     kick.dataset.player = phone.id;
-    kick.setAttribute("aria-label", `${t("mp.kick")} ${phone.info.name}`);
+    kick.setAttribute("aria-label", `${t("mp.kick")} ${playerLabel(slot)}`);
     kick.title = t("mp.kick");
     item.append(kick);
     return item;

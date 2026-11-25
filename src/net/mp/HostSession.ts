@@ -16,6 +16,7 @@ import {
   seqNewer,
   parsePhoneToHost,
   safeJson,
+  type AccountForm,
   type CreateRoomResponse,
   type HostToPhone,
   type LobbyPlayer,
@@ -52,6 +53,7 @@ export interface PhonePeer {
   /** What this phone's pad shows; only "game" drives a cook. */
   layout: PadLayout;
   lastUiMessage: string;
+  lastFormMessage: string;
   /** Last button event turned into a menu command, so a resent one is not run twice. */
   lastMenuSeq: number;
 }
@@ -128,6 +130,10 @@ export class HostSession {
   private padFor: ((slot: number) => PadState) | null = null;
   /** A button pressed on a pad showing the D-pad (menus, character selection). */
   onMenuButton: ((slot: number, button: PhoneButton) => void) | null = null;
+  /** Player 1 answered the account form on their phone. */
+  onForm: ((message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" }>) => void) | null = null;
+  /** The account form player 1's phone shows (null: none). */
+  private form: AccountForm | null = null;
 
   /** Creates a room (or reclaims the one this tab hosted moments ago) and connects. */
   static async open(options: HostSessionOptions): Promise<HostSession> {
@@ -236,6 +242,25 @@ export class HostSession {
       if (json === phone.lastUiMessage) continue;
       if (this.sendToPhone(phone, { t: "ui", layout: pad.layout, leader: pad.leader })) phone.lastUiMessage = json;
     }
+    this.refreshForms();
+  }
+
+  /** Shows the account form on player 1's phone, or closes it (null). */
+  setForm(form: AccountForm | null): void {
+    this.form = form;
+    this.refreshForms();
+  }
+
+  /** Only player 1's phone gets the form; every other phone is told to close any it has. */
+  private refreshForms(): void {
+    for (const phone of this.phones.values()) {
+      if (!phone.info.connected) continue;
+      const form = phone.info.slot === 0 ? this.form : null;
+      const json = JSON.stringify(form);
+      // A phone that never had a form needs no "close".
+      if (json === (phone.lastFormMessage || "null")) continue;
+      if (this.sendToPhone(phone, { t: "form", form })) phone.lastFormMessage = json;
+    }
   }
 
   /**
@@ -304,6 +329,7 @@ export class HostSession {
     this.listeners.clear();
     this.phoneListeners.clear();
     this.onMenuButton = null;
+    this.onForm = null;
     this.padFor = null;
   }
 
@@ -409,6 +435,7 @@ export class HostSession {
           lastCookMessage: "",
           layout: "wait",
           lastUiMessage: "",
+          lastFormMessage: "",
           lastMenuSeq: -1,
         };
         this.phones.set(info.id, phone);
@@ -429,6 +456,7 @@ export class HostSession {
       if (!info.connected) {
         phone.lastCookMessage = "";
         phone.lastUiMessage = "";
+        phone.lastFormMessage = "";
       }
       this.sendCook(phone);
     }
@@ -478,6 +506,7 @@ export class HostSession {
           phone.device.state.timing = P2P_SAFETY;
           phone.lastCookMessage = "";
           phone.lastUiMessage = "";
+          phone.lastFormMessage = "";
           this.sendCook(phone);
           this.refreshPads();
           void this.refreshDiagnostics();
@@ -550,6 +579,11 @@ export class HostSession {
         phone.phoneJitter = message.jitter;
         phone.phoneRate = message.rate;
         phone.rtt.add(message.rtt);
+        return;
+      case "form-submit":
+      case "form-cancel":
+        phone.device.state.touch(now);
+        if (phone.info.slot === 0 && this.form?.id === message.id) this.onForm?.(message);
         return;
     }
   }

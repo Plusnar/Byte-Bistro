@@ -216,7 +216,27 @@ export type PhoneToHost =
   | { readonly t: "btn"; readonly b: PhoneButton; readonly down: boolean; readonly seq: number }
   | { readonly t: "release-all"; readonly seq: number }
   | { readonly t: "ping"; readonly id: number; readonly ts: number }
-  | { readonly t: "stats"; readonly rtt: number; readonly jitter: number; readonly rate: number; readonly transport: TransportKind };
+  | { readonly t: "stats"; readonly rtt: number; readonly jitter: number; readonly rate: number; readonly transport: TransportKind }
+  | { readonly t: "form-submit"; readonly id: number; readonly username: string; readonly password: string }
+  | { readonly t: "form-cancel"; readonly id: number };
+
+/**
+ * The account form typed on player 1's phone while the TV shows the sign-in dialog. `id`
+ * changes with every form the TV opens, so an answer to an old one is ignored; `error` is
+ * the account API's code for the last attempt (the phone words it).
+ *
+ * The password only ever travels phone → host, end to end (the data channel is DTLS, the
+ * room is WSS/HTTPS); the room server relays it like any other message and keeps nothing.
+ */
+export type AccountFormMode = "login" | "register";
+export interface AccountForm {
+  readonly id: number;
+  readonly mode: AccountFormMode;
+  readonly error?: string;
+  readonly busy?: boolean;
+}
+export const FORM_USERNAME_MAX = 20;
+export const FORM_PASSWORD_MAX = 128;
 
 /** Host → phone, end to end. */
 export type HostToPhone =
@@ -224,7 +244,9 @@ export type HostToPhone =
   | { readonly t: "cook"; readonly slot: number | null; readonly color: string; readonly label: string }
   | { readonly t: "phase"; readonly phase: RoomPhase }
   | { readonly t: "buzz"; readonly ms: number }
-  | { readonly t: "ui"; readonly layout: PadLayout; readonly leader: boolean };
+  | { readonly t: "ui"; readonly layout: PadLayout; readonly leader: boolean }
+  /** `form: null` closes the phone's form. */
+  | { readonly t: "form"; readonly form: AccountForm | null };
 
 /**
  * What the phone's pad shows, decided by the host for each phone:
@@ -281,9 +303,28 @@ export const parsePhoneToHost = (value: unknown): PhoneToHost | null => {
       return isFiniteNumber(value.rtt, 0, 60_000) && isFiniteNumber(value.jitter, 0, 60_000) &&
         isFiniteNumber(value.rate, 0, 120) && isTransport(value.transport)
         ? { t: "stats", rtt: value.rtt, jitter: value.jitter, rate: value.rate, transport: value.transport } : null;
+    case "form-submit":
+      return isInt(value.id, 0, 0xffffff) && typeof value.username === "string" && value.username.length <= FORM_USERNAME_MAX &&
+        typeof value.password === "string" && value.password.length <= FORM_PASSWORD_MAX
+        ? { t: "form-submit", id: value.id, username: value.username, password: value.password } : null;
+    case "form-cancel":
+      return isInt(value.id, 0, 0xffffff) ? { t: "form-cancel", id: value.id } : null;
     default:
       return null;
   }
+};
+
+const parseAccountForm = (value: unknown): AccountForm | null | undefined => {
+  if (value === null) return null;
+  if (!isObject(value) || !isInt(value.id, 0, 0xffffff) || (value.mode !== "login" && value.mode !== "register")) return undefined;
+  if (value.error !== undefined && !(typeof value.error === "string" && /^[a-z-]{1,32}$/.test(value.error))) return undefined;
+  if (value.busy !== undefined && typeof value.busy !== "boolean") return undefined;
+  return {
+    id: value.id,
+    mode: value.mode,
+    ...(value.error === undefined ? {} : { error: value.error }),
+    ...(value.busy === undefined ? {} : { busy: value.busy }),
+  };
 };
 
 export const parseHostToPhone = (value: unknown): HostToPhone | null => {
@@ -303,6 +344,10 @@ export const parseHostToPhone = (value: unknown): HostToPhone | null => {
     case "ui":
       return (PAD_LAYOUTS as readonly unknown[]).includes(value.layout) && typeof value.leader === "boolean"
         ? { t: "ui", layout: value.layout as PadLayout, leader: value.leader } : null;
+    case "form": {
+      const form = parseAccountForm(value.form);
+      return form === undefined ? null : { t: "form", form };
+    }
     default:
       return null;
   }

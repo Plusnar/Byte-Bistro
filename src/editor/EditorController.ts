@@ -12,6 +12,9 @@ export interface EditorControllerOptions {
   readonly initialSlotId: string;
   readonly onPlay: (map: MapData) => void;
   readonly onExit: () => void;
+  /** A slot was saved or deleted in this browser (the game mirrors it to the account). */
+  readonly onSlotSaved?: (slotId: string) => void;
+  readonly onSlotDeleted?: (slotId: string) => void;
 }
 
 export class EditorController implements ManagedScene {
@@ -135,6 +138,7 @@ export class EditorController implements ManagedScene {
       this.ui.setMeta(this.editorScene.getCurrentMap());
       this.ui.setMapName(this.editorScene.getCurrentMap().name);
       this.ui.notify(t("editor.saved"), "success");
+      this.options.onSlotSaved?.(result);
     } else {
       this.ui.notify(t("editor.saveFailed"), "error");
     }
@@ -168,6 +172,7 @@ export class EditorController implements ManagedScene {
     if (ok) {
       this.ui.setSlots(this.editorScene.listSlots());
       this.ui.notify(t("editor.deleted"), "warning");
+      this.options.onSlotDeleted?.(slotId);
     } else {
       this.ui.notify(t("editor.deleteFailed"), "error");
     }

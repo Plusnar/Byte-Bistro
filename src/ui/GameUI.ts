@@ -169,6 +169,8 @@ export interface GameUICallbacks {
   onCookbookVisibilityChange?: (visible: boolean) => void;
   onOpenEditor?: () => void;
   onOpenAccount?: () => void;
+  /** "Criar mapa" or "Meus mapas" was pressed while signed out. */
+  onMapsLocked?: () => void;
   onPlayOnComputer?: () => void;
   onOpenCollection?: (view: "items" | "achievements") => void;
   /** Fires when a level card is chosen, before the cooks are picked. */
@@ -287,6 +289,7 @@ export class GameUI {
   private readonly levelMapCanvas: HTMLCanvasElement;
   private readonly levelWindow: HTMLElement;
   private readonly myMaps: HTMLDetailsElement;
+  private mapsLocked = true;
   private readonly startButton: HTMLButtonElement;
   private readonly hud: HTMLElement;
   private readonly pauseOverlay: HTMLElement;
@@ -322,6 +325,7 @@ export class GameUI {
     this.callbacks = options;
     this.shell = createElement("div", "game-ui");
     this.shell.dataset.gameVisible = "true";
+    this.shell.style.setProperty("--pick-players", String(this.playerCount));
     this.shell.innerHTML = this.createMarkup();
     this.menuVideo = this.requireElement<HTMLVideoElement>(".bistro-home-video");
     this.menuVideo.muted = true;
@@ -489,6 +493,8 @@ export class GameUI {
     const next = clampPlayerCount(count);
     this.readySlots.fill(false);
     this.playerCount = next;
+    // The name plates centre themselves on the cooks' row (selection-street.css).
+    this.shell.style.setProperty("--pick-players", String(next));
     this.renderCharacterSelector();
   }
 
@@ -1040,6 +1046,24 @@ export class GameUI {
    * Fills the level picker. Called once at boot and again whenever a map is saved, so a
    * level built in the editor shows up without a page reload.
    */
+  /** The account button shows the signed-in player's picture (null: the default badge). */
+  setAccountAvatar(url: string | null): void {
+    const button = this.shell.querySelector<HTMLElement>("[data-action=account]");
+    if (!button) return;
+    if (url) button.style.setProperty("--home-icon", `url("${url.replace(/["\\]/g, "")}")`);
+    else button.style.removeProperty("--home-icon");
+    button.toggleAttribute("data-avatar", url !== null);
+  }
+
+  /** Creating and listing maps needs an account; signed out, both buttons show a lock. */
+  setMapsLocked(locked: boolean): void {
+    if (this.mapsLocked === locked) return;
+    this.mapsLocked = locked;
+    this.myMaps.toggleAttribute("data-locked", locked);
+    this.shell.querySelector("[data-action='open-editor']")?.toggleAttribute("data-locked", locked);
+    this.renderLevels();
+  }
+
   setLevels(entries: readonly LevelEntry[]): void {
     this.levels = entries;
     if (!entries.some((entry) => entry.key === this.selectedLevelKey)) {
@@ -1059,9 +1083,10 @@ export class GameUI {
     this.levelList.replaceChildren();
     // The official levels live on the map; the list only holds the player's own maps.
     const saved = this.levels.filter((entry) => entry.kind === "saved");
-    this.myMaps.hidden = saved.length === 0;
-    if (saved.length === 0) this.myMaps.open = false;
-    for (const entry of saved) {
+    // Signed out, "Meus mapas" stays in sight with a lock (it asks to sign in) and lists nothing.
+    this.myMaps.hidden = !this.mapsLocked && saved.length === 0;
+    if (this.mapsLocked || saved.length === 0) this.myMaps.open = false;
+    for (const entry of this.mapsLocked ? [] : saved) {
       const item = document.createElement("li");
       const card = document.createElement("button");
       card.type = "button";
@@ -1471,6 +1496,11 @@ export class GameUI {
     this.requireElement<HTMLButtonElement>("[data-action='open-editor']").addEventListener("click", () => {
       this.callbacks.onOpenEditor?.();
     }, { signal });
+    this.myMaps.querySelector("summary")?.addEventListener("click", (event) => {
+      if (!this.mapsLocked) return;
+      event.preventDefault();
+      this.callbacks.onMapsLocked?.();
+    }, { signal });
 
     this.shell.addEventListener("click", (event) => {
       const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("[data-language]") : null;
@@ -1855,7 +1885,7 @@ export class GameUI {
             <h1 id="splash-title">BYTE <span>BISTRO</span></h1>
             <div class="selection-header-actions bistro-home-actions">
               <button class="secondary-action bistro-home-icon bistro-home-levels" type="button" data-action="home-levels" data-i18n-attr="aria-label:menu.selectPhase;title:menu.selectPhase"></button>
-              <button class="secondary-action bistro-home-icon menu-map-action" type="button" data-action="open-editor" data-i18n-attr="aria-label:menu.createMap;title:menu.createMap"></button>
+              <button class="secondary-action bistro-home-icon menu-map-action" type="button" data-action="open-editor" data-locked data-i18n-attr="aria-label:menu.createMap;title:menu.createMap"></button>
               <button class="secondary-action bistro-home-icon" type="button" data-action="menu-recipes" data-i18n-attr="aria-label:menu.homeRecipes;title:menu.homeRecipes"></button>
               <button class="primary-action bistro-home-play" type="button" data-action="home-play" data-i18n="menu.homePlay"></button>
               <button class="secondary-action bistro-home-icon" type="button" data-collection="items" data-i18n-attr="aria-label:collection.items;title:collection.items"></button>
@@ -1867,7 +1897,7 @@ export class GameUI {
               <button class="secondary-action bistro-home-icon bistro-account-action" type="button" data-action="account" data-i18n-attr="aria-label:account.title;title:account.title"></button>
               ${GameUI.languageSwitch()}
             </div>
-            <details class="my-maps" data-ui="my-maps" hidden>
+            <details class="my-maps" data-ui="my-maps" data-locked hidden>
               <summary data-i18n="menu.myMaps"></summary>
               <ul class="level-list" data-ui="level-list"></ul>
             </details>

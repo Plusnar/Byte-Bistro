@@ -19,6 +19,8 @@ import { SCENARIOS, getScenario } from "../data/scenarios";
 import { buildLevelCatalog, type LevelEntry } from "../data/levelCatalog";
 import { OFFICIAL_LEVELS } from "../data/officialLevels";
 import { MapStore } from "../editor/MapStore";
+import { publicUrl } from "../utils/assetUrl";
+import { AccountMaps } from "./AccountMaps";
 import { getDifficulty } from "../data/difficulty";
 import { INGREDIENT_ASSETS } from "../data/ingredientAssets";
 import { KITCHEN_ASSETS } from "../data/kitchen";
@@ -126,6 +128,8 @@ export class Game {
   private loadingMap = false;
   /** Lists saved slots for the level picker; the editor keeps its own store. */
   private readonly mapStore = new MapStore();
+  /** Mirrors the player's map slots to their account; creating maps needs one. */
+  private readonly accountMaps = new AccountMaps(this.mapStore);
   private pendingLevel: LevelEntry | null = null;
   /** Which level the live kitchen was built for, so re-picking it costs nothing. */
   private activeLevelKey = "";
@@ -200,7 +204,11 @@ export class Game {
       onOpenAccount: () => void this.openAccount(),
       onPlayOnComputer: () => this.playOnComputer(),
       onOpenCollection: (view) => openCollection(view, this.persistentState),
-      onOpenEditor: () => { void this.openEditor(); },
+      onOpenEditor: () => {
+        if (this.accountMaps.signedIn) void this.openEditor();
+        else this.askToSignInForMaps();
+      },
+      onMapsLocked: () => this.askToSignInForMaps(),
       onLevelChange: (entry) => this.onLevelChosen(entry),
       onDeleteLevel: (entry) => this.deleteSavedLevel(entry),
       onCharacterPreview: (characterIds) => {
@@ -508,6 +516,7 @@ export class Game {
   private deleteSavedLevel(entry: LevelEntry): boolean {
     if (entry.kind !== "saved" || !entry.slotId) return false;
     if (!this.mapStore.delete(entry.slotId)) return false;
+    this.mirrorMapDelete(entry.slotId);
     if (this.editorSlotId === entry.slotId) this.editorSlotId = "";
     if (entry.key in this.persistentState.levelRanks) {
       // A deleted map takes its whole record with it: rank, stars and best coins.
@@ -666,6 +675,7 @@ export class Game {
           phase: () => (this.ui.isSplashVisible ? "lobby" : this.kitchenScene?.shiftPhase ?? "lobby"),
           padFor: (slot) => this.padFor(slot),
           onMenuCommand: (slot, command) => this.onMenuCommand(slot, command),
+          onAccountForm: (message) => this.account?.answerPhone(message),
         });
         if (this.kitchenScene) hub.attachKitchen(this.kitchenScene.cookInputs);
         return hub;
@@ -762,20 +772,78 @@ export class Game {
           this.persistentState = state ?? this.saveSystem.load();
           this.ui.setLevelRanks(this.persistentState.levelRanks, this.persistentState.levelStars);
         },
+        (user) => { if (!this.disposed) void this.accountChanged(user); },
       );
+      panel.onAvatar = (path) => { if (!this.disposed) this.ui.setAccountAvatar(path ? publicUrl(path) : null); };
+      // The TV has no keyboard: player 1's phone can type the sign-in form for it.
+      panel.phoneKeyboard = {
+        available: () => this.phoneHub?.leaderConnected ?? false,
+        show: (form) => this.phoneHub?.setAccountForm(form),
+      };
       this.account = panel;
       return panel;
     });
   }
 
-  private async openAccount(): Promise<void> {
+  private async openAccount(notice?: string): Promise<void> {
     try {
       const panel = await this.getAccountPanel();
       await panel.resume();
-      if (!this.disposed) panel.show();
+      if (this.disposed) return;
+      panel.show();
+      if (notice) panel.setMessage(notice);
     } catch {
       this.ui.notify(t("account.failed"), "warning");
     }
+  }
+
+  /** Creating and keeping maps lives in the account: without one, the menu asks to sign in. */
+  private askToSignInForMaps(): void {
+    // Said inside the dialog: a modal dialog covers the game's notifications.
+    void this.openAccount(t("account.mapsNeedLogin"));
+  }
+
+  private async accountChanged(user: import("./PlayerAccount").AccountUser | null): Promise<void> {
+    this.ui.setMapsLocked(!user);
+    if (!user) {
+      this.accountMaps.signOut();
+      this.refreshLevels();
+      return;
+    }
+    try {
+      const localOnly = await this.accountMaps.signIn(user.id);
+      if (this.disposed) return;
+      this.refreshLevels();
+      this.offerMapUpload(user.id, localOnly);
+    } catch {
+      if (!this.disposed) this.ui.notify(t("account.mapsSyncFailed"), "warning");
+    }
+  }
+
+  /** Maps made in this browser before signing in: asked once per account whether to keep them there. */
+  private offerMapUpload(userId: string, slotIds: readonly string[]): void {
+    if (slotIds.length === 0) return;
+    const asked = `byte-bistro:account:${userId}:maps-offered`;
+    try {
+      if (localStorage.getItem(asked)) return;
+      localStorage.setItem(asked, "1");
+    } catch { /* asked again next time */ }
+    if (!window.confirm(t("account.uploadMaps", { count: slotIds.length }))) return;
+    void Promise.all(slotIds.map((slotId) => this.accountMaps.upload(slotId)))
+      .then(() => { if (!this.disposed) this.ui.notify(t("account.mapsUploaded"), "success"); })
+      .catch(() => { if (!this.disposed) this.ui.notify(t("account.mapsSyncFailed"), "warning"); });
+  }
+
+  private mirrorMapSave(slotId: string): void {
+    void this.accountMaps.upload(slotId).catch(() => {
+      if (!this.disposed) this.ui.notify(t("account.mapsSyncFailed"), "warning");
+    });
+  }
+
+  private mirrorMapDelete(slotId: string): void {
+    void this.accountMaps.remove(slotId).catch(() => {
+      if (!this.disposed) this.ui.notify(t("account.mapsSyncFailed"), "warning");
+    });
   }
 
   private saveProgress(): boolean {
@@ -862,6 +930,8 @@ export class Game {
         initialSlotId: this.editorSlotId,
         onPlay: (map) => this.playMap(map),
         onExit: () => this.exitEditor(),
+        onSlotSaved: (slotId) => this.mirrorMapSave(slotId),
+        onSlotDeleted: (slotId) => this.mirrorMapDelete(slotId),
       });
       this.engine.runRenderLoop(this.editorFrame);
       performance.mark("bb:editor-open");

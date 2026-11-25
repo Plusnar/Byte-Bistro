@@ -49,8 +49,19 @@ export const changePassword = async (current: string, next: string): Promise<voi
 };
 export const deleteAccount = async (password: string): Promise<void> => { await call("POST", "delete", { password }); };
 
-export const avatars = ["william", "milena", "jean", "sandy"] as const;
+/** The four cooks first (their portraits live beside the other UI art), then the extra avatars. */
+const COOK_AVATARS = ["william", "milena", "jean", "sandy"] as const;
+export const avatars = [
+  ...COOK_AVATARS,
+  "carrot-chef", "alien-chef", "panda-chef", "tomato-chef", "broccoli-chef", "chili-chef", "penguin-waiter",
+  "octopus-chef", "fox-chef", "robot-chef", "mushroom-chef", "egg-chef", "onigiri-chef", "donut-chef",
+  "frog-chef", "dino-chef", "cat-chef", "ram-chef", "grandma-baker", "dread-chef",
+] as const;
 export type Avatar = typeof avatars[number];
+export const isAvatar = (value: unknown): value is Avatar => avatars.some((id) => id === value);
+/** Path of an avatar's picture under the public folder. */
+export const avatarPath = (avatar: Avatar): string =>
+  (COOK_AVATARS as readonly string[]).includes(avatar) ? `assets/ui/avatar-${avatar}.webp` : `assets/ui/avatars/${avatar}.webp`;
 export interface PlayerProfile { name: string; avatar: Avatar }
 export interface AccountSnapshot {
   progress: PersistentGameState;
@@ -96,7 +107,7 @@ export async function readAccount() {
     revision: data.revision,
     snapshot: {
       progress: sanitizePersistentState(s.progress, createDefaultPersistentState()),
-      profile: { name: String(s.profile?.name ?? "").slice(0, 40), avatar: avatars.find((id) => id === avatar) ?? "william" },
+      profile: { name: String(s.profile?.name ?? "").slice(0, 40), avatar: isAvatar(avatar) ? avatar : "william" },
       settingsAt: Number(s.settingsAt) || 0,
     },
   };
@@ -134,3 +145,16 @@ export async function syncAccount(local: AccountSnapshot): Promise<AccountSnapsh
   }
   throw new Error("Concurrent account updates");
 }
+
+/** A map saved to the account (the editor's slots, see workers/accounts maps routes). */
+export interface AccountMapSummary { readonly slotId: string; readonly name: string; readonly updatedAt: number }
+export const listAccountMaps = async (): Promise<AccountMapSummary[]> =>
+  (await call<{ maps: AccountMapSummary[] }>("GET", "maps")).maps;
+export const readAccountMap = async (slotId: string): Promise<unknown> =>
+  (await call<{ map: unknown }>("GET", `maps/${encodeURIComponent(slotId)}`)).map;
+/** Saves a map; answers the server's time for it (what `listAccountMaps` reports). */
+export const writeAccountMap = async (slotId: string, map: unknown): Promise<number> =>
+  (await call<{ updatedAt: number }>("PUT", `maps/${encodeURIComponent(slotId)}`, { map })).updatedAt;
+export const deleteAccountMap = async (slotId: string): Promise<void> => {
+  await call("DELETE", `maps/${encodeURIComponent(slotId)}`);
+};

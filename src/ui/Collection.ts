@@ -3,7 +3,8 @@ import { getIngredient } from "../data/ingredients";
 import { SCENARIOS } from "../data/scenarios";
 import { ingredientIllustration } from "./illustrations";
 import { publicUrl } from "../utils/assetUrl";
-import { t } from "../i18n";
+import { closeCorner } from "./closeCorner";
+import { t, type MessageKey } from "../i18n";
 import type { PersistentGameState } from "../types/game";
 
 const ingredients = Object.keys(FOOD_DEFINITIONS);
@@ -23,6 +24,11 @@ export function achievementProgress(state: PersistentGameState) {
   ] as const;
 }
 
+/** The ✕ in the top-right corner every collection-style dialog closes with. */
+const imageFor = (id: string): string => publicUrl(id.startsWith("station:")
+  ? `assets/ui/hud/${id === "station:delivery" ? "serve" : id.slice("station:".length)}.webp`
+  : ingredientIllustration(id));
+
 export function openCollection(view: "items" | "achievements", state: PersistentGameState): void {
   const dialog = document.createElement("dialog");
   dialog.className = `bistro-collection bistro-${view}`;
@@ -30,10 +36,7 @@ export function openCollection(view: "items" | "achievements", state: Persistent
   title.id = "bistro-collection-title";
   title.textContent = t(`collection.${view}`);
   dialog.setAttribute("aria-labelledby", title.id);
-  const close = document.createElement("button");
-  close.type = "button";
-  close.textContent = t("common.close");
-  close.onclick = () => dialog.close();
+  const close = closeCorner(dialog);
   const content = document.createElement("div");
   content.className = "bistro-collection-grid";
   const discovered = new Set(state.discoveries);
@@ -48,11 +51,36 @@ export function openCollection(view: "items" | "achievements", state: Persistent
     content.append(card);
     return card;
   };
-  dialog.append(title);
+  dialog.append(close, title);
   if (view === "items") {
     const filters = document.createElement("div");
     filters.className = "bistro-collection-filters";
+    let current: "ingredients" | "equipment" = "ingredients";
+    /** One item, opened from its card: big picture, name and a short, silly description. */
+    const showDetail = (id: string, label: string, locked: boolean) => {
+      const detail = document.createElement("section");
+      detail.className = "bistro-item-detail";
+      detail.dataset.locked = String(locked);
+      const image = document.createElement("img");
+      image.alt = "";
+      image.width = image.height = 160;
+      image.src = imageFor(id);
+      const name = document.createElement("h3");
+      name.textContent = label;
+      const about = document.createElement("p");
+      about.textContent = locked ? t("collection.lockedHint") : t(`collection.about.${id.replace(/^station:/, "")}` as MessageKey);
+      const back = document.createElement("button");
+      back.type = "button";
+      back.textContent = t("collection.back");
+      back.onclick = () => render(current);
+      detail.append(image, name, about, back);
+      filters.hidden = true;
+      content.replaceChildren(detail);
+      back.focus();
+    };
     const render = (tab: "ingredients" | "equipment") => {
+      current = tab;
+      filters.hidden = false;
       content.replaceChildren();
       for (const button of filters.querySelectorAll("button")) {
         button.setAttribute("aria-pressed", String(button.dataset.filter === tab));
@@ -68,8 +96,15 @@ export function openCollection(view: "items" | "achievements", state: Persistent
         image.width = image.height = 48;
         image.alt = "";
         image.loading = "lazy";
-        image.src = publicUrl(tab === "ingredients" ? ingredientIllustration(id) : `assets/ui/hud/${id === "station:delivery" ? "serve" : id.slice("station:".length)}.webp`);
+        image.src = imageFor(id);
         card.prepend(image);
+        // The whole card opens the item's detail; a button so the D-pad and Enter reach it.
+        const open = document.createElement("button");
+        open.type = "button";
+        open.className = "bistro-card-open";
+        open.setAttribute("aria-label", label);
+        open.onclick = () => showDetail(id, label, locked);
+        card.append(open);
       }
     };
     for (const tab of ["ingredients", "equipment"] as const) {
@@ -92,7 +127,7 @@ export function openCollection(view: "items" | "achievements", state: Persistent
       card.append(progress);
     }
   }
-  dialog.append(content, close);
+  dialog.append(content);
   document.body.append(dialog);
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();

@@ -22,7 +22,10 @@ import {
   buttonBit,
   encodeInputFrame,
   parseHostToPhone,
+  FORM_PASSWORD_MAX,
+  FORM_USERNAME_MAX,
   safeJson,
+  type AccountForm,
   type ApiErrorCode,
   type HostToPhone,
   type IceServerConfig,
@@ -59,6 +62,8 @@ export interface ControllerView {
   readonly layout: PadLayout;
   /** This phone drives the menus (player 1). */
   readonly leader: boolean;
+  /** The account form the TV asks this phone to fill in (player 1 only), or null. */
+  readonly form: AccountForm | null;
   /** Why the current transport is not WebRTC, for the diagnostics line. */
   readonly fallbackReason: string;
   readonly sent: number;
@@ -117,6 +122,7 @@ export class ControllerSession {
   private phase: RoomPhase = "lobby";
   private layout: PadLayout = "wait";
   private leader = false;
+  private form: AccountForm | null = null;
   private relayAllowed = true;
   private transportValue: TransportKind = "none";
   private reportedTransport: TransportKind | null = null;
@@ -176,6 +182,7 @@ export class ControllerSession {
       phase: this.phase,
       layout: this.layout,
       leader: this.leader,
+      form: this.form,
       fallbackReason: this.fallbackReason,
       sent: this.traffic.sentMessages,
       received: this.traffic.receivedMessages,
@@ -360,6 +367,19 @@ export class ControllerSession {
     else this.sender.congested();
   }
 
+  /** Sends the typed account details to the TV (end to end, nothing is stored here). */
+  submitForm(username: string, password: string): void {
+    if (!this.form) return;
+    this.sendToHost({
+      t: "form-submit", id: this.form.id,
+      username: username.slice(0, FORM_USERNAME_MAX), password: password.slice(0, FORM_PASSWORD_MAX),
+    });
+  }
+
+  cancelForm(): void {
+    if (this.form) this.sendToHost({ t: "form-cancel", id: this.form.id });
+  }
+
   /** End-to-end message to the host: data channel first, then the room. */
   private sendToHost(message: PhoneToHost): void {
     const text = JSON.stringify(message);
@@ -489,6 +509,10 @@ export class ControllerSession {
         return;
       case "buzz":
         this.onBuzz?.(message.ms);
+        return;
+      case "form":
+        this.form = message.form;
+        this.emit();
         return;
       case "ui":
         if (message.layout === this.layout && message.leader === this.leader) return;

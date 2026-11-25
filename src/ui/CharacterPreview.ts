@@ -46,16 +46,22 @@ const CAMERA_HORIZONTAL_FOV = 2 * Math.atan(18 / 22);
  * The camera looks down -Z, so a cook at higher X renders on the LEFT of the screen:
  * player one is the positive slot.
  */
-// Players one and two in front, apart enough that the start button, centred below, falls
-// between them; three and four a step further up the street, between and behind them.
-const SLOTS: readonly Vector3[] = [
-  fromBlender(-1.9, 3.0),
-  fromBlender(3.7, 3.1),
-  fromBlender(-0.2, 5.6),
-  fromBlender(2.3, 5.7),
-];
-/** Each cook turned a little towards the middle, as in the render. */
-const SLOT_TURN: readonly number[] = [0.21, -0.24, 0.12, -0.12];
+// One row, left to right P1, P2, P3, P4, all at the same depth, so players find themselves
+// in the order they joined. Centred on the camera's line (Blender x ≈ 0.85).
+const SLOT_SPACING = 1.9;
+const SLOT_DEPTH = 3.6;
+export const SLOTS: readonly Vector3[] = [0, 1, 2, 3].map((index) =>
+  fromBlender(0.85 + (index - 1.5) * SLOT_SPACING, SLOT_DEPTH));
+/**
+ * Where each cook stands for each number of players: the row stays centred, so one player
+ * stands in the middle and two stand either side of it. Built once (placing runs per frame
+ * while the cooks walk off). The same layout drives the name plates (selection-street.css).
+ */
+const SPOTS: readonly (readonly Vector3[])[] = [1, 2, 3, 4].map((count) =>
+  Array.from({ length: SLOTS.length }, (_, index) =>
+    fromBlender(0.85 + (index - (count - 1) / 2) * SLOT_SPACING, SLOT_DEPTH)));
+/** Each cook turned a little towards the middle of the row (radians per slot from centre). */
+const SLOT_TURN_STEP = 0.105;
 /** Seconds the pair spends walking forward before the match starts. */
 const CONFIRM_SECONDS = 1.2;
 /** How far forward they walk on confirm, in metres. */
@@ -321,6 +327,7 @@ export class CharacterPreview {
     this.slotCount = next;
     this.slots.forEach((state, slot) => {
       if (!state.standing) return;
+      this.placeSlot(state.standing, slot, 0);
       const shown = slot < next;
       state.standing.root.setEnabled(shown);
       if (shown) state.standing.idle?.start(true, 1);
@@ -427,12 +434,20 @@ export class CharacterPreview {
     });
   }
 
-  /** Puts everyone back in their slot after a cancelled confirm. */
+  /**
+   * Puts everyone back in their slot after a confirm, cancelled or played out (back to the
+   * menu after a match). The walk forward left the cooks 2.6 m ahead and square to the
+   * camera; zeroing the progress alone never moved them back, since `updateSlots` stops
+   * placing anyone once the progress is 0, and each return to the menu showed them further
+   * up front.
+   */
   resetConfirm(): void {
     this.confirming = false;
     this.confirmProgress = 0;
-    for (const state of this.slots.slice(0, this.slotCount)) {
+    for (const [index, state] of this.slots.entries()) {
       if (!state.standing) continue;
+      this.placeSlot(state.standing, index, 0);
+      if (index >= this.slotCount) continue;
       state.standing.walk?.stop();
       state.standing.idle?.start(true, 1);
     }
@@ -457,12 +472,13 @@ export class CharacterPreview {
 
   /** `forward` walks the cook toward the camera, which sits on +Z. */
   private placeSlot(model: PreviewModel, slot: number, forward: number): void {
-    const spot = SLOTS[slot]!;
+    const spot = SPOTS[this.slotCount - 1]![slot]!;
     model.root.position.x = spot.x;
     model.root.position.z = spot.z + forward;
     model.root.rotation.set(0, 0, 0);
     // Angled slightly inward while idle; square to the camera once they start walking.
-    model.root.rotation.y = (SLOT_TURN[slot] ?? 0) * (1 - Math.min(1, forward / 0.8));
+    const fromCentre = slot - (this.slotCount - 1) / 2;
+    model.root.rotation.y = -fromCentre * SLOT_TURN_STEP * (1 - Math.min(1, forward / 0.8));
   }
 
   /** Loads the character and starts playing its idle loop. */
