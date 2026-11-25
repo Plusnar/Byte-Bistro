@@ -483,7 +483,7 @@ VARIANTS = {
 
 # Which clip each variant shows in its preview.
 PREVIEW_CLIP = {
-    "german-man": "Fest_Sway", "german-woman": "Fest_March", "groom": "Wedding_Groom",
+    "german-man": "Fest_Sway", "german-woman": "Fest_Hop", "groom": "Wedding_Groom",
     "bride": "Wedding_Bouquet", "guitar": "Band_Guitar", "singer": "Band_Sing",
     "keyboard": "Band_Keyboard",
 }

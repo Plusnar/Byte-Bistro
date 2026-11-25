@@ -149,7 +149,7 @@ export class LevelMapView {
         this.canvas.inert = !loaded;
         const focused = document.activeElement;
         const shouldRestoreFocus = focused === document.body || !(focused instanceof HTMLElement)
-          || focused.matches("[data-action='home-levels'],[data-action='retry-level-map']")
+          || focused.matches("[data-action='home-play'],[data-action='retry-level-map']")
           || focused.getClientRects().length === 0;
         if (this.active && shouldRestoreFocus) {
           if (loaded) this.canvas.focus({ preventScroll: true });

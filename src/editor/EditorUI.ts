@@ -33,6 +33,8 @@ export interface EditorUIHandlers {
   onSelectAll(): void;
   onClearSelection(): void;
   onPlay(): void;
+  /** Plays the map as it is now, without saving it; the pause menu brings you back. */
+  onTest(): void;
   onPlacementOptions(snap: boolean, height: number): void;
   onSetWallMode(mode: WallMode): void;
   onToggleGrid(): void;
@@ -410,6 +412,13 @@ export class EditorUI {
         return;
       }
       if (this.saveCurrent()) this.handlers.onPlay();
+    });
+    on("[data-action='test']", () => {
+      if (this.playButton.getAttribute("aria-disabled") === "true") {
+        this.togglePanel("requirements");
+        return;
+      }
+      this.handlers.onTest();
     });
     for (const button of this.shell.querySelectorAll<HTMLButtonElement>("[data-wall-mode]")) {
       button.addEventListener("click", () => this.handlers.onSetWallMode(button.dataset.wallMode as WallMode), { signal });
@@ -1195,7 +1204,8 @@ export class EditorUI {
             </div>
           </div>
           <button type="button" class="bm-icon-button" data-action="settings" data-panel-toggle="settings" title="${t("editor.settings")}" aria-label="${t("editor.settings")}">${icon("settings")}</button>
-          <button type="button" class="bm-button bm-primary" data-action="play">${icon("play")}<span>${t("editor.play")}</span></button>
+          <button type="button" class="bm-button" data-action="test" title="${t("editor.testHint")}">${icon("play")}<span>${t("editor.test")}</span></button>
+          <button type="button" class="bm-button bm-primary" data-action="play" title="${t("editor.playHint")}">${icon("play")}<span>${t("editor.play")}</span></button>
         </div>
       </header>
 

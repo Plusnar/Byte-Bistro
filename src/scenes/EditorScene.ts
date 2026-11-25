@@ -32,7 +32,8 @@ import { assetStreaming } from "../core/assets/AssetStreamingManager";
 import type { ManagedScene } from "../core/SceneManager";
 import { CHARACTERS, SCENARIO_ASSETS } from "../data";
 import { MANNEQUIN } from "../systems/WeddingGuests";
-import { ROBOT_VARIANT_ASSETS } from "../data/robotVariants";
+import { ROBOT_VARIANT_ASSETS, robotAssetId } from "../data/robotVariants";
+import { MARCH_BODY_RADIUS, MARCH_SIZE, MARCH_SPACING, marchMembers } from "../gameplay/mechanisms/MechanismSystem";
 import { sanitizeRobotConfig, type RobotConfig } from "../data/robotConfig";
 import { sanitizeMechanismConfig, type MechanismConfig } from "../data/mechanismConfig";
 import { hasColorChange, hasTransformChange, isVisualPreservingChange } from "../editor/objectDiff";
@@ -115,6 +116,8 @@ interface EditorObjectVisual {
   readonly body: TransformNode;
   /** What sits on a station (plates, board, extinguisher), unscaled by the counter's own scale. */
   readonly dressing: TransformNode | null;
+  /** Extra models drawn with it: a parade's other six marchers. */
+  readonly extras: readonly ModelInstance[];
   readonly instance: ModelInstance | null;
   readonly proxy: Mesh | null;
   readonly isWall: boolean;
@@ -1164,6 +1167,9 @@ export class EditorScene implements ManagedScene {
     }
     if (instance && object.colors) applyColorOverrides(instance.rootNodes, object.colors, this.colorCache);
     const dressing = await this.dressStation(object, root);
+    const extras = object.role === "mechanism" && object.mechanism?.kind === "march"
+      ? await this.dressParade(object, body)
+      : [];
     for (const mesh of root.getChildMeshes()) {
       mesh.isPickable = true;
       mesh.metadata = { objectId: object.id };
@@ -1173,6 +1179,7 @@ export class EditorScene implements ManagedScene {
       root,
       body,
       dressing,
+      extras,
       instance,
       proxy,
       isWall: isWallAsset(object.assetId, object.category),
@@ -1206,6 +1213,7 @@ export class EditorScene implements ManagedScene {
       if (mesh instanceof Mesh) this.highlight.removeMesh(mesh);
     }
     visual.instance?.dispose();
+    for (const extra of visual.extras) extra.dispose();
     visual.proxy?.dispose();
     visual.root.dispose(false, false);
   }
@@ -1988,6 +1996,49 @@ export class EditorScene implements ManagedScene {
    * stacks, the extinguisher (see stationDressing) — so it reads as what it is. Under
    * its own node, which undoes the counter's scale: the game sizes these by themselves.
    */
+  /**
+   * A parade is drawn whole, as it will play: the seven marchers in their column (the
+   * placed model is the middle one) and the ground it covers, from the column's back at
+   * the start to its front at the far end, so its size can be judged while building.
+   */
+  private async dressParade(object: MapPlacedObject, body: TransformNode): Promise<ModelInstance[]> {
+    const config = object.mechanism!;
+    const members = marchMembers({ ...config, waypoints: [{ x: 0, y: 0, z: 1 }] }, { x: 0, z: 0 });
+    const half = ((MARCH_SIZE - 1) / 2) * MARCH_SPACING;
+    const first = config.waypoints[0];
+    const distance = first ? Math.hypot(first.x, first.z) : 0;
+    const route = MeshBuilder.CreateGround(`editor-parade-route-${object.id}`, {
+      width: MARCH_BODY_RADIUS * 2.4,
+      height: distance + half * 2 + MARCH_BODY_RADIUS * 2,
+    }, this.scene);
+    route.parent = body;
+    route.position.set(0, 0.03, distance / 2);
+    const material = new StandardMaterial(`editor-parade-route-material-${object.id}`, this.scene);
+    material.diffuseColor = Color3.FromHexString("#E0884A");
+    material.emissiveColor = Color3.FromHexString("#8A3D12");
+    material.alpha = 0.35;
+    route.material = material;
+    route.onDisposeObservable.addOnce(() => material.dispose());
+    const dress = [robotAssetId("german-man"), robotAssetId("german-woman")];
+    const placed = await Promise.all(members.map(async (member, index) => {
+      if (Math.abs(member.z) < 1e-6) return null; // the placed model already stands here
+      const node = new TransformNode(`editor-parade-${object.id}-${index}`, this.scene);
+      node.parent = body;
+      node.position.set(member.x, 0, member.z);
+      try {
+        return await this.assets.instantiateModel(dress[index % 2]!, {
+          namePrefix: `${node.name}-`,
+          parent: node,
+          cloneMaterials: false,
+        });
+      } catch (error) {
+        console.warn("Editor could not draw a parade marcher", error);
+        return null;
+      }
+    }));
+    return placed.filter((instance): instance is ModelInstance => instance !== null);
+  }
+
   private async dressStation(object: MapPlacedObject, root: TransformNode): Promise<TransformNode | null> {
     const kind = object.stationId;
     const models = stationDressing(kind);

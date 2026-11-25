@@ -7,16 +7,18 @@ import { ROBOT_VARIANT_CHARACTERS, type DressedVariant } from "../data/robotVari
 import { CharacterController } from "../entities/CharacterController";
 import { marchDirection, marchMembers } from "../gameplay/mechanisms/MechanismSystem";
 
+/** The parade's dance: a short hop, then a beat on the ground (scripts/robots). */
+const DANCE_CLIP = "Fest_Hop";
 /** The marchers alternate, man and woman, in festival dress. */
 const DRESS: readonly DressedVariant[] = ["german-man", "german-woman"];
-/** The march clip covers about this much ground per second at a playback rate of 1. */
+/** Travel speed the dance is timed for at a playback rate of 1; faster parades hop faster. */
 const CLIP_STRIDE_SPEED = 1.1;
 
 /**
  * The German parade's robots: the Babylon side of a `march` mechanism.
  *
- * Seven dressed robots in a column, stepping on the spot to the same clip, started on the
- * same frame so they stay in step. Where the column is and which way it faces come from
+ * Seven dressed robots in a column, hopping to the same clip, every other one half a beat
+ * behind so the hops run down the line as a wave. Where the column is and which way it faces come from
  * `MechanismSystem` (a function of the kitchen clock, through `KitchenMechanisms`); this
  * only puts the robots there. Each one turns in place at the ends, so the column walks
  * back over the same ground rather than swinging round its middle.
@@ -48,13 +50,14 @@ export class MarchLine {
     const rate = Math.min(2, Math.max(0.4, config.speed / CLIP_STRIDE_SPEED));
     this.ready = Promise.all(this.members.map(async ({ controller }, index) => {
       await controller.selectCharacter(ROBOT_VARIANT_CHARACTERS[DRESS[index % DRESS.length]!]);
-      await controller.playAmbientClip("Fest_March", "fest");
+      await controller.playAmbientClip(DANCE_CLIP, "fest");
     })).then(() => {
       if (this.disposed) return;
-      // Loaded one by one, they started one by one: back to the first frame together.
-      for (const { controller } of this.members) {
+      // Loaded one by one, they started one by one: restarted together, every other one
+      // half a beat later, so each lands as its neighbour takes off.
+      for (const [index, { controller }] of this.members.entries()) {
         controller.setAnimationSpeed(rate);
-        controller.restartAnimation();
+        controller.restartAnimation(index % 2 === 0 ? 0 : 0.5);
         if (!this.moving) controller.setAnimationPaused(true);
       }
     });

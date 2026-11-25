@@ -66,6 +66,7 @@ export class EditorController implements ManagedScene {
         onSelectAll: () => scene.selectAll(),
         onClearSelection: () => scene.clearSelection(),
         onPlay: () => scene.playCurrentMap(),
+        onTest: () => scene.playCurrentMap(),
         onPlacementOptions: (snap, height) => scene.setPlacementOptions(snap, height),
         onSetWallMode: (mode) => scene.setWallMode(mode),
         onToggleGrid: () => scene.setGridVisible(!scene.isGridVisible()),

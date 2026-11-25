@@ -5121,1008 +5121,1728 @@
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/bowl.gltf",
     "label": "Bowl",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/bowl_dirty.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/bowl_dirty.gltf",
     "label": "Bowl Dirty",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/bowl_small.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/bowl_small.gltf",
     "label": "Bowl Small",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/chair_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/chair_A.gltf",
     "label": "Chair A",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/chair_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/chair_B.gltf",
     "label": "Chair B",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/chair_stool.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/chair_stool.gltf",
     "label": "Chair Stool",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate.gltf",
     "label": "Crate",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_buns.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_buns.gltf",
     "label": "Crate Buns",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_carrots.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_carrots.gltf",
     "label": "Crate Carrots",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_cheese.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_cheese.gltf",
     "label": "Crate Cheese",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_ham.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_ham.gltf",
     "label": "Crate Ham",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_lettuce.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_lettuce.gltf",
     "label": "Crate Lettuce",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_lid.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_lid.gltf",
     "label": "Crate Lid",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_onions.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_onions.gltf",
     "label": "Crate Onions",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_potatoes.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_potatoes.gltf",
     "label": "Crate Potatoes",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_steak.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_steak.gltf",
     "label": "Crate Steak",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_tomatoes.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/crate_tomatoes.gltf",
     "label": "Crate Tomatoes",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/cuttingboard.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/cuttingboard.gltf",
     "label": "Cuttingboard",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/dishrack.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/dishrack.gltf",
     "label": "Dishrack",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/dishrack_plates.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/dishrack_plates.gltf",
     "label": "Dishrack Plates",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/door_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/door_A.gltf",
     "label": "Door A",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/door_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/door_B.gltf",
     "label": "Door B",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/extractorhood.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/extractorhood.gltf",
     "label": "Extractorhood",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/floor_kitchen.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/floor_kitchen.gltf",
     "label": "Floor Kitchen",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/floor_kitchen_small.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/floor_kitchen_small.gltf",
     "label": "Floor Kitchen Small",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_burger.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_burger.gltf",
     "label": "Food Burger",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_dinner.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_dinner.gltf",
     "label": "Food Dinner",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_bun.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_bun.gltf",
     "label": "Food Ingredient Bun",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_bun_bottom.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_bun_bottom.gltf",
     "label": "Food Ingredient Bun Bottom",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_bun_top.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_bun_top.gltf",
     "label": "Food Ingredient Bun Top",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_burger_cooked.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_burger_cooked.gltf",
     "label": "Food Ingredient Burger Cooked",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_burger_trash.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_burger_trash.gltf",
     "label": "Food Ingredient Burger Trash",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_burger_uncooked.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_burger_uncooked.gltf",
     "label": "Food Ingredient Burger Uncooked",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_carrot.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_carrot.gltf",
     "label": "Food Ingredient Carrot",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_carrot_chopped.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_carrot_chopped.gltf",
     "label": "Food Ingredient Carrot Chopped",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_carrot_pieces.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_carrot_pieces.gltf",
     "label": "Food Ingredient Carrot Pieces",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_cheese.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_cheese.gltf",
     "label": "Food Ingredient Cheese",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_cheese_chopped.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_cheese_chopped.gltf",
     "label": "Food Ingredient Cheese Chopped",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_cheese_slice.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_cheese_slice.gltf",
     "label": "Food Ingredient Cheese Slice",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_ham.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_ham.gltf",
     "label": "Food Ingredient Ham",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_ham_cooked.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_ham_cooked.gltf",
     "label": "Food Ingredient Ham Cooked",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_ham_trash.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_ham_trash.gltf",
     "label": "Food Ingredient Ham Trash",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_lettuce.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_lettuce.gltf",
     "label": "Food Ingredient Lettuce",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_lettuce_chopped.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_lettuce_chopped.gltf",
     "label": "Food Ingredient Lettuce Chopped",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_lettuce_slice.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_lettuce_slice.gltf",
     "label": "Food Ingredient Lettuce Slice",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_onion.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_onion.gltf",
     "label": "Food Ingredient Onion",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_onion_chopped.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_onion_chopped.gltf",
     "label": "Food Ingredient Onion Chopped",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_onion_rings.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_onion_rings.gltf",
     "label": "Food Ingredient Onion Rings",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_potato.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_potato.gltf",
     "label": "Food Ingredient Potato",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_potato_chopped.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_potato_chopped.gltf",
     "label": "Food Ingredient Potato Chopped",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_potato_mashed.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_potato_mashed.gltf",
     "label": "Food Ingredient Potato Mashed",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_steak.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_steak.gltf",
     "label": "Food Ingredient Steak",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_steak_pieces.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_steak_pieces.gltf",
     "label": "Food Ingredient Steak Pieces",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_tomato.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_tomato.gltf",
     "label": "Food Ingredient Tomato",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_tomato_slice.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_tomato_slice.gltf",
     "label": "Food Ingredient Tomato Slice",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_tomato_slices.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_tomato_slices.gltf",
     "label": "Food Ingredient Tomato Slices",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_vegetableburger_cooked.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_vegetableburger_cooked.gltf",
     "label": "Food Ingredient Vegetableburger Cooked",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_vegetableburger_uncooked.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_ingredient_vegetableburger_uncooked.gltf",
     "label": "Food Ingredient Vegetableburger Uncooked",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_stew.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_stew.gltf",
     "label": "Food Stew",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_vegetableburger.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/food_vegetableburger.gltf",
     "label": "Food Vegetableburger",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/fridge_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/fridge_A.gltf",
     "label": "Fridge A",
     "pack": "KayKit Restaurant Bits",
-    "category": "machine"
+    "category": "machine",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/fridge_A_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/fridge_A_decorated.gltf",
     "label": "Fridge A Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "machine"
+    "category": "machine",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/fridge_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/fridge_B.gltf",
     "label": "Fridge B",
     "pack": "KayKit Restaurant Bits",
-    "category": "machine"
+    "category": "machine",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_A_large.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_A_large.gltf",
     "label": "Jar A Large",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_A_medium.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_A_medium.gltf",
     "label": "Jar A Medium",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_A_small.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_A_small.gltf",
     "label": "Jar A Small",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_B_large.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_B_large.gltf",
     "label": "Jar B Large",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_B_medium.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_B_medium.gltf",
     "label": "Jar B Medium",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_B_small.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_B_small.gltf",
     "label": "Jar B Small",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_C_large.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_C_large.gltf",
     "label": "Jar C Large",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_C_medium.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_C_medium.gltf",
     "label": "Jar C Medium",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_C_small.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_C_small.gltf",
     "label": "Jar C Small",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_D_large.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_D_large.gltf",
     "label": "Jar D Large",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_D_medium.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_D_medium.gltf",
     "label": "Jar D Medium",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_D_small.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/jar_D_small.gltf",
     "label": "Jar D Small",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/ketchup.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/ketchup.gltf",
     "label": "Ketchup",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencabinet.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencabinet.gltf",
     "label": "Kitchencabinet",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencabinet_corner.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencabinet_corner.gltf",
     "label": "Kitchencabinet Corner",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencabinet_corner_half.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencabinet_corner_half.gltf",
     "label": "Kitchencabinet Corner Half",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencabinet_half.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencabinet_half.gltf",
     "label": "Kitchencabinet Half",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_innercorner.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_innercorner.gltf",
     "label": "Kitchencounter Innercorner",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_innercorner_backsplash.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_innercorner_backsplash.gltf",
     "label": "Kitchencounter Innercorner Backsplash",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_outercorner.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_outercorner.gltf",
     "label": "Kitchencounter Outercorner",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_outercorner_backsplash.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_outercorner_backsplash.gltf",
     "label": "Kitchencounter Outercorner Backsplash",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_sink.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_sink.gltf",
     "label": "Kitchencounter Sink",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_sink_backsplash.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_sink_backsplash.gltf",
     "label": "Kitchencounter Sink Backsplash",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
     "label": "Kitchencounter Straight A",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A_backsplash.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A_backsplash.gltf",
     "label": "Kitchencounter Straight A Backsplash",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A_decorated.gltf",
     "label": "Kitchencounter Straight A Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
     "label": "Kitchencounter Straight B",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B_backsplash.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B_backsplash.gltf",
     "label": "Kitchencounter Straight B Backsplash",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_decorated.gltf",
     "label": "Kitchencounter Straight Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_A.gltf",
     "label": "Kitchentable A",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_A_large.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_A_large.gltf",
     "label": "Kitchentable A Large",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_A_large_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_A_large_decorated.gltf",
     "label": "Kitchentable A Large Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_B.gltf",
     "label": "Kitchentable B",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_B_large.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_B_large.gltf",
     "label": "Kitchentable B Large",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_sink.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_sink.gltf",
     "label": "Kitchentable Sink",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_sink_large.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_sink_large.gltf",
     "label": "Kitchentable Sink Large",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_sink_large_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchentable_sink_large_decorated.gltf",
     "label": "Kitchentable Sink Large Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/knife.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/knife.gltf",
     "label": "Knife",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/lid_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/lid_A.gltf",
     "label": "Lid A",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/lid_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/lid_B.gltf",
     "label": "Lid B",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/lid_large.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/lid_large.gltf",
     "label": "Lid Large",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/menu.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/menu.gltf",
     "label": "Menu",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/mustard.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/mustard.gltf",
     "label": "Mustard",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/oven.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/oven.gltf",
     "label": "Oven",
     "pack": "KayKit Restaurant Bits",
-    "category": "machine"
+    "category": "machine",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pan_006.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pan_006.gltf",
     "label": "Pan 006",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pan_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pan_A.gltf",
     "label": "Pan A",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pan_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pan_B.gltf",
     "label": "Pan B",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/papertowel.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/papertowel.gltf",
     "label": "Papertowel",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pillar_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pillar_A.gltf",
     "label": "Pillar A",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pillar_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pillar_B.gltf",
     "label": "Pillar B",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/plate.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/plate.gltf",
     "label": "Plate",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/plate_dirty.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/plate_dirty.gltf",
     "label": "Plate Dirty",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/plate_small.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/plate_small.gltf",
     "label": "Plate Small",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_A.gltf",
     "label": "Pot A",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_A_stew.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_A_stew.gltf",
     "label": "Pot A Stew",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_B.gltf",
     "label": "Pot B",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_B_stew.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_B_stew.gltf",
     "label": "Pot B Stew",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_large.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/pot_large.gltf",
     "label": "Pot Large",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/shelf_papertowel.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/shelf_papertowel.gltf",
     "label": "Shelf Papertowel",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/shelf_papertowel_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/shelf_papertowel_decorated.gltf",
     "label": "Shelf Papertowel Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stew_bowl.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stew_bowl.gltf",
     "label": "Stew Bowl",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stew_pot.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stew_pot.gltf",
     "label": "Stew Pot",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_multi.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_multi.gltf",
     "label": "Stove Multi",
     "pack": "KayKit Restaurant Bits",
-    "category": "machine"
+    "category": "machine",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_multi_countertop.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_multi_countertop.gltf",
     "label": "Stove Multi Countertop",
     "pack": "KayKit Restaurant Bits",
-    "category": "machine"
+    "category": "machine",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_multi_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_multi_decorated.gltf",
     "label": "Stove Multi Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "machine"
+    "category": "machine",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_single.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_single.gltf",
     "label": "Stove Single",
     "pack": "KayKit Restaurant Bits",
-    "category": "machine"
+    "category": "machine",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_single_countertop.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_single_countertop.gltf",
     "label": "Stove Single Countertop",
     "pack": "KayKit Restaurant Bits",
-    "category": "machine"
+    "category": "machine",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_A.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_A.gltf",
     "label": "Table Round A",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_A_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_A_decorated.gltf",
     "label": "Table Round A Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_A_small.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_A_small.gltf",
     "label": "Table Round A Small",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_A_small_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_A_small_decorated.gltf",
     "label": "Table Round A Small Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_B.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/table_round_B.gltf",
     "label": "Table Round B",
     "pack": "KayKit Restaurant Bits",
-    "category": "storage"
+    "category": "storage",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/towelrail.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/towelrail.gltf",
     "label": "Towelrail",
     "pack": "KayKit Restaurant Bits",
-    "category": "decor"
+    "category": "decor",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall.gltf",
     "label": "Wall",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_decorated.gltf",
     "label": "Wall Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_doorway.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_doorway.gltf",
     "label": "Wall Doorway",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_half.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_half.gltf",
     "label": "Wall Half",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_orderwindow.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_orderwindow.gltf",
     "label": "Wall Orderwindow",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_orderwindow_decorated.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_orderwindow_decorated.gltf",
     "label": "Wall Orderwindow Decorated",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_window_closed.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_window_closed.gltf",
     "label": "Wall Window Closed",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_window_open.gltf",
     "path": "asset-library/Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/wall_window_open.gltf",
     "label": "Wall Window Open",
     "pack": "KayKit Restaurant Bits",
-    "category": "room"
+    "category": "room",
+    "scale": {
+      "x": 0.6,
+      "y": 0.6,
+      "z": 0.6
+    }
   },
   {
     "id": "library:Scenario/KayKit_Space_Base_Bits_1.0_FREE/KayKit_Space_Base_Bits_1.0_FREE/Assets/gltf/basemodule_A.gltf",

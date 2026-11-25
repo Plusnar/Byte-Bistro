@@ -166,9 +166,13 @@ export interface GameUICallbacks {
   onPause?: () => void;
   /** Leaves the running shift for the level and cook picker. */
   onQuitToMenu?: () => void;
+  /** The shift was started from the map editor: back to it, with the map as it was. */
+  onBackToEditor?: () => void;
   onCookbookVisibilityChange?: (visible: boolean) => void;
   onOpenEditor?: () => void;
   onOpenAccount?: () => void;
+  /** The project's story and credits. */
+  onOpenCredits?: () => void;
   /** "Criar mapa" or "Meus mapas" was pressed while signed out. */
   onMapsLocked?: () => void;
   onPlayOnComputer?: () => void;
@@ -1055,6 +1059,13 @@ export class GameUI {
     button.toggleAttribute("data-avatar", url !== null);
   }
 
+  /** Pause and results offer "back to the editor" while a map from the editor is played. */
+  setEditorReturn(available: boolean): void {
+    for (const button of this.shell.querySelectorAll<HTMLButtonElement>("[data-action='back-to-editor']")) {
+      button.hidden = !available;
+    }
+  }
+
   /** Creating and listing maps needs an account; signed out, both buttons show a lock. */
   setMapsLocked(locked: boolean): void {
     if (this.mapsLocked === locked) return;
@@ -1409,13 +1420,12 @@ export class GameUI {
 
   private bindActions(): void {
     const signal = this.listenerController.signal;
+    // Play → pick the level on the map (it zooms in) → pick the cooks → the match.
     this.requireElement<HTMLButtonElement>("[data-action='home-play']").addEventListener("click", () => {
-      const key = this.selectedLevelKey || this.levels[0]?.key;
-      if (key) this.chooseLevel(key);
-      else this.setSplashStep("level");
+      this.setSplashStep("level");
     }, { signal });
     this.requireElement<HTMLButtonElement>("[data-action='retry-level-map']").addEventListener("click", () => this.levelMap?.retry(), { signal });
-    this.requireElement<HTMLButtonElement>("[data-action='home-levels']").addEventListener("click", () => this.setSplashStep("level"), { signal });
+    this.requireElement<HTMLButtonElement>("[data-action='credits']").addEventListener("click", () => this.callbacks.onOpenCredits?.(), { signal });
     this.requireElement<HTMLButtonElement>("[data-action='back-home']").addEventListener("click", () => this.setSplashStep("home"), { signal });
     this.startButton.addEventListener("click", async () => {
       if (this.startButton.disabled) return;
@@ -1481,6 +1491,9 @@ export class GameUI {
       this.callbacks.onRestart?.();
     }, { signal });
 
+    this.shell.querySelectorAll<HTMLButtonElement>("[data-action='back-to-editor']").forEach((button) => {
+      button.addEventListener("click", () => this.callbacks.onBackToEditor?.(), { signal });
+    });
     this.shell.querySelectorAll<HTMLButtonElement>("[data-action='quit-to-menu']").forEach((button) => {
       button.addEventListener("click", () => this.callbacks.onQuitToMenu?.(), { signal });
     });
@@ -1884,7 +1897,7 @@ export class GameUI {
           <header class="selection-header">
             <h1 id="splash-title">BYTE <span>BISTRO</span></h1>
             <div class="selection-header-actions bistro-home-actions">
-              <button class="secondary-action bistro-home-icon bistro-home-levels" type="button" data-action="home-levels" data-i18n-attr="aria-label:menu.selectPhase;title:menu.selectPhase"></button>
+              <button class="secondary-action bistro-home-icon bistro-home-credits" type="button" data-action="credits" data-i18n-attr="aria-label:credits.title;title:credits.title"></button>
               <button class="secondary-action bistro-home-icon menu-map-action" type="button" data-action="open-editor" data-locked data-i18n-attr="aria-label:menu.createMap;title:menu.createMap"></button>
               <button class="secondary-action bistro-home-icon" type="button" data-action="menu-recipes" data-i18n-attr="aria-label:menu.homeRecipes;title:menu.homeRecipes"></button>
               <button class="primary-action bistro-home-play" type="button" data-action="home-play" data-i18n="menu.homePlay"></button>
@@ -1976,6 +1989,7 @@ export class GameUI {
           <h2 id="pause-title" data-i18n="pause.title"></h2>
           <p data-i18n="pause.text"></p>
           <button class="primary-action" type="button" data-action="resume"><span data-i18n="pause.resume"></span><i aria-hidden="true">→</i></button>
+          <button class="secondary-action overlay-menu-action" type="button" data-action="back-to-editor" hidden><span data-i18n="pause.toEditor"></span></button>
           <button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span data-i18n="pause.toMenu"></span></button>
           ${GameUI.languageSwitch()}
           ${GameUI.qualitySwitch()}
@@ -2010,7 +2024,7 @@ export class GameUI {
               </div>
             </div>
           </div>
-          <footer class="results-footer"><span data-i18n="results.saved"></span><div class="results-actions"><button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span data-i18n="results.menu"></span></button><button class="primary-action" type="button" data-action="restart"><span data-i18n="results.again"></span><i aria-hidden="true">↻</i></button></div></footer>
+          <footer class="results-footer"><span data-i18n="results.saved"></span><div class="results-actions"><button class="secondary-action overlay-menu-action" type="button" data-action="back-to-editor" hidden><span data-i18n="pause.toEditor"></span></button><button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span data-i18n="results.menu"></span></button><button class="primary-action" type="button" data-action="restart"><span data-i18n="results.again"></span><i aria-hidden="true">↻</i></button></div></footer>
         </div>
       </section>
     `;

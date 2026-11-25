@@ -336,8 +336,12 @@ export class CharacterController {
     else group.play(group.loopAnimation);
   }
 
-  restartAnimation(): void {
-    this.activeAnimation?.reset();
+  /** Restarts the playing clip `fraction` of the way through (0 is its first frame). */
+  restartAnimation(fraction = 0): void {
+    const group = this.activeAnimation;
+    if (!group) return;
+    group.reset();
+    if (fraction > 0) group.goToFrame(group.from + (group.to - group.from) * fraction);
   }
 
   /** Playback rate of the clip playing now (1 is as authored). */

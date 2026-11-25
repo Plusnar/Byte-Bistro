@@ -819,7 +819,6 @@
   text-shadow: 0 2px 3px #813300;
 }
 .game-ui .bistro-home-actions .bistro-home-play::before { flex: none; inline-size: 1.08em; block-size: 1.08em; }
-.game-ui .bistro-home-levels { --home-icon: url("/assets/ui/hud/level-map.webp"); }
 .game-ui .bistro-home-actions .menu-map-action { --home-icon: url("/assets/ui/hud/editor-map.webp"); }
 .game-ui .bistro-home-settings { --home-icon: url("/assets/ui/bistro-settings.webp"); position: relative; }
 .game-ui .bistro-home-settings summary { cursor: pointer; list-style: none; }
@@ -1157,3 +1156,50 @@
 
 /* The form's main action (Entrar, Criar conta, Salvar) gets its own full-width row. */
 .bistro-collection form .bistro-form-main { flex: 1 0 100%; min-block-size: 2.8rem; font-size: 1.05rem; }
+
+/* Story and credits: a full-screen roll, rising by itself like the end of a film. */
+.bistro-credits {
+  inline-size: min(92vw, 46rem);
+  block-size: min(90vh, 52rem);
+  max-inline-size: none;
+  max-block-size: none;
+  padding: 0;
+  border: 3px solid #bffaff;
+  border-radius: 1.4rem;
+  background: radial-gradient(120% 80% at 50% 0%, #1b4f8a 0%, #0b2346 55%, #06142b 100%);
+  color: #f4f8ff;
+  overflow: hidden;
+  position: relative;
+}
+.bistro-credits::backdrop { background: #020814cc; }
+.bistro-credits > .bistro-close { position: absolute; inset-block-start: .8rem; inset-inline-end: .8rem; z-index: 2; }
+.bistro-credits-roll {
+  block-size: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  outline: none;
+  -webkit-mask-image: linear-gradient(transparent 0, #000 12%, #000 88%, transparent 100%);
+  mask-image: linear-gradient(transparent 0, #000 12%, #000 88%, transparent 100%);
+}
+.bistro-credits-roll::-webkit-scrollbar { display: none; }
+.bistro-credits-content {
+  display: grid;
+  justify-items: center;
+  gap: 1.1rem;
+  padding: 42vh 2.2rem 55vh;
+  text-align: center;
+}
+.bistro-credits-logo { inline-size: 8rem; block-size: auto; filter: drop-shadow(0 6px 14px #0008); }
+.bistro-credits-title { margin: 0; font: 900 clamp(1.6rem, 3.4vw, 2.3rem)/1.1 var(--bistro-font, inherit); color: #ffd56b; }
+.bistro-credits-section { display: grid; gap: .45rem; justify-items: center; margin-block-start: 2.2rem; max-inline-size: 36rem; }
+.bistro-credits-section h3 { margin: 0 0 .5rem; font-size: 1.05rem; letter-spacing: .14em; text-transform: uppercase; color: #7fe3ff; }
+.bistro-credits-story { margin: 0 0 .5rem; font-size: 1.05rem; line-height: 1.55; color: #e6efff; }
+.bistro-credits-name { margin: .7rem 0 0; font-size: 1.35rem; font-weight: 900; color: #ffffff; }
+.bistro-credits-role { margin: 0; font-size: .98rem; line-height: 1.45; color: #c9dbf5; }
+.bistro-credits-school { margin: 1rem 0 0; font-size: .95rem; font-style: italic; color: #ffd56b; }
+.bistro-credits-note { margin: .8rem 0 0; font-size: .9rem; color: #9fb6d8; }
+.bistro-credits-end { margin: 3rem 0 0; font-size: 1.5rem; font-weight: 900; color: #ffd56b; }
+@media (prefers-reduced-motion: reduce) {
+  .bistro-credits-content { padding-block-start: 3rem; }
+}
+.game-ui .bistro-home-actions .bistro-home-credits { --home-icon: url("/assets/ui/bistro-credits.webp"); }

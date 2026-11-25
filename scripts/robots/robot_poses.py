@@ -173,6 +173,42 @@ def clip_fest_march():
     return frames, pose_at
 
 
+def clip_fest_hop():
+    """The parade's dance: a short hop, then a beat standing, arms loose at the sides.
+
+    Half the cycle is the hop (crouch, off the floor, land), half is standing. The game
+    starts every other robot half a cycle later, so one lands as the next takes off: a
+    wave running down the column.
+    """
+    frames = 24
+
+    def pose_at(f):
+        u = (f % frames) / frames * 2  # 0..1 hopping, 1..2 standing
+        lift = 0.0
+        crouch = 0.0
+        if u < 1:
+            if u < 0.18:
+                crouch = -0.05 * math.sin(math.pi * u / 0.18)
+            elif u < 0.82:
+                lift = 0.15 * math.sin(math.pi * (u - 0.18) / 0.64)
+            else:
+                crouch = -0.05 * math.sin(math.pi * (u - 0.82) / 0.18)
+        else:
+            crouch = -0.008 * math.sin(math.pi * (u - 1))
+        pose = Pose().turn("spine", rot((1, 0, 0), 3 * lift / 0.15)).turn("head", rot((1, 0, 0), -4 * lift / 0.15))
+        pose.hips = Vector((0, 0, lift + crouch))
+        for side in "lr":
+            # Feet leave the floor with the body, tucked a little under it in the air.
+            pose.targets[f"leg.{side}"] = (ANKLE[side] + Vector((0, 0.02 * lift / 0.15, lift * 0.85)), KNEE_POLE)
+        for side, sign in (("l", 1), ("r", -1)):
+            spread = 0.1 * lift / 0.15
+            hand = Vector((sign * (0.42 + spread), -0.06, 0.67 + lift + crouch + 0.06 * lift / 0.15))
+            pose.targets[f"arm.{side}"] = (hand, (sign, 0.3, 0))
+        return pose
+
+    return frames, pose_at
+
+
 def clip_wedding_bouquet():
     """The bride: bouquet held in both hands, a gentle sway and a look around."""
     frames = 60
@@ -271,6 +307,7 @@ def clip_band_keyboard():
 CLIPS = {
     "Fest_Sway": clip_fest_sway,
     "Fest_March": clip_fest_march,
+    "Fest_Hop": clip_fest_hop,
     "Wedding_Bouquet": clip_wedding_bouquet,
     "Wedding_Groom": clip_wedding_groom,
     "Band_Guitar": clip_band_guitar,

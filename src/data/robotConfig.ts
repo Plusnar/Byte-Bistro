@@ -44,6 +44,7 @@ export const ROBOT_CLIPS: readonly RobotClip[] = [
   // the first time a robot asks for one of them.
   { id: "Fest_Sway", get label() { return t("editor.clipFestSway"); }, pack: "fest" },
   { id: "Fest_March", get label() { return t("editor.clipFestMarch"); }, pack: "fest" },
+  { id: "Fest_Hop", get label() { return t("editor.clipFestHop"); }, pack: "fest" },
   { id: "Wedding_Bouquet", get label() { return t("editor.clipWeddingBouquet"); }, pack: "fest" },
   { id: "Wedding_Groom", get label() { return t("editor.clipWeddingGroom"); }, pack: "fest" },
   { id: "Band_Guitar", get label() { return t("editor.clipBandGuitar"); }, pack: "fest" },

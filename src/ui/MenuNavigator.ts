@@ -92,7 +92,7 @@ export class MenuNavigator {
         return true;
       }
       // Nothing that way: scroll a long panel (the recipe text) instead.
-      const scroller = scope.element.querySelector<HTMLElement>(".cookbook-detail, .bistro-collection-content");
+      const scroller = scope.element.querySelector<HTMLElement>(".cookbook-detail, .bistro-collection-content, .bistro-credits-roll");
       if (scroller && (command === "up" || command === "down")) {
         scroller.scrollBy({ top: command === "down" ? 140 : -140, behavior: "smooth" });
         return true;

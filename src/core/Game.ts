@@ -125,6 +125,8 @@ export class Game {
   private activeMap: MapData | null = null;
   private editorDraft: MapData | null = null;
   private editorSlotId = "";
+  /** The shift running was started from the editor (Testar or Jogar). */
+  private playingFromEditor = false;
   private selectedCharacters: readonly string[] = DEFAULT_COOP_CHARACTERS;
   private loadingMap = false;
   /** Lists saved slots for the level picker; the editor keeps its own store. */
@@ -207,8 +209,12 @@ export class Game {
       onPause: () => this.kitchenScene?.setManualPaused(true),
       onResume: () => this.kitchenScene?.setManualPaused(false),
       onQuitToMenu: () => this.quitToMenu(),
+      onBackToEditor: () => this.backToEditor(),
       onCookbookVisibilityChange: (visible) => this.kitchenScene?.setCookbookOpen(visible),
       onOpenAccount: () => void this.openAccount(),
+      onOpenCredits: () => {
+        void import("../ui/Credits").then(({ openCredits }) => { if (!this.disposed) openCredits(); });
+      },
       onPlayOnComputer: () => this.playOnComputer(),
       onOpenCollection: (view) => openCollection(view, this.persistentState),
       onOpenEditor: () => { void this.openEditorIfSignedIn(); },
@@ -605,6 +611,7 @@ export class Game {
   private quitToMenu(): void {
     const kitchen = this.kitchenScene;
     if (!kitchen || this.editor) return;
+    this.setPlayingFromEditor(false);
     kitchen.abortShift();
     this.characterPreview?.resetConfirm();
     this.ui.showSplash(true);
@@ -980,11 +987,34 @@ export class Game {
     }
     this.engine.runRenderLoop(this.frame);
     this.ui.setEditorVisible(false);
+    // Opened from a shift ("Voltar ao editor"), the menu was not underneath: show it.
+    if (!this.ui.isSplashVisible) {
+      this.ui.showSplash(true);
+      this.ui.setSplashStep("home");
+    }
+  }
+
+  /** While a map from the editor is played, pause and results lead back to it. */
+  private setPlayingFromEditor(playing: boolean): void {
+    this.playingFromEditor = playing;
+    this.ui.setEditorReturn(playing);
+  }
+
+  /**
+   * Pause or results → the editor, on the map as it was played (saved or not): the shift
+   * stops and the editor opens on the same draft and slot.
+   */
+  private backToEditor(): void {
+    if (!this.playingFromEditor || this.editor || this.loadingMap) return;
+    this.kitchenScene?.abortShift();
+    this.setPlayingFromEditor(false);
+    void this.openEditor();
   }
 
   private async playMap(map: MapData): Promise<void> {
     if (this.loadingMap) return;
     this.loadingMap = true;
+    this.setPlayingFromEditor(true);
     const played = structuredClone(map);
     this.editorDraft = played;
     if (this.editor) {

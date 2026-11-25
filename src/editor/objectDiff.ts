@@ -26,7 +26,14 @@ export const isVisualPreservingChange = (
   for (const key of REBUILD_KEYS) {
     if (previous[key] !== next[key]) return false;
   }
+  // A parade draws its route on the floor: a new distance redraws it.
+  if (next.mechanism?.kind === "march" && paradeDistance(previous) !== paradeDistance(next)) return false;
   return true;
+};
+
+const paradeDistance = (object: MapPlacedObject): number => {
+  const first = object.mechanism?.waypoints[0];
+  return first ? Math.hypot(first.x, first.z) : 0;
 };
 
 /**
