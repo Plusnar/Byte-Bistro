@@ -21,8 +21,13 @@ export interface SafetyTiming {
   readonly silenceMs: number;
 }
 
-/** WebRTC frames come every ≤ 100 ms while the stick is held, heartbeats every second. */
-export const P2P_SAFETY: SafetyTiming = { axisStaleMs: 350, silenceMs: 2_500 };
+/**
+ * WebRTC frames come every ≤ 100 ms while the stick is held, heartbeats every second. The
+ * frames travel unreliably: phone Wi-Fi power saving delays a few in a row now and then,
+ * and 350 ms stopped the cook on those hiccups. 600 ms rides them out and still stops a
+ * cook whose phone really went quiet in well under a second.
+ */
+export const P2P_SAFETY: SafetyTiming = { axisStaleMs: 600, silenceMs: 2_500 };
 /** The relays are slower and burstier. */
 export const RELAY_SAFETY: SafetyTiming = { axisStaleMs: 700, silenceMs: 3_500 };
 export const HTTPS_SAFETY: SafetyTiming = { axisStaleMs: 1_400, silenceMs: 5_000 };

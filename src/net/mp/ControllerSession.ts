@@ -75,7 +75,29 @@ const DISCONNECT_GRACE_MS = 3_500;
 // The first retry is almost immediate: a fresh negotiation often succeeds where the
 // first one lost a race (mDNS host candidates that did not resolve, a slow answer).
 const P2P_RETRY_MS = [3_000, 15_000, 60_000, 180_000];
-const PING_P2P_MS = 2_000;
+const PING_P2P_MS = 1_000;
+/**
+ * Nothing heard from the host over WebRTC for this long → treat the direct path as stalled
+ * and carry input through the room until it answers again. A Wi-Fi hiccup leaves the data
+ * channels "open" while nothing gets through, so their state alone cannot be trusted: the
+ * host's pongs (one per second) are the proof the path still works.
+ */
+export const P2P_STALL_MS = 2_200;
+
+/** The direct path works: channels open, connection open, and the host heard from lately. */
+export const p2pHealthy = (channelsOpen: boolean, state: string, sinceHeardMs: number): boolean =>
+  channelsOpen && state === "open" && sinceHeardMs < P2P_STALL_MS;
+
+/**
+ * Which path carries input: WebRTC while healthy, else the room's relay; with no relay to
+ * fall back on, an open-but-stalled WebRTC is still better than sending nothing.
+ */
+export const chooseTransport = (
+  healthy: boolean,
+  channelsOpen: boolean,
+  peerTransport: TransportKind,
+  relay: TransportKind,
+): TransportKind => (healthy || (relay === "none" && channelsOpen) ? peerTransport : relay);
 const PING_RELAY_MS = 5_000;
 const STATS_MS = 5_000;
 /** WebSocket attempts that never opened before HTTPS polling takes over. */
@@ -107,6 +129,8 @@ export class ControllerSession {
   private pingId = 0;
   private readonly pings = new Map<number, number>();
   private lastPingAt = 0;
+  /** Last message the host sent us over WebRTC; how we know the direct path still works. */
+  private lastP2pHeardAt = 0;
   private lastStatsAt = 0;
   private iceTimer = 0;
   private disconnectTimer = 0;
@@ -239,7 +263,11 @@ export class ControllerSession {
       this.pingId = (this.pingId + 1) & 0xffffff;
       this.pings.set(this.pingId, now);
       if (this.pings.size > 16) this.pings.delete(this.pings.keys().next().value!);
-      this.sendToHost({ t: "ping", id: this.pingId, ts: Math.round(now) });
+      const ping: PhoneToHost = { t: "ping", id: this.pingId, ts: Math.round(now) };
+      this.sendToHost(ping);
+      // While the direct path is stalled the room carries the ping above; this probe over
+      // WebRTC is how its recovery is noticed (the host answers on the path it came by).
+      if (this.peer?.isOpen && !this.p2pUsable(now)) this.peer.sendAction(JSON.stringify(ping));
     }
     if (now - this.lastStatsAt > STATS_MS && this.rtt.samples > 0) {
       this.lastStatsAt = now;
@@ -287,12 +315,20 @@ export class ControllerSession {
   // Transports
   // -------------------------------------------------------------------------------------
 
+  /**
+   * Whether input should go over WebRTC: the channels are open, the connection says so,
+   * and the host was heard from recently. During a hiccup ("disconnected", or silent) the
+   * room carries the game at once instead of after the reconnect grace; the host takes
+   * frames from either path and sorts duplicates out by sequence number.
+   */
+  private p2pUsable(now = performance.now()): boolean {
+    const peer = this.peer;
+    return p2pHealthy(Boolean(peer?.isOpen), peer?.state ?? "closed", now - this.lastP2pHeardAt);
+  }
+
   private currentTransport(): TransportKind {
-    if (this.peer?.isOpen) return this.peerTransport;
-    if (!this.relayAllowed) return "none";
-    if (this.socket?.isOpen) return "websocket";
-    if (this.https) return "https";
-    return "none";
+    const relay: TransportKind = !this.relayAllowed ? "none" : this.socket?.isOpen ? "websocket" : this.https ? "https" : "none";
+    return chooseTransport(this.p2pUsable(), Boolean(this.peer?.isOpen), this.peerTransport, relay);
   }
 
   /** Refined by getStats every few seconds; "stun" until known. */
@@ -327,7 +363,8 @@ export class ControllerSession {
   /** End-to-end message to the host: data channel first, then the room. */
   private sendToHost(message: PhoneToHost): void {
     const text = JSON.stringify(message);
-    if (this.peer?.sendAction(text)) {
+    const viaPeer = this.p2pUsable() || !this.relayAllowed || !this.socketOrHttpsReady();
+    if (viaPeer && this.peer?.sendAction(text)) {
       this.traffic.sent(text.length);
       return;
     }
@@ -483,6 +520,7 @@ export class ControllerSession {
       onState: (state) => this.onPeerState(peer, state),
       onAction: (text) => {
         this.traffic.received(text.length);
+        this.lastP2pHeardAt = performance.now();
         const message = parseHostToPhone(safeJson(text));
         if (message) this.onHostMessage(message);
       },
@@ -530,6 +568,7 @@ export class ControllerSession {
   private onPeerState(peer: PeerLink, state: string): void {
     if (peer !== this.peer || this.disposed) return;
     if (state === "open") {
+      this.lastP2pHeardAt = performance.now();
       window.clearTimeout(this.iceTimer);
       window.clearTimeout(this.disconnectTimer);
       this.fallbackReason = "";
