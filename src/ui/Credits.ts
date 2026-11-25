@@ -65,9 +65,15 @@ export function openCredits(): void {
   };
 
   const story = section("credits.storyHeading");
-  for (const key of ["credits.story1", "credits.story2", "credits.story3", "credits.story4"] as const) {
+  for (const key of ["credits.story1", "credits.story2", "credits.story3", "credits.story4", "credits.story5"] as const) {
     story.append(element("p", "bistro-credits-story", t(key)));
   }
+
+  const behind = section("credits.behindHeading");
+  for (const key of ["credits.behind1", "credits.behind2", "credits.behind3", "credits.behind4", "credits.behind5"] as const) {
+    behind.append(element("p", "bistro-credits-story", t(key)));
+  }
+  behind.append(element("p", "bistro-credits-closing", t("credits.closing")));
 
   const team = section("credits.teamHeading");
   for (const member of TEAM) {

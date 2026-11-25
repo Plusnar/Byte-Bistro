@@ -1203,3 +1203,4 @@
   .bistro-credits-content { padding-block-start: 3rem; }
 }
 .game-ui .bistro-home-actions .bistro-home-credits { --home-icon: url("/assets/ui/bistro-credits.webp"); }
+.bistro-credits-closing { margin: .8rem 0 0; font-size: 1.12rem; font-weight: 900; line-height: 1.45; color: #ffd56b; }
