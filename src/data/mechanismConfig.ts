@@ -21,7 +21,12 @@ export type MechanismKind =
   /** Present while "on", gone while "off"; blinks before it goes. */
   | "vanishing_floor"
   /** Paired with the one other portal sharing its `portalPairId`. */
-  | "portal";
+  | "portal"
+  /**
+   * A column of seven robots in festival dress marching in step: out along the way it
+   * faces, about-turn, and back the same way. Solid: it pushes cooks aside.
+   */
+  | "march";
 
 /** How a mechanism behaves over time. */
 export type MechanismActivation =
@@ -68,6 +73,7 @@ export const MECHANISM_KINDS: readonly MechanismKind[] = [
   "turntable",
   "vanishing_floor",
   "portal",
+  "march",
 ];
 
 /**
@@ -107,6 +113,7 @@ export const MECHANISM_KIND_LABEL: Readonly<Record<MechanismKind, string>> = {
   get turntable() { return t("editor.mechanismTurntable"); },
   get vanishing_floor() { return t("editor.mechanismVanishingFloor"); },
   get portal() { return t("editor.mechanismPortal"); },
+  get march() { return t("editor.mechanismMarch"); },
 };
 
 const clamp = (value: number, min: number, max: number): number =>

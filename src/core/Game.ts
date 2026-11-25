@@ -211,10 +211,7 @@ export class Game {
       onOpenAccount: () => void this.openAccount(),
       onPlayOnComputer: () => this.playOnComputer(),
       onOpenCollection: (view) => openCollection(view, this.persistentState),
-      onOpenEditor: () => {
-        if (this.accountMaps.signedIn) void this.openEditor();
-        else this.askToSignInForMaps();
-      },
+      onOpenEditor: () => { void this.openEditorIfSignedIn(); },
       onMapsLocked: () => this.askToSignInForMaps(),
       onLevelChange: (entry) => this.onLevelChosen(entry),
       onDeleteLevel: (entry) => this.deleteSavedLevel(entry),
@@ -801,6 +798,21 @@ export class Game {
     } catch {
       this.ui.notify(t("account.failed"), "warning");
     }
+  }
+
+  /**
+   * The editor needs an account. Just after the page opens the saved session may still be
+   * on its way back (`resume`): waited for, so a signed-in player is not asked to sign in.
+   */
+  private async openEditorIfSignedIn(): Promise<void> {
+    if (!this.accountMaps.signedIn && hadAccountSession()) {
+      try {
+        await (await this.getAccountPanel()).resume();
+      } catch { /* offline: treated as signed out below */ }
+    }
+    if (this.disposed) return;
+    if (this.accountMaps.signedIn) await this.openEditor();
+    else this.askToSignInForMaps();
   }
 
   /** Creating and keeping maps lives in the account: without one, the menu asks to sign in. */

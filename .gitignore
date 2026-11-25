@@ -33,6 +33,7 @@
 !/scripts/assets/
 !/scripts/build/
 !/scripts/perf/
+!/scripts/robots/
 
 # Models the code imports from outside src/ and public/
 !/Scenario/

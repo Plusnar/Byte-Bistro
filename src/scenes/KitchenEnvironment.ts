@@ -21,7 +21,8 @@ import type { MovementBounds } from "../entities/Player";
 import type { StationId } from "../types/game";
 import type { MapData, MapPlacedObject } from "../editor/MapData";
 import type { MechanismConfig } from "../data/mechanismConfig";
-import { footprintOf, type MechanismFootprint } from "../gameplay/mechanisms/MechanismSystem";
+import { footprintOf, marchInWorld, type MechanismFootprint } from "../gameplay/mechanisms/MechanismSystem";
+import { MarchLine } from "./MarchLine";
 import { wrapAngle } from "../editor/MapData";
 import {
   DEFAULT_KITCHEN_LAYOUT,
@@ -31,6 +32,7 @@ import {
 import { WEDDING_SCENARIO, type ScenarioDefinition } from "../data/scenarios";
 import { areaFitsWithin } from "../data/receptionFit";
 import { sanitizeRobotConfig, type RobotSpawn } from "../data/robotConfig";
+import { robotVariantOf } from "../data/robotVariants";
 import {
   GROUND_FLOOR_COLLISION_GROUP,
   STEP_OVER_HEIGHT,
@@ -117,6 +119,8 @@ export interface MechanismPlacement {
   halfExtentZ: number;
   centerX: number;
   centerZ: number;
+  /** A German parade's robots; only `march` mechanisms have them. */
+  march?: MarchLine;
 }
 
 export const KITCHEN_STATION_ANCHORS: readonly StationAnchor[] = [
@@ -583,6 +587,7 @@ export const robotsFromMap = (map: MapData): RobotSpawn[] =>
       position: { ...object.position },
       rotationY: object.rotation.y,
       config: sanitizeRobotConfig(object.robot),
+      variant: robotVariantOf(object.assetId),
     }));
 
 export interface KitchenEnvironmentOptions {
@@ -618,6 +623,7 @@ export class KitchenEnvironment {
    * mechanism exception in AGENTS.md.
    */
   private readonly mechanismPlacements: MechanismPlacement[] = [];
+  private readonly marchLines: MarchLine[] = [];
   private disposed = false;
 
   constructor(
@@ -679,6 +685,8 @@ export class KitchenEnvironment {
     this.disposed = true;
     for (const instance of this.instances) instance.dispose();
     this.instances.length = 0;
+    for (const line of this.marchLines) line.dispose();
+    this.marchLines.length = 0;
     for (const placementRoot of this.placementRoots) placementRoot.dispose(false, false);
     this.placementRoots.length = 0;
     for (const light of this.lights) light.dispose();
@@ -745,11 +753,13 @@ export class KitchenEnvironment {
     placementRoot.position.copyFrom(placement.position);
     placementRoot.rotation.copyFrom(placement.rotation ?? Vector3.Zero());
     placementRoot.scaling.copyFrom(placement.scale ?? Vector3.One());
-    if (placement.mechanism) {
+    // A parade's route is stored in its own frame; the runtime works in the world.
+    const mechanism = placement.mechanism ? marchInWorld(placement.mechanism, placement.rotation?.y ?? 0) : undefined;
+    if (mechanism) {
       this.mechanismPlacements.push({
         id: placement.objectId ?? placement.name,
         node: placementRoot,
-        config: placement.mechanism,
+        config: mechanism,
         origin: placement.position.clone(),
         originYaw: placement.rotation?.y ?? 0,
         // Measured below, once the model is in the scene; these hold until then.
@@ -759,13 +769,25 @@ export class KitchenEnvironment {
         centerX: 0,
         centerZ: 0,
         footprint: footprintOf(
-          placement.mechanism,
+          mechanism,
           { x: placement.position.x, z: placement.position.z },
           Math.max(0.5, (placement.scale?.x ?? 1) * 0.6),
         ),
       });
     } else {
       this.placementRoots.push(placementRoot);
+    }
+
+    // The parade is its robots, not the placed model: seven animated marchers under their
+    // own node (skinned meshes have no place in the static batch). Nothing to collide
+    // with either: KitchenMechanisms pushes cooks out of the column instead.
+    if (mechanism?.kind === "march") {
+      const line = new MarchLine(this.scene, this.assets, this.root, mechanism);
+      this.marchLines.push(line);
+      const entry = this.mechanismPlacements.find((candidate) => candidate.node === placementRoot);
+      if (entry) entry.march = line;
+      await line.ready.catch((error: unknown) => console.warn("German parade could not be loaded.", error));
+      return;
     }
 
     const authoredSolid = placement.collides !== false;

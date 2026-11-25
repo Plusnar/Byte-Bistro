@@ -1,7 +1,7 @@
 import { t } from "../i18n";
 import type { MapData } from "./MapData";
 import { isFloorAsset } from "../physics/collisionPolicy";
-import { footprintOf, unpairedPortalIds } from "../gameplay/mechanisms/MechanismSystem";
+import { footprintOf, marchInWorld, unpairedPortalIds } from "../gameplay/mechanisms/MechanismSystem";
 import { WEDDING_SCENARIO, getScenario, type ScenarioDefinition } from "../data/scenarios";
 
 export interface MapRequirement {
@@ -110,7 +110,8 @@ const stationsUnderMechanisms = (map: MapData): number => {
   const footprints = map.objects
     .filter((object) => object.role === "mechanism" && object.mechanism)
     .map((object) => footprintOf(
-      object.mechanism!,
+      // A parade's route is stored in its own frame: turned into the world like in play.
+      marchInWorld(object.mechanism!, object.rotation.y),
       { x: object.position.x, z: object.position.z },
       Math.max(0.5, object.scale.x * 0.6),
     ));

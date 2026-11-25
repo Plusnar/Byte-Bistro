@@ -318,6 +318,14 @@ export const CHARACTER_ANIMATION_ASSETS = {
     id: "rig-medium-simulation",
     url: bundledModelUrl("Anim/Animations/gltf/Rig_Medium/Rig_Medium_Simulation.glb"),
   },
+  /**
+   * The dressed robots' clips: march, sway, the band and the couple (built by
+   * scripts/robots). Like `simulation`, fetched only when a robot asks for one.
+   */
+  fest: {
+    id: "rig-medium-fest",
+    url: bundledModelUrl("src/assets/robots/Rig_Medium_Fest.glb"),
+  },
 } as const;
 
 export type AnimationPackKey = keyof typeof CHARACTER_ANIMATION_ASSETS;

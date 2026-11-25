@@ -1,4 +1,6 @@
-﻿import {
+﻿import { ROBOT_VARIANT_ASSETS } from "../data/robotVariants";
+import { MANNEQUIN } from "../systems/WeddingGuests";
+import {
   AbstractMesh, ArcRotateCamera, Color3, Color4, DirectionalLight, Engine,
   HemisphericLight, Scene, TransformNode, Vector3,
 } from "@babylonjs/core";
@@ -10,7 +12,13 @@ import type { EditorAssetEntry } from "./catalog";
 
 /** One offscreen renderer, used serially for the visible catalog objects. */
 export class CatalogThumbnails {
-  private readonly urls = new Map([...SCENARIO_ASSETS, ...ASSET_LIBRARY].map(asset => [asset.id, asset.url]));
+  // Robots too: the plain Mannequin and every costume (and the parade, which shows one).
+  private readonly urls = new Map([
+    ...SCENARIO_ASSETS,
+    ...ASSET_LIBRARY,
+    ...ROBOT_VARIANT_ASSETS,
+    { id: MANNEQUIN.modelAssetId, url: MANNEQUIN.modelUrl },
+  ].map(asset => [asset.id, asset.url]));
   private readonly cache = new Map<string, Promise<string | null>>();
   private readonly canvas = document.createElement("canvas");
   private engine: Engine | null = null;

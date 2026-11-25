@@ -82,6 +82,38 @@
       "profile": "animation"
     },
     {
+      "path": "src/assets/robots/robot-german-man.glb",
+      "profile": "character"
+    },
+    {
+      "path": "src/assets/robots/robot-german-woman.glb",
+      "profile": "character"
+    },
+    {
+      "path": "src/assets/robots/robot-groom.glb",
+      "profile": "character"
+    },
+    {
+      "path": "src/assets/robots/robot-bride.glb",
+      "profile": "character"
+    },
+    {
+      "path": "src/assets/robots/robot-guitar.glb",
+      "profile": "character"
+    },
+    {
+      "path": "src/assets/robots/robot-singer.glb",
+      "profile": "character"
+    },
+    {
+      "path": "src/assets/robots/robot-keyboard.glb",
+      "profile": "character"
+    },
+    {
+      "path": "src/assets/robots/Rig_Medium_Fest.glb",
+      "profile": "animation"
+    },
+    {
       "glob": "src/assets/ingredients/*.glb",
       "profile": "staticProp"
     },

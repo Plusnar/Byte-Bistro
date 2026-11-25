@@ -7,7 +7,10 @@ import {
   isPresentAt,
   isRunningAt,
   isWarningAt,
+  MARCH_BODY_RADIUS,
+  marchMembers,
   pairPortals,
+  pushOutOfMarch,
   stateAt,
   VANISH_WARNING_SECONDS,
   type MechanismState,
@@ -44,6 +47,9 @@ const PORTAL_RADIUS = 0.55;
  * out does not send a cook straight back in.
  */
 const PORTAL_EXIT_OFFSET = 0.95;
+
+/** A cook's radius, for the parade's push (cooks are 0.66 m wide). */
+const RIDER_RADIUS = 0.33;
 
 /** A blinking floor alternates on this period, in seconds. Fast enough to read as urgent. */
 const BLINK_PERIOD = 0.15;
@@ -90,6 +96,8 @@ export class KitchenMechanisms {
   private readonly runtimes: readonly Runtime[];
   private readonly partners: ReadonlyMap<number, number>;
   private previousSeconds = 0;
+  /** Reused every frame for the parade's marcher positions. */
+  private readonly marchScratch: { x: number; z: number }[] = [];
 
   constructor(
     private readonly placements: readonly MechanismPlacement[],
@@ -162,7 +170,13 @@ export class KitchenMechanisms {
       if (placement.config.kind === "vanishing_floor") {
         this.updateFloor(placement, runtime, running, local, shift, riders);
       }
-      if (running) this.carryRiders(placement, runtime, state, step, riders);
+      if (placement.config.kind === "march") {
+        // Nobody rides a parade: it faces its way, steps while it travels, and shoves.
+        placement.march?.update(placement.node.position, state.pose.yaw, running && state.active);
+        this.pushOutOfMarch(placement, riders);
+      } else if (running) {
+        this.carryRiders(placement, runtime, state, step, riders);
+      }
     });
     this.previousSeconds = seconds;
   }
@@ -234,8 +248,9 @@ export class KitchenMechanisms {
       placement.origin.z + state.pose.z,
     );
     // On top of the yaw it was placed at, never instead of it: a belt the designer turned
-    // in the editor has to stay turned.
-    node.rotation.y = placement.originYaw + state.pose.yaw;
+    // in the editor has to stay turned. A parade's yaw is its marchers' (MarchLine), each
+    // turning in place; turning the node would swing the whole column round its middle.
+    node.rotation.y = placement.originYaw + (placement.config.kind === "march" ? 0 : state.pose.yaw);
     // A conveyor pulls along its own length, turned however it was placed — so rotating a
     // belt is how it is aimed. Its length is whichever of its measured sides is longer:
     // the stock belt runs along its x, and pulling along z shoved cooks sideways off it.
@@ -317,6 +332,19 @@ export class KitchenMechanisms {
         state.delta.x + runtime.pushX * deltaSeconds,
         state.delta.z + runtime.pushZ * deltaSeconds,
       );
+    }
+  }
+
+  /**
+   * The parade is solid: whoever overlaps a marcher is moved out of them, through `carry`,
+   * so a cook shoved toward a counter stops at the counter. Applied every frame, standing
+   * still or walking, which is what makes the column push rather than pass through.
+   */
+  private pushOutOfMarch(placement: MechanismPlacement, riders: readonly MechanismRider[]): void {
+    const members = marchMembers(placement.config, placement.node.position, this.marchScratch);
+    for (const rider of riders) {
+      const push = pushOutOfMarch(rider.position, members, MARCH_BODY_RADIUS + RIDER_RADIUS);
+      if (push) rider.carry(push.x, push.z);
     }
   }
 

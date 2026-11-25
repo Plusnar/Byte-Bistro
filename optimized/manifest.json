@@ -272,6 +272,83 @@
       "status": "unchanged",
       "reason": "saves only 4.7%"
     },
+    "src/assets/robots/robot-german-man.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "cca25e50d46896082a31c3d829ca86d348a8b8fc61ca2071a1c041dda2ea136e",
+      "sourceBytes": 454336,
+      "status": "unchanged",
+      "reason": "saves only 3.3%"
+    },
+    "src/assets/robots/robot-german-woman.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "e6fac5d1ca9067b799617b01f2714152e0d110b9059368197173badfc58cd040",
+      "sourceBytes": 474284,
+      "status": "unchanged",
+      "reason": "saves only 3.2%"
+    },
+    "src/assets/robots/robot-groom.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "54d1f99daa4e0119090889b7a96bb275e05833e88498e86f5fab6a2fc45a0e8b",
+      "sourceBytes": 460780,
+      "status": "unchanged",
+      "reason": "saves only 3.3%"
+    },
+    "src/assets/robots/robot-bride.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "cf05778215921afe64a491a99b049fae146118ec5cae26150f9dc811881cabf0",
+      "sourceBytes": 493244,
+      "status": "unchanged",
+      "reason": "saves only 3.0%"
+    },
+    "src/assets/robots/robot-guitar.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "dae4d5d8afc2247fd3df29c3972a59e1bf20ce109a28161b6a832548d0cfbebc",
+      "sourceBytes": 441540,
+      "status": "unchanged",
+      "reason": "saves only 3.4%"
+    },
+    "src/assets/robots/robot-singer.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "53f7e11eff5012b12a86cf6cc2943a96e321a9877b06cf718562760cd005132c",
+      "sourceBytes": 446972,
+      "status": "unchanged",
+      "reason": "saves only 3.4%"
+    },
+    "src/assets/robots/robot-keyboard.glb": {
+      "profile": "character",
+      "profileKey": "1710c01a31c6",
+      "sourceHash": "10d593d185bb63a85c9870f5ac38e24cff6698cc9ce4f57b517694b9c4606a95",
+      "sourceBytes": 451504,
+      "status": "unchanged",
+      "reason": "saves only 3.3%"
+    },
+    "src/assets/robots/Rig_Medium_Fest.glb": {
+      "profile": "animation",
+      "profileKey": "df76d2badf34",
+      "sourceHash": "8f215ce0f14e23d6e4396916ba1ebd0255283c8648b69eee13f95a05d7a17749",
+      "sourceBytes": 121712,
+      "status": "optimized",
+      "output": "optimized/src/assets/robots/Rig_Medium_Fest.glb",
+      "outputHash": "21f72b4d4d7f9e360e5893b59993ebd1ad9cac318da4b62e0233da9187f1b522",
+      "outputBytes": 113744,
+      "meshopt": false,
+      "before": {
+        "meshes": 0,
+        "primitives": 0,
+        "textures": []
+      },
+      "after": {
+        "meshes": 0,
+        "primitives": 0,
+        "textures": []
+      }
+    },
     "src/assets/ingredients/binary_sugar.glb": {
       "profile": "staticProp",
       "profileKey": "4e621bd19fb7",

@@ -32,6 +32,7 @@ import { assetStreaming } from "../core/assets/AssetStreamingManager";
 import type { ManagedScene } from "../core/SceneManager";
 import { CHARACTERS, SCENARIO_ASSETS } from "../data";
 import { MANNEQUIN } from "../systems/WeddingGuests";
+import { ROBOT_VARIANT_ASSETS } from "../data/robotVariants";
 import { sanitizeRobotConfig, type RobotConfig } from "../data/robotConfig";
 import { sanitizeMechanismConfig, type MechanismConfig } from "../data/mechanismConfig";
 import { hasColorChange, hasTransformChange, isVisualPreservingChange } from "../editor/objectDiff";
@@ -315,6 +316,8 @@ export class EditorScene implements ManagedScene {
       // Robots placed from the "Robôs" catalogue draw this model, so the editor needs it too
       // or they would all render as grey proxy boxes.
       { id: MANNEQUIN.modelAssetId, url: MANNEQUIN.modelUrl, required: true },
+      // Dressed robots (and the German parade), loaded when the map shows one.
+      ...ROBOT_VARIANT_ASSETS,
       ...CHARACTERS.map((character) => ({
         id: character.modelAssetId,
         url: character.modelUrl,

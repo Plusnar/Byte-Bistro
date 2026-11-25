@@ -145,6 +145,7 @@ import { KitchenEnvironment, robotsFromMap } from "./KitchenEnvironment";
 import { WEDDING_SCENARIO, type ScenarioDefinition } from "../data/scenarios";
 import { CoopCameraController } from "./CoopCameraController";
 import { WeddingGuests, MANNEQUIN } from "../systems/WeddingGuests";
+import { ROBOT_VARIANT_ASSETS } from "../data/robotVariants";
 
 
 /** Each cook's highlight colour; phones show the same one. */
@@ -435,6 +436,9 @@ export class KitchenScene implements ManagedScene {
       // Ambient robot clips: fetched only when a placed robot asks for one of them, so a
       // level without such robots never downloads the pack. Lazy keeps preloadAll off it.
       { ...CHARACTER_ANIMATION_ASSETS.simulation, required: false, lazy: true },
+      // Dressed robots and their clips: only what the map places is ever downloaded.
+      { ...CHARACTER_ANIMATION_ASSETS.fest, required: false, lazy: true },
+      ...ROBOT_VARIANT_ASSETS,
       ...scenarioAssetsFor(placedAssetIds),
       ...INGREDIENT_ASSETS,
       ...KITCHEN_ASSETS,

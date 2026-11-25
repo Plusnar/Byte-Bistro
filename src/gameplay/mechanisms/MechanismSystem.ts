@@ -128,6 +128,111 @@ const platformPose = (config: MechanismConfig, seconds: number): MechanismPose =
   return { x: point.x, y: point.y, z: point.z, yaw: 0 };
 };
 
+// ---------------------------------------------------------------------------------------
+// The German parade
+
+/** Seven marchers, a little under a metre apart, each about a body wide. */
+export const MARCH_SIZE = 7;
+export const MARCH_SPACING = 0.85;
+export const MARCH_BODY_RADIUS = 0.36;
+
+const smoothstep = (t: number): number => {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+};
+
+/**
+ * Which way the marchers face at `seconds`, as radians added to the route's own heading:
+ * 0 on the way out, π on the way back, turning about smoothly during each pause (a quick
+ * flip when there is no pause). Uses the same out-pause-back-pause cycle as `platformPose`,
+ * so they turn exactly while the column stands at an end.
+ */
+export const marchHeading = (config: MechanismConfig, seconds: number): number => {
+  const length = routeLength(stopsOf(config));
+  if (length <= 0 || config.speed <= 0) return 0;
+  const travel = length / config.speed;
+  const pause = config.pauseSeconds;
+  const cycle = (travel + pause) * 2;
+  const raw = (seconds + config.phase) % cycle;
+  const offset = raw < 0 ? raw + cycle : raw;
+  if (offset < travel) return 0;
+  if (offset < travel + pause) return Math.PI * smoothstep((offset - travel) / pause);
+  if (offset < travel * 2 + pause) return Math.PI;
+  return pause > 0 ? Math.PI + Math.PI * smoothstep((offset - travel * 2 - pause) / pause) : 0;
+};
+
+/** The route's direction, unit length in x/z: toward the first waypoint (+z without one). */
+export const marchDirection = (config: MechanismConfig): { x: number; z: number } => {
+  const first = config.waypoints[0];
+  const length = first ? Math.hypot(first.x, first.z) : 0;
+  return first && length > 1e-6 ? { x: first.x / length, z: first.z / length } : { x: 0, z: 1 };
+};
+
+/**
+ * Where each marcher stands, in a column along the route, centred on `center`. Pass `out`
+ * to have it filled in place: the scene asks every frame.
+ */
+export const marchMembers = (
+  config: MechanismConfig,
+  center: { readonly x: number; readonly z: number },
+  out: { x: number; z: number }[] = [],
+): { x: number; z: number }[] => {
+  const direction = marchDirection(config);
+  for (let index = 0; index < MARCH_SIZE; index += 1) {
+    const along = (index - (MARCH_SIZE - 1) / 2) * MARCH_SPACING;
+    const member = out[index] ?? (out[index] = { x: 0, z: 0 });
+    member.x = center.x + direction.x * along;
+    member.z = center.z + direction.z * along;
+  }
+  out.length = MARCH_SIZE;
+  return out;
+};
+
+/**
+ * How far to move something at `position` so it no longer overlaps any marcher, or null
+ * when it is clear. `reach` is the marcher's radius plus its own. The column walking into
+ * a cook therefore shoves them ahead or aside, a little each frame, never through.
+ */
+export const pushOutOfMarch = (
+  position: { readonly x: number; readonly z: number },
+  members: readonly { readonly x: number; readonly z: number }[],
+  reach: number,
+): { x: number; z: number } | null => {
+  let pushX = 0;
+  let pushZ = 0;
+  for (const member of members) {
+    const dx = position.x - member.x;
+    const dz = position.z - member.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance >= reach) continue;
+    if (distance < 1e-4) {
+      pushX += reach;
+      continue;
+    }
+    pushX += (dx / distance) * (reach - distance);
+    pushZ += (dz / distance) * (reach - distance);
+  }
+  return pushX === 0 && pushZ === 0 ? null : { x: pushX, z: pushZ };
+};
+
+/**
+ * A parade's route turned into the world: the editor stores it in the object's own frame
+ * ("five metres ahead"), so rotating the object is how a designer aims it.
+ */
+export const marchInWorld = (config: MechanismConfig, yaw: number): MechanismConfig => {
+  if (config.kind !== "march") return config;
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
+  return {
+    ...config,
+    waypoints: config.waypoints.map((point) => ({
+      x: point.x * cos + point.z * sin,
+      y: point.y,
+      z: -point.x * sin + point.z * cos,
+    })),
+  };
+};
+
 /** Where a mechanism sits at `seconds`, ignoring whether it is resting. */
 export const poseAt = (config: MechanismConfig, seconds: number): MechanismPose => {
   switch (config.kind) {
@@ -135,6 +240,10 @@ export const poseAt = (config: MechanismConfig, seconds: number): MechanismPose 
       return platformPose(config, seconds);
     case "turntable":
       return { x: 0, y: 0, z: 0, yaw: (seconds + config.phase) * config.speed * Math.PI * 2 };
+    case "march":
+      // The column travels like a platform; its yaw is which way the marchers face
+      // (see marchHeading), applied to each of them, never to the column as a whole.
+      return { ...platformPose(config, seconds), yaw: marchHeading(config, seconds) };
     case "conveyor":
       // A conveyor's belt is scenery; only what rides it moves.
     case "vanishing_floor":
@@ -219,6 +328,28 @@ export const footprintOf = (
     maxX = Math.max(maxX, origin.x + stop.x);
     minZ = Math.min(minZ, origin.z + stop.z);
     maxZ = Math.max(maxZ, origin.z + stop.z);
+  }
+  if (config.kind === "march") {
+    // The whole column, at both ends of its route: a marcher reaches half the column's
+    // length beyond its centre, along the route.
+    const direction = marchDirection(config);
+    const half = ((MARCH_SIZE - 1) / 2) * MARCH_SPACING;
+    for (const stop of stops) {
+      for (const side of [-1, 1]) {
+        const x = origin.x + stop.x + direction.x * half * side;
+        const z = origin.z + stop.z + direction.z * half * side;
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minZ = Math.min(minZ, z);
+        maxZ = Math.max(maxZ, z);
+      }
+    }
+    return {
+      minX: minX - MARCH_BODY_RADIUS,
+      maxX: maxX + MARCH_BODY_RADIUS,
+      minZ: minZ - MARCH_BODY_RADIUS,
+      maxZ: maxZ + MARCH_BODY_RADIUS,
+    };
   }
   // A turntable sweeps a circle, so its corners reach further than its sides.
   const reach = config.kind === "turntable" ? halfSize * Math.SQRT2 : halfSize;

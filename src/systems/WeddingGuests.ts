@@ -15,6 +15,7 @@ import {
   DEFAULT_ROBOT_CONFIG, ROBOT_ASSET_ID, getRobotClip,
   type RobotConfig, type RobotSpawn,
 } from '../data/robotConfig';
+import { ROBOT_VARIANT_CHARACTERS, type RobotVariant } from '../data/robotVariants';
 
 export const MANNEQUIN: CharacterDefinition = {
   id: 'wedding-mannequin', get displayName() { return t('wedding.guest'); }, get role() { return t('wedding.guestRole'); },
@@ -22,6 +23,10 @@ export const MANNEQUIN: CharacterDefinition = {
   modelUrl: bundledModelUrl("Anim/Mannequin Character/characters/Mannequin_Medium.glb"),
   previewUrl: '', targetHeight: 1.8, rig: 'Rig_Medium',
 };
+/** The model a robot wears: the plain Mannequin, or one of the dressed variants. */
+export const robotCharacter = (variant: RobotVariant): CharacterDefinition =>
+  variant === 'plain' ? MANNEQUIN : ROBOT_VARIANT_CHARACTERS[variant];
+
 /** Dishes a guest can be seen eating; names live with the recipes. */
 const DISH_IDS = ['ram_cake', 'cache_cookies', 'cooling_gelato'] as const;
 /** Four robots keeps the reception readable and the frame budget predictable. */
@@ -158,13 +163,14 @@ export class WeddingGuests {
       this.textures.push(texture);
       this.dishMaterials.set(id, mat);
     }
-    const cast: { name: string; anchor: Vector3; rotationY: number; config: RobotConfig }[] =
+    const cast: { name: string; anchor: Vector3; rotationY: number; config: RobotConfig; variant: RobotVariant }[] =
       this.placed
         ? spawns.map(spawn => ({
             name: spawn.name,
             anchor: new Vector3(spawn.position.x, 0, spawn.position.z),
             rotationY: spawn.rotationY,
             config: spawn.config,
+            variant: spawn.variant,
           }))
         : NAMES.map((name, index) => {
             const spot = this.receptionSpot(index, NAMES.length);
@@ -173,6 +179,7 @@ export class WeddingGuests {
               anchor: new Vector3(spot.x, 0, spot.z),
               rotationY: Math.random() * Math.PI * 2,
               config: DEFAULT_ROBOT_CONFIG,
+              variant: 'plain' as RobotVariant,
             };
           });
     for (const [id, entry] of cast.entries()) {
@@ -206,7 +213,8 @@ export class WeddingGuests {
         path: [], lastSpeed: 0,
         anchor: entry.anchor, config: entry.config });
     }
-    this.ready = Promise.all(this.guests.map(g => g.controller.selectCharacter(MANNEQUIN))).then(() => undefined);
+    this.ready = Promise.all(this.guests.map((guest, index) =>
+      guest.controller.selectCharacter(robotCharacter(cast[index]!.variant)))).then(() => undefined);
   }
 
   reset(): void {

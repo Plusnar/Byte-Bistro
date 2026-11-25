@@ -843,11 +843,12 @@ export class EditorUI {
    */
   private renderMechanismFields(kind: MechanismKind): HTMLElement {
     const section = createElement("section", "bm-section");
-    const moves = kind === "conveyor" || kind === "platform" || kind === "turntable";
+    const moves = kind === "conveyor" || kind === "platform" || kind === "turntable" || kind === "march";
     section.innerHTML = `
       <h3>${MECHANISM_KIND_LABEL[kind]}</h3>
       ${moves ? `<label class="bm-field">${t("editor.mechanismSpeed")}<input type="number" data-mechanism="speed" min="0.1" max="6" step="0.1"></label>` : ""}
-      ${kind === "platform" ? `<label class="bm-field">${t("editor.mechanismPause")}<input type="number" data-mechanism="pauseSeconds" min="0" max="10" step="0.1"></label>` : ""}
+      ${kind === "platform" || kind === "march" ? `<label class="bm-field">${t("editor.mechanismPause")}<input type="number" data-mechanism="pauseSeconds" min="0" max="10" step="0.1"></label>` : ""}
+      ${kind === "march" ? `<label class="bm-field">${t("editor.mechanismDistance")}<input type="number" data-mechanism-distance min="1" max="20" step="0.5"></label>` : ""}
       ${kind === "portal" ? `<label class="bm-field">${t("editor.mechanismPairId")}<input type="text" data-mechanism="portalPairId" maxlength="24"></label>` : ""}
       <label class="bm-field">${t("editor.mechanismPhase")}<input type="number" data-mechanism="phase" min="0" step="0.1"></label>
       <label class="bm-field">${t("editor.mechanismActivation")}<select data-mechanism-activation="mode">
@@ -867,6 +868,11 @@ export class EditorUI {
         }
       });
     }
+    // A parade walks straight ahead of where it faces: its one waypoint is a distance.
+    section.querySelector<HTMLInputElement>("[data-mechanism-distance]")?.addEventListener("change", (event) => {
+      const value = Number((event.target as HTMLInputElement).value);
+      if (Number.isFinite(value) && value > 0) this.handlers.onMechanismConfig({ waypoints: [{ x: 0, y: 0, z: value }] });
+    });
     // The activation is one sub-object, so its three fields are sent together: an interval
     // needs both durations, and sending one alone would let the sanitiser default the other.
     const activationFields = [...section.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-mechanism-activation]")];
@@ -911,6 +917,11 @@ export class EditorUI {
   }
 
   private fillMechanismFields(mechanism: MechanismConfig): void {
+    const distance = this.inspectorBody.querySelector<HTMLInputElement>("[data-mechanism-distance]");
+    if (distance && document.activeElement !== distance) {
+      const first = mechanism.waypoints[0];
+      distance.value = String(first ? Number(Math.hypot(first.x, first.z).toFixed(2)) : 0);
+    }
     for (const field of this.inspectorBody.querySelectorAll<HTMLInputElement>("[data-mechanism]")) {
       if (document.activeElement === field) continue;
       field.value = String(mechanism[field.dataset.mechanism as keyof MechanismConfig] ?? "");

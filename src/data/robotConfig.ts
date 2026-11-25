@@ -1,4 +1,5 @@
 import { t } from "../i18n";
+import type { DressedVariant, RobotVariant } from "./robotVariants";
 /**
  * Robots placed from the editor ("Robos" in the catalogue).
  *
@@ -12,7 +13,7 @@ import { t } from "../i18n";
 export const ROBOT_ASSET_ID = "wedding-mannequin";
 
 /** Which animation pack a clip comes from. */
-export type RobotClipPack = "general" | "movement" | "simulation";
+export type RobotClipPack = "general" | "movement" | "simulation" | "fest";
 
 export interface RobotClip {
   readonly id: string;
@@ -39,6 +40,15 @@ export const ROBOT_CLIPS: readonly RobotClip[] = [
   { id: "Sit_Floor_Idle", get label() { return t("editor.clipSitFloor"); }, pack: "simulation" },
   { id: "Lie_Idle", get label() { return t("editor.clipLie"); }, pack: "simulation" },
   { id: "Push_Ups", get label() { return t("editor.clipPushUps"); }, pack: "simulation" },
+  // The dressed robots' own clips (scripts/robots/robot_poses.py); their pack is fetched
+  // the first time a robot asks for one of them.
+  { id: "Fest_Sway", get label() { return t("editor.clipFestSway"); }, pack: "fest" },
+  { id: "Fest_March", get label() { return t("editor.clipFestMarch"); }, pack: "fest" },
+  { id: "Wedding_Bouquet", get label() { return t("editor.clipWeddingBouquet"); }, pack: "fest" },
+  { id: "Wedding_Groom", get label() { return t("editor.clipWeddingGroom"); }, pack: "fest" },
+  { id: "Band_Guitar", get label() { return t("editor.clipBandGuitar"); }, pack: "fest" },
+  { id: "Band_Sing", get label() { return t("editor.clipBandSing"); }, pack: "fest" },
+  { id: "Band_Keyboard", get label() { return t("editor.clipBandKeyboard"); }, pack: "fest" },
 ];
 
 export const DEFAULT_ROBOT_CLIP = "Idle_A";
@@ -116,6 +126,8 @@ export const sanitizeRobotConfig = (value: unknown): RobotConfig => {
 export interface RobotPreset {
   readonly label: string;
   readonly config: RobotConfig;
+  /** The costume it wears; none is the plain Mannequin. */
+  readonly variant?: DressedVariant;
 }
 
 /** Catalogue entries, so the common robots are one click rather than five fields. */
@@ -136,6 +148,43 @@ export const ROBOT_PRESETS: readonly RobotPreset[] = [
     get label() { return t("editor.presetSitting"); },
     config: { ...DEFAULT_ROBOT_CONFIG, customer: true, canMove: false, idleClip: "Sit_Chair_Idle" },
   },
+  // Dressed robots. The festival pair and the couple order food like any guest; the band
+  // plays where it was placed and orders nothing.
+  {
+    get label() { return t("robots.germanMan"); },
+    variant: "german-man",
+    config: { ...DEFAULT_ROBOT_CONFIG, idleClip: "Fest_Sway" },
+  },
+  {
+    get label() { return t("robots.germanWoman"); },
+    variant: "german-woman",
+    config: { ...DEFAULT_ROBOT_CONFIG, idleClip: "Fest_Sway" },
+  },
+  {
+    get label() { return t("robots.groom"); },
+    variant: "groom",
+    config: { ...DEFAULT_ROBOT_CONFIG, idleClip: "Wedding_Groom" },
+  },
+  {
+    get label() { return t("robots.bride"); },
+    variant: "bride",
+    config: { ...DEFAULT_ROBOT_CONFIG, idleClip: "Wedding_Bouquet" },
+  },
+  {
+    get label() { return t("robots.guitar"); },
+    variant: "guitar",
+    config: { ...DEFAULT_ROBOT_CONFIG, customer: false, canMove: false, idleClip: "Band_Guitar" },
+  },
+  {
+    get label() { return t("robots.singer"); },
+    variant: "singer",
+    config: { ...DEFAULT_ROBOT_CONFIG, customer: false, canMove: false, idleClip: "Band_Sing" },
+  },
+  {
+    get label() { return t("robots.keyboard"); },
+    variant: "keyboard",
+    config: { ...DEFAULT_ROBOT_CONFIG, customer: false, canMove: false, idleClip: "Band_Keyboard" },
+  },
 ];
 
 /** One robot the scene has to build, derived from a placed object. */
@@ -146,4 +195,6 @@ export interface RobotSpawn {
   readonly position: { x: number; y: number; z: number };
   readonly rotationY: number;
   readonly config: RobotConfig;
+  /** Its costume, read from the placed model (see robotVariants). */
+  readonly variant: RobotVariant;
 }

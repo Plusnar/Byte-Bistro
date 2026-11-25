@@ -26,6 +26,7 @@ import {
   type MechanismConfig,
 } from "../data/mechanismConfig";
 import { ROBOT_ASSET_ID, ROBOT_PRESETS, type RobotConfig } from "../data/robotConfig";
+import { robotAssetId } from "../data/robotVariants";
 import { OVEN_ASSET_ID } from "../data/stationAssets";
 import { getIngredient } from "../data/ingredients";
 
@@ -204,6 +205,22 @@ const MECHANISM_PRESETS: readonly EditorAssetEntry[] = [
     // says so: rename its pair in the inspector.
     mechanism: { ...DEFAULT_MECHANISM_CONFIG, kind: "portal", portalPairId: "A" },
   },
+  {
+    // Seven robots in festival dress marching five metres ahead of where it faces and back,
+    // in step. The model shown here is one of them; in play it is the whole column.
+    assetId: robotAssetId("german-man"),
+    get label() { return t("editor.mechanismPrefix", { name: MECHANISM_KIND_LABEL.march }); },
+    category: "mechanism",
+    role: "mechanism",
+    color: "#E0884A",
+    mechanism: {
+      ...DEFAULT_MECHANISM_CONFIG,
+      kind: "march",
+      speed: 1.1,
+      pauseSeconds: 1.2,
+      waypoints: [{ x: 0, y: 0, z: 5 }],
+    },
+  },
 ];
 
 export const kitchenStationEntry = (kind: KitchenStationKind): EditorAssetEntry => ({
@@ -241,9 +258,11 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
       .filter((kind) => kind !== "crate")
       .map(kitchenStationEntry),
     ...KITCHEN_DISPENSER_ANCHORS.map((anchor) => kitchenCrateEntry(anchor.ingredientId)),
-    // Robots are one model with four starting configs; the inspector tunes them per instance.
+    // Robots: the plain Mannequin with four starting configs, then the dressed variants,
+    // each its own model (the game reads the costume back from the asset id). The
+    // inspector tunes any of them per instance.
     ...ROBOT_PRESETS.map((preset): EditorAssetEntry => ({
-      assetId: ROBOT_ASSET_ID,
+      assetId: preset.variant ? robotAssetId(preset.variant) : ROBOT_ASSET_ID,
       get label() { return preset.label; },
       category: "robot",
       role: "robot",

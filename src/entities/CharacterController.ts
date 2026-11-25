@@ -325,6 +325,27 @@ export class CharacterController {
   }
 
   /**
+   * Holds the clip playing now still, or lets it run again; and restarts it from its first
+   * frame. A line of robots marching in step needs both: they start together, and stop
+   * together when the parade rests.
+   */
+  setAnimationPaused(paused: boolean): void {
+    const group = this.activeAnimation;
+    if (!group) return;
+    if (paused) group.pause();
+    else group.play(group.loopAnimation);
+  }
+
+  restartAnimation(): void {
+    this.activeAnimation?.reset();
+  }
+
+  /** Playback rate of the clip playing now (1 is as authored). */
+  setAnimationSpeed(ratio: number): void {
+    if (this.activeAnimation) this.activeAnimation.speedRatio = ratio;
+  }
+
+  /**
    * Plays a clip from an animation pack once, such as a robot's throw. Resolves with
    * how long it runs in seconds, or 0 when it cannot be played. Whatever plays next
    * (an ambient clip, locomotion) takes over from its last frame.
