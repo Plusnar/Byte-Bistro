@@ -39,7 +39,6 @@ export function openCollection(view: "items" | "achievements", state: Persistent
   const close = closeCorner(dialog);
   const content = document.createElement("div");
   content.className = "bistro-collection-grid";
-  const discovered = new Set(state.discoveries);
   const add = (name: string, detail: string, locked = false) => {
     const card = document.createElement("article");
     card.dataset.locked = String(locked);
@@ -57,23 +56,23 @@ export function openCollection(view: "items" | "achievements", state: Persistent
     filters.className = "bistro-collection-filters";
     let current: "ingredients" | "equipment" = "ingredients";
     /** One item, opened from its card: big picture, name and a short, silly description. */
-    const showDetail = (id: string, label: string, locked: boolean) => {
+    const about = (id: string) => t(`collection.about.${id.replace(/^station:/, "")}` as MessageKey);
+    const showDetail = (id: string, label: string) => {
       const detail = document.createElement("section");
       detail.className = "bistro-item-detail";
-      detail.dataset.locked = String(locked);
       const image = document.createElement("img");
       image.alt = "";
       image.width = image.height = 160;
       image.src = imageFor(id);
       const name = document.createElement("h3");
       name.textContent = label;
-      const about = document.createElement("p");
-      about.textContent = locked ? t("collection.lockedHint") : t(`collection.about.${id.replace(/^station:/, "")}` as MessageKey);
+      const text = document.createElement("p");
+      text.textContent = about(id);
       const back = document.createElement("button");
       back.type = "button";
       back.textContent = t("collection.back");
       back.onclick = () => render(current);
-      detail.append(image, name, about, back);
+      detail.append(image, name, text, back);
       filters.hidden = true;
       content.replaceChildren(detail);
       back.focus();
@@ -90,8 +89,9 @@ export function openCollection(view: "items" | "achievements", state: Persistent
         : equipment.map((id) => [`station:${id}`, STATION_KIND_LABEL[id]]);
       for (const [id, label] of entries) {
         if (!id || !label) continue;
-        const locked = !discovered.has(id);
-        const card = add(label, locked ? t("collection.locked") : "✓", locked);
+        // Every item is open from the start: the list is a guide to the kitchen, not a reward.
+        const card = add(label, about(id));
+        card.classList.add("bistro-item-card");
         const image = document.createElement("img");
         image.width = image.height = 48;
         image.alt = "";
@@ -103,7 +103,7 @@ export function openCollection(view: "items" | "achievements", state: Persistent
         open.type = "button";
         open.className = "bistro-card-open";
         open.setAttribute("aria-label", label);
-        open.onclick = () => showDetail(id, label, locked);
+        open.onclick = () => showDetail(id, label);
         card.append(open);
       }
     };

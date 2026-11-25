@@ -83,7 +83,6 @@ export const pt = {
     discoveries: "Descubra 20 itens",
     unlocked: "Conquista desbloqueada",
     back: "Voltar",
-    lockedHint: "Ainda não descoberto. Use na cozinha para revelar.",
     about: {
       ram_module: "Memória fresquinha, colhida direto da placa-mãe. Corte antes que esqueça o que é.",
       binary_sugar: "Doce em 0 e 1. Diabético só se for em hexadecimal.",
@@ -797,6 +796,7 @@ export const pt = {
   },
   phone: {
     pageTitle: "Controle · Byte Bistro",
+    noAccount: "Criar conta",
     accountHelp: "O jogo na TV está pedindo para entrar na conta. Digite aqui; os dados vão direto para a TV.",
     title: "Controle no celular",
     codeLabel: "Código da sala",

@@ -79,7 +79,6 @@ export const en: Messages = {
     discoveries: "Discover 20 items",
     unlocked: "Achievement unlocked",
     back: "Back",
-    lockedHint: "Not discovered yet. Use it in the kitchen to reveal it.",
     about: {
       ram_module: "Fresh memory, picked straight off the motherboard. Chop it before it forgets what it is.",
       binary_sugar: "Sweet in 0s and 1s. Only bad for you in hexadecimal.",
@@ -793,6 +792,7 @@ export const en: Messages = {
   },
   phone: {
     pageTitle: "Controller · Byte Bistro",
+    noAccount: "Create account",
     accountHelp: "The game on the TV is asking you to sign in. Type here; it goes straight to the TV.",
     title: "Phone controller",
     codeLabel: "Room code",

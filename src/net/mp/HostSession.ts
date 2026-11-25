@@ -131,7 +131,7 @@ export class HostSession {
   /** A button pressed on a pad showing the D-pad (menus, character selection). */
   onMenuButton: ((slot: number, button: PhoneButton) => void) | null = null;
   /** Player 1 answered the account form on their phone. */
-  onForm: ((message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" }>) => void) | null = null;
+  onForm: ((message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" | "form-mode" }>) => void) | null = null;
   /** The account form player 1's phone shows (null: none). */
   private form: AccountForm | null = null;
 
@@ -582,6 +582,7 @@ export class HostSession {
         return;
       case "form-submit":
       case "form-cancel":
+      case "form-mode":
         phone.device.state.touch(now);
         if (phone.info.slot === 0 && this.form?.id === message.id) this.onForm?.(message);
         return;

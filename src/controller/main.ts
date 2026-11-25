@@ -114,6 +114,7 @@ app.innerHTML = `
       <p class="account-error" data-ui="account-error" role="alert"></p>
       <div class="sheet-actions">
         <button class="secondary" type="button" data-action="account-cancel">${esc("common.cancel")}</button>
+        <button class="link-btn" type="button" data-action="account-switch" data-ui="account-switch"></button>
         <button class="primary" type="submit" data-ui="account-submit"></button>
       </div>
     </form>
@@ -290,6 +291,9 @@ app.addEventListener("click", (event) => {
       return;
     case "account-cancel":
       session.cancelForm();
+      return;
+    case "account-switch":
+      if (view?.form) session.switchForm(view.form.mode === "login" ? "register" : "login");
       return;
     case "fullscreen":
       void toggleFullscreen();
@@ -604,6 +608,7 @@ function renderAccountForm(form: AccountForm | null): void {
     accountPass.setAttribute("autocomplete", creating ? "new-password" : "current-password");
     q("[data-ui=account-title]").textContent = t(creating ? "account.createTitle" : "account.title");
     q("[data-ui=account-submit]").textContent = t(creating ? "account.register" : "account.login");
+    q("[data-ui=account-switch]").textContent = t(creating ? "account.haveAccount" : "phone.noAccount");
     q("[data-ui=account-user-rule]").hidden = !creating;
     q("[data-ui=account-pass-rule]").hidden = !creating;
   }

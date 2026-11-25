@@ -376,6 +376,11 @@ export class ControllerSession {
     });
   }
 
+  /** Asks the TV to switch its form (sign in ↔ create account). */
+  switchForm(mode: AccountForm["mode"]): void {
+    if (this.form && this.form.mode !== mode) this.sendToHost({ t: "form-mode", id: this.form.id, mode });
+  }
+
   cancelForm(): void {
     if (this.form) this.sendToHost({ t: "form-cancel", id: this.form.id });
   }

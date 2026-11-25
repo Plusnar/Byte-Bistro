@@ -32,7 +32,7 @@ export interface PhoneHubOptions {
   /** The pairing panel's players changed (joined, left, reconnected). */
   readonly onPlayersChanged?: () => void;
   /** Player 1 answered the account form on their phone. */
-  readonly onAccountForm?: (message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" }>) => void;
+  readonly onAccountForm?: (message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" | "form-mode" }>) => void;
 }
 
 /** How often the pads are re-checked against the game's state. Sends only on change. */

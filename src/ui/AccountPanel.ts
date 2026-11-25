@@ -215,9 +215,10 @@ export class AccountPanel {
   }
 
   /** Player 1 answered the form on their phone. */
-  answerPhone(message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" }>): void {
+  answerPhone(message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" | "form-mode" }>): void {
     if (!this.phoneForm || message.id !== this.phoneForm.id) return;
     if (message.t === "form-cancel") this.dialog?.close();
+    else if (message.t === "form-mode") this.show(message.mode);
     else this.phoneSubmit?.(message.username, message.password);
   }
 

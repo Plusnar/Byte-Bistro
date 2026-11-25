@@ -218,7 +218,9 @@ export type PhoneToHost =
   | { readonly t: "ping"; readonly id: number; readonly ts: number }
   | { readonly t: "stats"; readonly rtt: number; readonly jitter: number; readonly rate: number; readonly transport: TransportKind }
   | { readonly t: "form-submit"; readonly id: number; readonly username: string; readonly password: string }
-  | { readonly t: "form-cancel"; readonly id: number };
+  | { readonly t: "form-cancel"; readonly id: number }
+  /** Switches the TV's form between signing in and creating an account. */
+  | { readonly t: "form-mode"; readonly id: number; readonly mode: AccountFormMode };
 
 /**
  * The account form typed on player 1's phone while the TV shows the sign-in dialog. `id`
@@ -309,6 +311,9 @@ export const parsePhoneToHost = (value: unknown): PhoneToHost | null => {
         ? { t: "form-submit", id: value.id, username: value.username, password: value.password } : null;
     case "form-cancel":
       return isInt(value.id, 0, 0xffffff) ? { t: "form-cancel", id: value.id } : null;
+    case "form-mode":
+      return isInt(value.id, 0, 0xffffff) && (value.mode === "login" || value.mode === "register")
+        ? { t: "form-mode", id: value.id, mode: value.mode } : null;
     default:
       return null;
   }

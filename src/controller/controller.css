@@ -457,12 +457,29 @@ input { font: inherit; -webkit-user-select: text; user-select: text; touch-actio
 /* ------------------------------------------------------------------ account form */
 
 /* The TV's sign-in dialog, typed on player 1's phone: a sheet over the pad. */
-.account-sheet { inset: 0; max-block-size: none; border-radius: 0; align-content: center; justify-items: center; z-index: 12; }
-.account-form { display: grid; gap: .6rem; inline-size: min(100%, 26rem); }
+.account-sheet { inset: 0; max-block-size: none; border-radius: 0; align-content: start; justify-items: center; z-index: 12; overflow-y: auto; }
+/* margin-block: auto centres it when it fits; when it does not, it scrolls from the top. */
+.account-form { display: grid; gap: .45rem; inline-size: min(100%, 34rem); margin-block: auto; }
 .account-form h2 { margin: 0; font-size: 1.25rem; color: var(--yellow); }
 .account-help { margin: 0; font-size: .85rem; opacity: .85; }
 .account-rule { font-size: .75rem; opacity: .75; margin-block-start: -.3rem; }
 .account-rule[hidden] { display: none; }
+.account-form .link-btn {
+  padding: .55rem .9rem;
+  border: 2px solid #3fd8ff88;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--aqua);
+  font: inherit;
+  font-weight: 800;
+}
+.account-form .link-btn:disabled { opacity: .5; }
+/* Landscape phones are short: drop the help line and keep the fields tight. */
+@media (max-height: 480px) {
+  .account-help { display: none; }
+  .account-form .field input { padding-block: .45rem; }
+  .account-sheet { padding-block: .6rem; }
+}
 .account-error { margin: 0; min-block-size: 1.2em; color: #ff8a8a; font-weight: 800; font-size: .9rem; }
 
 @media (prefers-reduced-motion: reduce) {
