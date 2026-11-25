@@ -95,3 +95,6 @@ dist/
 /workers/mp/test/
 /workers/accounts/.wrangler/
 /workers/accounts/test/
+
+# Python bytecode from the Blender build scripts.
+__pycache__/
