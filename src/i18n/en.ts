@@ -70,6 +70,9 @@ export const en: Messages = {
     unavailable: "Online accounts are unavailable. You can continue as a guest.",
   },
   collection: {
+    mixerBadge: "🥣 Made in the mixer",
+    mixedFrom: "No crate: make it in the mixer with {recipe}.",
+    choppedItem: "chopped {name}",
     items: "Items",
     achievements: "Achievements",
     ingredients: "Ingredients",

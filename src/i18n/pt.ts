@@ -74,6 +74,9 @@ export const pt = {
     unavailable: "Conta online indisponível. Você pode continuar como convidado.",
   },
   collection: {
+    mixerBadge: "🥣 Preparado na batedeira",
+    mixedFrom: "Sem caixa: prepare na batedeira com {recipe}.",
+    choppedItem: "{name} picado",
     items: "Itens",
     achievements: "Conquistas",
     ingredients: "Ingredientes",

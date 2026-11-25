@@ -1,4 +1,4 @@
-import { FOOD_DEFINITIONS, STATION_KIND_LABEL } from "../data/kitchen";
+import { FOOD_DEFINITIONS, MIX_RECIPES, STATION_KIND_LABEL } from "../data/kitchen";
 import { getIngredient } from "../data/ingredients";
 import { SCENARIOS } from "../data/scenarios";
 import { ingredientIllustration } from "./illustrations";
@@ -9,6 +9,19 @@ import type { PersistentGameState } from "../types/game";
 
 const ingredients = Object.keys(FOOD_DEFINITIONS);
 const equipment = Object.keys(STATION_KIND_LABEL) as (keyof typeof STATION_KIND_LABEL)[];
+
+/**
+ * Prepared ingredients have no crate: they are made in the mixer. Their card says so, and
+ * their detail lists what goes into the bowl, so a missing crate does not look like a gap.
+ */
+const mixedFrom = (id: string): string | null => {
+  const mix = MIX_RECIPES.find((recipe) => recipe.output === id);
+  if (!mix) return null;
+  return mix.inputs.map((input) => {
+    const name = getIngredient(input.ingredientId)?.displayName ?? input.ingredientId;
+    return input.state === "chopped" ? t("collection.choppedItem", { name }) : name;
+  }).join(" + ");
+};
 
 export function achievementProgress(state: PersistentGameState) {
   const levels = new Set<string>();
@@ -68,6 +81,11 @@ export function openCollection(view: "items" | "achievements", state: Persistent
       name.textContent = label;
       const text = document.createElement("p");
       text.textContent = about(id);
+      const recipe = mixedFrom(id);
+      const made = document.createElement("p");
+      made.className = "bistro-item-mixed";
+      made.hidden = !recipe;
+      if (recipe) made.textContent = t("collection.mixedFrom", { recipe });
       const back = document.createElement("button");
       back.type = "button";
       back.textContent = t("collection.back");
@@ -78,7 +96,7 @@ export function openCollection(view: "items" | "achievements", state: Persistent
       };
       // B on player 1's phone returns to the list instead of closing the dialog.
       back.dataset.navBack = "";
-      detail.append(image, name, text, back);
+      detail.append(image, name, text, made, back);
       filters.hidden = true;
       content.replaceChildren(detail);
       back.focus();
@@ -98,6 +116,12 @@ export function openCollection(view: "items" | "achievements", state: Persistent
         // Every item is open from the start: the list is a guide to the kitchen, not a reward.
         const card = add(label, about(id));
         card.classList.add("bistro-item-card");
+        if (mixedFrom(id)) {
+          const badge = document.createElement("em");
+          badge.className = "bistro-item-badge";
+          badge.textContent = t("collection.mixerBadge");
+          card.append(badge);
+        }
         const image = document.createElement("img");
         image.width = image.height = 48;
         image.alt = "";

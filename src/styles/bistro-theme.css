@@ -1204,3 +1204,7 @@
 }
 .game-ui .bistro-home-actions .bistro-home-credits { --home-icon: url("/assets/ui/bistro-credits.webp"); }
 .bistro-credits-closing { margin: .8rem 0 0; font-size: 1.12rem; font-weight: 900; line-height: 1.45; color: #ffd56b; }
+
+/* Prepared ingredients come from the mixer, not a crate (Items). */
+.bistro-collection-grid .bistro-item-badge { justify-self: start; padding: .1rem .5rem; border-radius: 999px; background: var(--bistro-yellow, #ffc93c); color: var(--bistro-ink, #24304a); font-size: .72rem; font-style: normal; font-weight: 800; }
+.bistro-item-detail .bistro-item-mixed { font-weight: 800; color: var(--bistro-ink, #24304a); }
