@@ -3,11 +3,13 @@
  * account, and the iteration count stored with each hash so it can be raised later (an
  * account is rehashed at its next login).
  *
- * The cost is bounded by the Workers CPU limit: PBKDF2_ITERATIONS was chosen by measuring
- * a login on Cloudflare (see the README, "Contas").
+ * The cost is bounded by the Workers CPU limit (10 ms per request on the Free plan). Measured
+ * on Cloudflare in production, 100 000 iterations cost 19–43 ms of CPU per login, so the
+ * count is 20 000 (~4–9 ms). On the Paid plan it can go back up: raise this number and each
+ * account is rehashed with the new cost at its next login (router.ts).
  */
 
-export const PBKDF2_ITERATIONS = 100_000;
+export const PBKDF2_ITERATIONS = 20_000;
 const SALT_BYTES = 16;
 const HASH_BITS = 256;
 
