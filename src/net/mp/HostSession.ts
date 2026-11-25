@@ -16,7 +16,7 @@ import {
   seqNewer,
   parsePhoneToHost,
   safeJson,
-  type AccountForm,
+  type PhoneField,
   type CreateRoomResponse,
   type HostToPhone,
   type LobbyPlayer,
@@ -53,7 +53,7 @@ export interface PhonePeer {
   /** What this phone's pad shows; only "game" drives a cook. */
   layout: PadLayout;
   lastUiMessage: string;
-  lastFormMessage: string;
+  lastFieldMessage: string;
   /** Last button event turned into a menu command, so a resent one is not run twice. */
   lastMenuSeq: number;
 }
@@ -130,10 +130,10 @@ export class HostSession {
   private padFor: ((slot: number) => PadState) | null = null;
   /** A button pressed on a pad showing the D-pad (menus, character selection). */
   onMenuButton: ((slot: number, button: PhoneButton) => void) | null = null;
-  /** Player 1 answered the account form on their phone. */
-  onForm: ((message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" | "form-mode" }>) => void) | null = null;
-  /** The account form player 1's phone shows (null: none). */
-  private form: AccountForm | null = null;
+  /** Player 1 typed (or put away) the field their phone offered. */
+  onField: ((message: Extract<PhoneToHost, { t: "field-submit" | "field-cancel" }>) => void) | null = null;
+  /** The TV field player 1's phone is the keyboard for (null: none). */
+  private field: PhoneField | null = null;
 
   /** Creates a room (or reclaims the one this tab hosted moments ago) and connects. */
   static async open(options: HostSessionOptions): Promise<HostSession> {
@@ -242,24 +242,24 @@ export class HostSession {
       if (json === phone.lastUiMessage) continue;
       if (this.sendToPhone(phone, { t: "ui", layout: pad.layout, leader: pad.leader })) phone.lastUiMessage = json;
     }
-    this.refreshForms();
+    this.refreshFields();
   }
 
-  /** Shows the account form on player 1's phone, or closes it (null). */
-  setForm(form: AccountForm | null): void {
-    this.form = form;
-    this.refreshForms();
+  /** Offers a TV field to player 1's phone as a keyboard, or puts it away (null). */
+  setField(field: PhoneField | null): void {
+    this.field = field;
+    this.refreshFields();
   }
 
-  /** Only player 1's phone gets the form; every other phone is told to close any it has. */
-  private refreshForms(): void {
+  /** Only player 1's phone gets the field; every other phone is told to put away any it has. */
+  private refreshFields(): void {
     for (const phone of this.phones.values()) {
       if (!phone.info.connected) continue;
-      const form = phone.info.slot === 0 ? this.form : null;
-      const json = JSON.stringify(form);
-      // A phone that never had a form needs no "close".
-      if (json === (phone.lastFormMessage || "null")) continue;
-      if (this.sendToPhone(phone, { t: "form", form })) phone.lastFormMessage = json;
+      const field = phone.info.slot === 0 ? this.field : null;
+      const json = JSON.stringify(field);
+      // A phone that never had a field needs no "put away".
+      if (json === (phone.lastFieldMessage || "null")) continue;
+      if (this.sendToPhone(phone, { t: "field", field })) phone.lastFieldMessage = json;
     }
   }
 
@@ -329,7 +329,7 @@ export class HostSession {
     this.listeners.clear();
     this.phoneListeners.clear();
     this.onMenuButton = null;
-    this.onForm = null;
+    this.onField = null;
     this.padFor = null;
   }
 
@@ -435,7 +435,7 @@ export class HostSession {
           lastCookMessage: "",
           layout: "wait",
           lastUiMessage: "",
-          lastFormMessage: "",
+          lastFieldMessage: "",
           lastMenuSeq: -1,
         };
         this.phones.set(info.id, phone);
@@ -456,7 +456,7 @@ export class HostSession {
       if (!info.connected) {
         phone.lastCookMessage = "";
         phone.lastUiMessage = "";
-        phone.lastFormMessage = "";
+        phone.lastFieldMessage = "";
       }
       this.sendCook(phone);
     }
@@ -506,7 +506,7 @@ export class HostSession {
           phone.device.state.timing = P2P_SAFETY;
           phone.lastCookMessage = "";
           phone.lastUiMessage = "";
-          phone.lastFormMessage = "";
+          phone.lastFieldMessage = "";
           this.sendCook(phone);
           this.refreshPads();
           void this.refreshDiagnostics();
@@ -580,11 +580,10 @@ export class HostSession {
         phone.phoneRate = message.rate;
         phone.rtt.add(message.rtt);
         return;
-      case "form-submit":
-      case "form-cancel":
-      case "form-mode":
+      case "field-submit":
+      case "field-cancel":
         phone.device.state.touch(now);
-        if (phone.info.slot === 0 && this.form?.id === message.id) this.onForm?.(message);
+        if (phone.info.slot === 0 && this.field?.id === message.id) this.onField?.(message);
         return;
     }
   }

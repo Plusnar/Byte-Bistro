@@ -8,7 +8,7 @@ import { publicUrl } from "../utils/assetUrl";
 import { t } from "../i18n";
 import { accountErrorText } from "../core/accountErrors";
 import { closeCorner } from "./closeCorner";
-import type { AccountForm, PhoneToHost } from "../net/mp/protocol";
+import type { PhoneFieldKind } from "../net/mp/protocol";
 import type { PersistentGameState } from "../types/game";
 import { PASSWORD_MAX, PASSWORD_MIN, USERNAME_MAX, USERNAME_MIN, cleanUsername, validPassword } from "../../workers/accounts/src/rules";
 
@@ -27,40 +27,78 @@ const setSessionHint = (on: boolean): void => {
 };
 
 /**
- * Player 1's phone as a keyboard for the sign-in form (the TV has none): the game says
- * whether that phone is connected and carries the form to it (see AccountForm).
+ * The avatar wheel: one big picture in the middle, its neighbours fading out on each side.
+ * Left/right turn it: player 1's D-pad (`navstep` from MenuNavigator), the arrow keys, the
+ * side arrows with the mouse or a swipe.
  */
-export interface PhoneKeyboard {
-  readonly available: () => boolean;
-  readonly show: (form: AccountForm | null) => void;
-}
-
-/** A grid of every avatar; arrow keys and player 1's D-pad move through it like any button. */
-const avatarPicker = (initial: Avatar) => {
+const avatarWheel = (initial: Avatar) => {
   const element = document.createElement("div");
-  element.className = "bistro-avatars";
-  element.setAttribute("role", "group");
+  element.className = "bistro-avatar-wheel";
+  element.tabIndex = 0;
+  element.dataset.nav = "";
+  element.dataset.navX = "";
+  element.setAttribute("role", "spinbutton");
   element.setAttribute("aria-label", t("account.pickAvatar"));
-  let selected = initial;
-  for (const avatar of avatars) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.setAttribute("aria-label", avatar);
-    button.setAttribute("aria-pressed", String(selected === avatar));
+  const arrow = (direction: -1 | 1) => {
+    const button = document.createElement("span");
+    button.className = "bistro-wheel-arrow";
+    button.textContent = direction < 0 ? "◀" : "▶";
+    button.setAttribute("aria-hidden", "true");
+    button.onclick = () => step(direction);
+    return button;
+  };
+  const track = document.createElement("div");
+  track.className = "bistro-wheel-track";
+  const OFFSETS = [-2, -1, 0, 1, 2] as const;
+  const slots = OFFSETS.map((offset) => {
     const image = document.createElement("img");
     image.alt = "";
-    image.loading = "lazy";
     image.decoding = "async";
-    image.src = publicUrl(avatarPath(avatar));
-    image.width = image.height = 56;
-    button.append(image);
-    button.onclick = () => {
-      selected = avatar;
-      for (const option of element.querySelectorAll("button")) option.setAttribute("aria-pressed", String(option === button));
-    };
-    element.append(button);
-  }
-  return { element, selected: () => selected };
+    image.dataset.offset = String(offset);
+    track.append(image);
+    return image;
+  });
+  const counter = document.createElement("span");
+  counter.className = "bistro-wheel-count";
+  const hint = document.createElement("span");
+  hint.className = "bistro-wheel-hint";
+  hint.textContent = t("account.avatarHint");
+  element.append(arrow(-1), track, arrow(1), counter, hint);
+
+  let index = Math.max(0, avatars.indexOf(initial));
+  const count = avatars.length;
+  const render = () => {
+    slots.forEach((image, slot) => {
+      image.src = publicUrl(avatarPath(avatars[(index + OFFSETS[slot]! + count) % count]!));
+    });
+    counter.textContent = `${index + 1} / ${count}`;
+    element.setAttribute("aria-valuenow", String(index + 1));
+    element.setAttribute("aria-valuetext", `${index + 1} / ${count}`);
+  };
+  const step = (direction: number) => {
+    index = (index + direction + count) % count;
+    render();
+    // A short slide in the direction it turned (restarted on every step).
+    element.dataset.turn = direction < 0 ? "left" : "right";
+    track.getAnimations().forEach((animation) => animation.cancel());
+    track.classList.remove("turning");
+    void track.offsetWidth;
+    track.classList.add("turning");
+  };
+  element.addEventListener("navstep", (event) => step((event as CustomEvent<number>).detail));
+  element.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    step(event.key === "ArrowLeft" ? -1 : 1);
+  });
+  let swipeFrom: number | null = null;
+  element.addEventListener("pointerdown", (event) => { swipeFrom = event.clientX; });
+  element.addEventListener("pointerup", (event) => {
+    if (swipeFrom !== null && Math.abs(event.clientX - swipeFrom) > 30) step(event.clientX < swipeFrom ? 1 : -1);
+    swipeFrom = null;
+  });
+  render();
+  return { element, selected: () => avatars[index]! };
 };
 
 /**
@@ -85,12 +123,10 @@ export class AccountPanel {
   onAvatar: (path: string | null) => void = () => undefined;
   /** The picture picked on the sign-up form, applied once the account exists. */
   private registerAvatar: Avatar | null = null;
-  /** Set by the game when phones can type; null: only the TV's own fields. */
-  phoneKeyboard: PhoneKeyboard | null = null;
-  private phoneForm: AccountForm | null = null;
-  private phoneFormSeq = 0;
-  /** Runs the open form's sign-in with what player 1 typed on the phone. */
-  private phoneSubmit: ((username: string, password: string) => void) | null = null;
+  /** Player 1's phone can type the fields (see PhoneTyping); set by the game. */
+  phoneTypingAvailable: () => boolean = () => false;
+  /** A dialog just opened (its first field has the focus). */
+  onShown: () => void = () => undefined;
 
   constructor(
     private readonly readGuest: () => PersistentGameState,
@@ -102,7 +138,6 @@ export class AccountPanel {
   }
 
   dispose(): void {
-    this.setPhoneForm(null);
     this.generation++;
     this.listeners.abort();
     this.dialog?.close();
@@ -214,20 +249,6 @@ export class AccountPanel {
     }
   }
 
-  /** Player 1 answered the form on their phone. */
-  answerPhone(message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" | "form-mode" }>): void {
-    if (!this.phoneForm || message.id !== this.phoneForm.id) return;
-    if (message.t === "form-cancel") this.dialog?.close();
-    else if (message.t === "form-mode") this.show(message.mode);
-    else this.phoneSubmit?.(message.username, message.password);
-  }
-
-  private setPhoneForm(form: AccountForm | null): void {
-    this.phoneForm = form;
-    if (!form) this.phoneSubmit = null;
-    this.phoneKeyboard?.show(form);
-  }
-
   show(mode: Mode = "login"): void {
     if (this.dialog?.open) this.dialog.close();
     const dialog = document.createElement("dialog");
@@ -240,19 +261,19 @@ export class AccountPanel {
     const message = document.createElement("p");
     message.setAttribute("role", "status");
     const close = closeCorner(dialog);
-    /** This dialog is a sign-in form that player 1's phone can fill in. */
-    let typedOnPhone = false;
     const form = document.createElement("form");
     const hint = (text: string) => {
       const small = document.createElement("small");
       small.textContent = text;
       form.append(small);
     };
-    const field = (label: string, type: string, autocomplete: string) => {
+    /** A text field; `phone` is how player 1's phone offers to type it (PhoneTyping). */
+    const field = (label: string, type: string, autocomplete: string, phone: PhoneFieldKind) => {
       const wrapper = document.createElement("label");
       wrapper.textContent = label;
       const input = document.createElement("input");
       input.type = type;
+      input.dataset.phoneField = phone;
       input.setAttribute("autocomplete", autocomplete);
       input.required = true;
       wrapper.append(input);
@@ -260,7 +281,7 @@ export class AccountPanel {
       return input;
     };
     const usernameField = (autocomplete: string) => {
-      const input = field(t("account.username"), "text", autocomplete);
+      const input = field(t("account.username"), "text", autocomplete, "username");
       input.minLength = USERNAME_MIN;
       input.maxLength = USERNAME_MAX;
       input.pattern = "[A-Za-z0-9_.]+";
@@ -269,7 +290,7 @@ export class AccountPanel {
       return input;
     };
     const passwordField = (label: string, autocomplete: string) => {
-      const input = field(label, "password", autocomplete);
+      const input = field(label, "password", autocomplete, autocomplete === "new-password" ? "new-password" : "password");
       input.minLength = autocomplete === "new-password" ? PASSWORD_MIN : 1;
       input.maxLength = PASSWORD_MAX;
       return input;
@@ -284,8 +305,6 @@ export class AccountPanel {
     const explain = (error: unknown) => {
       const code = error instanceof AccountApiError ? error.code : "";
       message.textContent = t(accountErrorText(code));
-      // The phone that typed it shows the same reason.
-      if (this.phoneForm && this.dialog === dialog) this.setPhoneForm({ ...this.phoneForm, error: code || "failed", busy: false });
     };
     const handle = (run: () => Promise<void>) => {
       if (form.getAttribute("aria-busy") === "true") return;
@@ -299,6 +318,8 @@ export class AccountPanel {
     const submit = (label: string, run: () => Promise<void>) => {
       const button = document.createElement("button");
       button.type = "submit";
+      // Full width under the fields: "down" from the last field always lands on it.
+      button.className = "bistro-form-main";
       button.textContent = label;
       form.append(button);
       form.onsubmit = (event) => { event.preventDefault(); handle(run); };
@@ -308,6 +329,7 @@ export class AccountPanel {
       message.textContent = t("account.unavailable");
     } else if (this.snapshot && this.user && mode === "password") {
       const current = passwordField(t("account.currentPassword"), "current-password");
+      current.autofocus = true;
       const next = passwordField(t("account.newPassword"), "new-password");
       hint(t("account.passwordRules"));
       submit(t("account.changePassword"), async () => {
@@ -322,6 +344,7 @@ export class AccountPanel {
       warning.textContent = t("account.confirmDelete");
       form.append(warning);
       const password = passwordField(t("account.password"), "current-password");
+      password.autofocus = true;
       submit(t("account.deleteAccount"), async () => {
         const id = this.user?.id;
         await deleteAccount(password.value);
@@ -336,7 +359,7 @@ export class AccountPanel {
       const who = document.createElement("p");
       who.textContent = t("account.signedInAs", { username: this.user.username });
       form.append(who);
-      const name = field(t("account.name"), "text", "nickname");
+      const name = field(t("account.name"), "text", "nickname", "name");
       name.required = false;
       name.maxLength = 40;
       name.value = profile.name;
@@ -345,7 +368,9 @@ export class AccountPanel {
         stars: Object.values(progress.levelStars).reduce((sum, stars) => sum + stars, 0),
         record: Math.max(0, ...Object.values(progress.levelBestScore)),
       });
-      const picker = avatarPicker(profile.avatar);
+      const picker = avatarWheel(profile.avatar);
+      // The cursor starts on the wheel (autofocus also beats the corner ✕ for the browser).
+      picker.element.autofocus = true;
       form.append(summary, picker.element);
       submit(t("account.save"), async () => {
         if (!this.snapshot) return;
@@ -384,16 +409,18 @@ export class AccountPanel {
       action(t("account.deleteAccount"), () => this.show("delete"));
     } else {
       const creating = mode === "register";
-      if (this.phoneKeyboard?.available()) {
+      if (this.phoneTypingAvailable()) {
         const phone = document.createElement("p");
         phone.className = "bistro-phone-typing";
         phone.textContent = `📱 ${t("account.typeOnPhone")}`;
         form.append(phone);
       }
       const username = usernameField("username");
+      // The cursor (and player 1's phone keyboard) starts on the first field.
+      username.autofocus = true;
       if (creating) hint(t("account.usernameRules"));
       const password = passwordField(t("account.password"), creating ? "new-password" : "current-password");
-      const picker = creating ? avatarPicker(this.registerAvatar ?? avatars[0]) : null;
+      const picker = creating ? avatarWheel(this.registerAvatar ?? avatars[0]) : null;
       if (creating) {
         heading.textContent = t("account.createTitle");
         hint(t("account.passwordRules"));
@@ -415,29 +442,14 @@ export class AccountPanel {
         this.show();
       };
       submit(t(creating ? "account.register" : "account.login"), () => signIn(username.value, password.value));
-      // The same form, typed on player 1's phone: the TV shows the name (never the password).
-      const phoneForm: AccountForm = { id: ++this.phoneFormSeq & 0xffffff, mode: creating ? "register" : "login" };
-      this.phoneSubmit = (typedName, typedPassword) => {
-        if (form.getAttribute("aria-busy") === "true" || this.dialog !== dialog) return;
-        username.value = typedName;
-        password.value = "";
-        message.textContent = "";
-        this.setPhoneForm({ ...phoneForm, busy: true });
-        handle(() => signIn(typedName, typedPassword));
-      };
-      this.setPhoneForm(phoneForm);
-      typedOnPhone = true;
       if (creating) action(t("account.haveAccount"), () => this.show("login"));
       else action(t("account.register"), () => this.show("register"));
     }
-    if (!typedOnPhone) this.setPhoneForm(null);
     dialog.append(close, heading, form, message);
     document.body.append(dialog);
-    dialog.addEventListener("close", () => {
-      dialog.remove();
-      if (this.dialog === dialog) this.setPhoneForm(null);
-    }, { once: true });
+    dialog.addEventListener("close", () => dialog.remove(), { once: true });
     dialog.showModal();
+    this.onShown();
   }
 
   /** A status line on the open dialog, e.g. after a step that redraws it or why it opened. */

@@ -18,7 +18,13 @@ export interface MenuNavigatorHost {
   splashStep(): SplashStep | null;
 }
 
-const FOCUSABLE = "button, summary, [data-nav]";
+/**
+ * What the cursor can stop on. A text field takes A as "type here" (`navactivate`, the
+ * phone becomes its keyboard); an element with `data-nav-x` takes left/right itself
+ * (`navstep`, e.g. the avatar wheel); `data-nav-back` is a layer's own "back" inside a
+ * dialog; `data-nav-start` (or `autofocus`) is where the cursor starts.
+ */
+const FOCUSABLE = "button, summary, input:not([type=hidden]), [data-nav]";
 const FOCUS_CLASS = "nav-focus";
 
 const isShown = (element: Element): boolean => {
@@ -58,13 +64,24 @@ export class MenuNavigator {
 
     const items = this.items(scope.element);
     if (items.length === 0) return false;
+    // In a dialog the cursor starts where the focus already is (its autofocus: the first
+    // field, the avatar wheel, the first item), already shown, so the first press moves.
+    const active = document.activeElement;
+    if (scope.kind === "dialog" && (!this.current || !items.includes(this.current)) && active instanceof HTMLElement && items.includes(active)) {
+      this.focus(active);
+    }
     if (!this.current || !items.includes(this.current)) {
       // The first press only shows where the cursor is; it does not move or click yet.
       this.focus(this.preferred(items));
       return true;
     }
     if (command === "confirm") {
-      this.current.click();
+      if (this.current instanceof HTMLInputElement) this.current.dispatchEvent(new CustomEvent("navactivate", { bubbles: true }));
+      else this.current.click();
+      return true;
+    }
+    if ((command === "left" || command === "right") && this.current.hasAttribute("data-nav-x")) {
+      this.current.dispatchEvent(new CustomEvent("navstep", { detail: command === "left" ? -1 : 1 }));
       return true;
     }
     if (isDirection(command)) {
@@ -82,6 +99,11 @@ export class MenuNavigator {
       }
     }
     return false;
+  }
+
+  /** Moves the cursor one step, as if the D-pad was pressed (after typing a field). */
+  advance(): void {
+    this.command("down");
   }
 
   /** Forgets the cursor (the layer under it closed). */
@@ -137,8 +159,9 @@ export class MenuNavigator {
 
   /** Where the cursor starts in a layer: its main action, else its first control. */
   private preferred(items: readonly HTMLElement[]): HTMLElement {
+    const start = items.find((item) => item.hasAttribute("data-nav-start") || item.hasAttribute("autofocus"));
     const primary = items.find((item) => item.classList.contains("primary-action") || item.classList.contains("confirm-dialog-cancel"));
-    return primary ?? items[0]!;
+    return start ?? primary ?? items[0]!;
   }
 
   private focus(element: HTMLElement): void {
@@ -162,6 +185,8 @@ export class MenuNavigator {
       case "confirm":
         return click(".confirm-dialog-cancel");
       case "dialog":
+        // A step inside the dialog (an item's detail, a sub-form) goes back to the dialog.
+        if (click("[data-nav-back]")) return true;
         (scope.element as HTMLDialogElement).close();
         this.clearFocus();
         return true;

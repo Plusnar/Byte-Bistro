@@ -71,7 +71,13 @@ export function openCollection(view: "items" | "achievements", state: Persistent
       const back = document.createElement("button");
       back.type = "button";
       back.textContent = t("collection.back");
-      back.onclick = () => render(current);
+      back.onclick = () => {
+        render(current);
+        // Back on the card that was opened, so the cursor carries on from there.
+        [...content.querySelectorAll<HTMLButtonElement>(".bistro-card-open")].find((button) => button.dataset.item === id)?.focus();
+      };
+      // B on player 1's phone returns to the list instead of closing the dialog.
+      back.dataset.navBack = "";
       detail.append(image, name, text, back);
       filters.hidden = true;
       content.replaceChildren(detail);
@@ -103,8 +109,11 @@ export function openCollection(view: "items" | "achievements", state: Persistent
         open.type = "button";
         open.className = "bistro-card-open";
         open.setAttribute("aria-label", label);
+        open.dataset.item = id;
         open.onclick = () => showDetail(id, label);
         card.append(open);
+        // The cursor starts on the first item, not on the corner ✕.
+        if (content.childElementCount === 1) open.autofocus = true;
       }
     };
     for (const tab of ["ingredients", "equipment"] as const) {

@@ -16,8 +16,7 @@ import { ControllerSession, type ControllerStatus, type ControllerView } from ".
 import { BUTTONS, isRoomCode, normalizeRoomCode, type PadLayout, type PhoneButton, type TransportKind } from "../net/mp/protocol";
 import { dpadDirection, stickVector, type DpadDirection } from "./stick";
 import { createHaptics } from "./haptics";
-import { accountErrorText } from "../core/accountErrors";
-import type { AccountForm } from "../net/mp/protocol";
+import type { PhoneField } from "../net/mp/protocol";
 
 initLanguage(null);
 document.documentElement.lang = t("phone.pageTitle").startsWith("Controle") ? "pt-BR" : "en";
@@ -85,6 +84,7 @@ app.innerHTML = `
     <div class="wait-veil" data-ui="wait-veil" hidden><p data-ui="wait-text"></p></div>
     <div class="pause-veil" data-ui="pause-veil" hidden>${esc("phone.paused")}</div>
     <p class="banner" data-ui="banner" hidden></p>
+    <button class="field-bar" type="button" data-action="field-open" data-ui="field-bar" hidden></button>
     <div class="rotate-veil">
       <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="16" y="6" width="16" height="30" rx="3"/><path d="M8 30a16 16 0 0 0 26 10M34 40l0-6 6 0"/></svg>
       <p class="rotate-title">${esc("phone.rotate")}</p>
@@ -101,21 +101,14 @@ app.innerHTML = `
       <button class="primary" type="button" data-action="close-sheet">OK</button>
     </div>
   </section>
-  <section class="sheet account-sheet" data-ui="account-sheet" hidden>
-    <form class="account-form" data-ui="account-form">
-      <h2 data-ui="account-title"></h2>
-      <p class="account-help">${esc("phone.accountHelp")}</p>
-      <label class="field"><span>${esc("account.username")}</span>
-        <input name="account-user" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required></label>
-      <small class="account-rule" data-ui="account-user-rule">${esc("account.usernameRules")}</small>
-      <label class="field"><span>${esc("account.password")}</span>
-        <input name="account-pass" type="password" maxlength="128" required></label>
-      <small class="account-rule" data-ui="account-pass-rule">${esc("account.passwordRules")}</small>
-      <p class="account-error" data-ui="account-error" role="alert"></p>
+  <section class="sheet account-sheet" data-ui="field-sheet" hidden>
+    <form class="account-form" data-ui="field-form">
+      <p class="account-help">${esc("phone.typeForTv")}</p>
+      <label class="field"><span data-ui="field-label"></span>
+        <input name="field-value" maxlength="128" spellcheck="false"></label>
       <div class="sheet-actions">
-        <button class="secondary" type="button" data-action="account-cancel">${esc("common.cancel")}</button>
-        <button class="link-btn" type="button" data-action="account-switch" data-ui="account-switch"></button>
-        <button class="primary" type="submit" data-ui="account-submit"></button>
+        <button class="secondary" type="button" data-action="field-cancel">${esc("common.cancel")}</button>
+        <button class="primary" type="submit">${esc("phone.fieldOk")}</button>
       </div>
     </form>
   </section>
@@ -134,12 +127,13 @@ const joinForm = q<HTMLFormElement>("[data-ui=join-form]");
 const codeInput = joinForm.elements.namedItem("code") as HTMLInputElement;
 const nameInput = joinForm.elements.namedItem("name") as HTMLInputElement;
 const sheetName = q<HTMLInputElement>("input[name=sheet-name]");
-const accountSheet = q("[data-ui=account-sheet]");
-const accountForm = q<HTMLFormElement>("[data-ui=account-form]");
-const accountUser = accountForm.elements.namedItem("account-user") as HTMLInputElement;
-const accountPass = accountForm.elements.namedItem("account-pass") as HTMLInputElement;
-/** Which of the TV's forms the sheet shows; a new one starts empty. */
-let accountFormId = -1;
+const fieldSheet = q("[data-ui=field-sheet]");
+const fieldForm = q<HTMLFormElement>("[data-ui=field-form]");
+const fieldInput = fieldForm.elements.namedItem("field-value") as HTMLInputElement;
+/** Which of the TV's field requests the sheet shows; a new one starts from its value. */
+let fieldId = -1;
+/** The keyboard sheet is open (else the field is only offered, as a bar over the pad). */
+let fieldOpen = false;
 
 let session: ControllerSession | null = null;
 let view: ControllerView | null = null;
@@ -289,11 +283,14 @@ app.addEventListener("click", (event) => {
     case "close-sheet":
       sheet.hidden = true;
       return;
-    case "account-cancel":
-      session.cancelForm();
+    case "field-open":
+      openFieldSheet();
       return;
-    case "account-switch":
-      if (view?.form) session.switchForm(view.form.mode === "login" ? "register" : "login");
+    case "field-cancel":
+      fieldOpen = false;
+      fieldInput.blur();
+      renderField(view?.field ?? null);
+      session.cancelField();
       return;
     case "fullscreen":
       void toggleFullscreen();
@@ -585,42 +582,69 @@ function render(next: ControllerView): void {
   q("[data-ui=pause-veil]").hidden = !(next.phase === "paused" && waiting);
 
   if (!sheet.hidden) renderDiagnostics();
-  renderAccountForm(next.form);
+  renderField(next.field);
 }
+
+/** How each kind of TV field is labelled and typed here. */
+const FIELD_SETUP: Readonly<Record<PhoneField["kind"], { label: MessageKey; type: string; autocomplete: string }>> = {
+  username: { label: "account.username", type: "text", autocomplete: "username" },
+  password: { label: "account.password", type: "password", autocomplete: "current-password" },
+  "new-password": { label: "account.password", type: "password", autocomplete: "new-password" },
+  name: { label: "account.name", type: "text", autocomplete: "nickname" },
+};
 
 /**
- * The TV's sign-in dialog, typed here with the phone's own keyboard. The password goes to
- * the TV and is cleared from this page right after sending; nothing is kept on the phone.
+ * The phone as the TV's keyboard: the screen stays on the TV, and when its cursor reaches a
+ * text field this sheet offers that one field. OK sends the text back (and the TV moves on
+ * to the next control); a password is cleared from this page right after sending.
  */
-function renderAccountForm(form: AccountForm | null): void {
-  accountSheet.hidden = !form;
-  if (!form) {
-    accountFormId = -1;
-    accountPass.value = "";
+function renderField(field: PhoneField | null): void {
+  const bar = q("[data-ui=field-bar]");
+  if (!field) {
+    fieldSheet.hidden = true;
+    bar.hidden = true;
+    fieldId = -1;
+    fieldOpen = false;
+    fieldInput.value = "";
     return;
   }
-  const creating = form.mode === "register";
-  if (form.id !== accountFormId) {
-    accountFormId = form.id;
-    accountPass.value = "";
-    releaseEverything();
-    sheet.hidden = true;
-    accountPass.setAttribute("autocomplete", creating ? "new-password" : "current-password");
-    q("[data-ui=account-title]").textContent = t(creating ? "account.createTitle" : "account.title");
-    q("[data-ui=account-submit]").textContent = t(creating ? "account.register" : "account.login");
-    q("[data-ui=account-switch]").textContent = t(creating ? "account.haveAccount" : "phone.noAccount");
-    q("[data-ui=account-user-rule]").hidden = !creating;
-    q("[data-ui=account-pass-rule]").hidden = !creating;
+  if (field.id !== fieldId) {
+    fieldId = field.id;
+    const setup = FIELD_SETUP[field.kind];
+    q("[data-ui=field-label]").textContent = t(setup.label);
+    bar.textContent = `⌨  ${t("phone.typeField", { field: t(setup.label) })}`;
+    fieldInput.type = setup.type;
+    fieldInput.setAttribute("autocomplete", setup.autocomplete);
+    fieldInput.setAttribute("autocapitalize", field.kind === "name" ? "words" : "none");
+    fieldInput.value = field.value ?? "";
+    if (field.open) {
+      openFieldSheet();
+      return;
+    }
+    fieldOpen = false;
   }
-  q("[data-ui=account-error]").textContent = form.error ? t(accountErrorText(form.error)) : "";
-  for (const control of accountForm.querySelectorAll("button, input")) (control as HTMLButtonElement).disabled = form.busy === true;
+  fieldSheet.hidden = !fieldOpen;
+  bar.hidden = fieldOpen;
 }
 
-accountForm.addEventListener("submit", (event) => {
+/** Opens the keyboard sheet for the offered field. */
+function openFieldSheet(): void {
+  if (fieldId < 0) return;
+  fieldOpen = true;
+  releaseEverything();
+  sheet.hidden = true;
+  fieldSheet.hidden = false;
+  q("[data-ui=field-bar]").hidden = true;
+  // Android opens the keyboard at once; iOS waits for a tap on the field.
+  fieldInput.focus({ preventScroll: true });
+}
+
+fieldForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  if (!session || !accountForm.reportValidity()) return;
-  session.submitForm(accountUser.value.trim(), accountPass.value);
-  accountPass.value = "";
+  if (!session) return;
+  session.submitField(fieldInput.type === "password" ? fieldInput.value : fieldInput.value.trim());
+  fieldInput.value = "";
+  fieldInput.blur();
 }, { signal: pageHooks.signal });
 
 function renderDiagnostics(): void {

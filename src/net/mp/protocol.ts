@@ -217,28 +217,29 @@ export type PhoneToHost =
   | { readonly t: "release-all"; readonly seq: number }
   | { readonly t: "ping"; readonly id: number; readonly ts: number }
   | { readonly t: "stats"; readonly rtt: number; readonly jitter: number; readonly rate: number; readonly transport: TransportKind }
-  | { readonly t: "form-submit"; readonly id: number; readonly username: string; readonly password: string }
-  | { readonly t: "form-cancel"; readonly id: number }
-  /** Switches the TV's form between signing in and creating an account. */
-  | { readonly t: "form-mode"; readonly id: number; readonly mode: AccountFormMode };
+  | { readonly t: "field-submit"; readonly id: number; readonly value: string }
+  | { readonly t: "field-cancel"; readonly id: number };
 
 /**
- * The account form typed on player 1's phone while the TV shows the sign-in dialog. `id`
- * changes with every form the TV opens, so an answer to an old one is ignored; `error` is
- * the account API's code for the last attempt (the phone words it).
+ * A text field on the TV that player 1 types on their phone. The TV shows the screen; the
+ * phone is only its keyboard: when the TV's cursor reaches a field, the phone offers that
+ * one field, and what is typed goes back into it. `id` changes with every request, so an
+ * answer to an old one is ignored.
  *
- * The password only ever travels phone → host, end to end (the data channel is DTLS, the
- * room is WSS/HTTPS); the room server relays it like any other message and keeps nothing.
+ * `value` (the text already in the field) is never sent for a password. A password only
+ * travels phone → host, end to end (the data channel is DTLS, the room is WSS/HTTPS); the
+ * room server relays it like any other message and keeps nothing.
  */
-export type AccountFormMode = "login" | "register";
-export interface AccountForm {
+export type PhoneFieldKind = "username" | "password" | "new-password" | "name";
+export const PHONE_FIELD_KINDS: readonly PhoneFieldKind[] = ["username", "password", "new-password", "name"];
+export interface PhoneField {
   readonly id: number;
-  readonly mode: AccountFormMode;
-  readonly error?: string;
-  readonly busy?: boolean;
+  readonly kind: PhoneFieldKind;
+  readonly value?: string;
+  /** Open the keyboard at once (the flow led here); otherwise the phone offers a "type" bar. */
+  readonly open?: boolean;
 }
-export const FORM_USERNAME_MAX = 20;
-export const FORM_PASSWORD_MAX = 128;
+export const FIELD_VALUE_MAX = 128;
 
 /** Host → phone, end to end. */
 export type HostToPhone =
@@ -247,8 +248,8 @@ export type HostToPhone =
   | { readonly t: "phase"; readonly phase: RoomPhase }
   | { readonly t: "buzz"; readonly ms: number }
   | { readonly t: "ui"; readonly layout: PadLayout; readonly leader: boolean }
-  /** `form: null` closes the phone's form. */
-  | { readonly t: "form"; readonly form: AccountForm | null };
+  /** `field: null` puts the phone's keyboard away. */
+  | { readonly t: "field"; readonly field: PhoneField | null };
 
 /**
  * What the phone's pad shows, decided by the host for each phone:
@@ -305,30 +306,30 @@ export const parsePhoneToHost = (value: unknown): PhoneToHost | null => {
       return isFiniteNumber(value.rtt, 0, 60_000) && isFiniteNumber(value.jitter, 0, 60_000) &&
         isFiniteNumber(value.rate, 0, 120) && isTransport(value.transport)
         ? { t: "stats", rtt: value.rtt, jitter: value.jitter, rate: value.rate, transport: value.transport } : null;
-    case "form-submit":
-      return isInt(value.id, 0, 0xffffff) && typeof value.username === "string" && value.username.length <= FORM_USERNAME_MAX &&
-        typeof value.password === "string" && value.password.length <= FORM_PASSWORD_MAX
-        ? { t: "form-submit", id: value.id, username: value.username, password: value.password } : null;
-    case "form-cancel":
-      return isInt(value.id, 0, 0xffffff) ? { t: "form-cancel", id: value.id } : null;
-    case "form-mode":
-      return isInt(value.id, 0, 0xffffff) && (value.mode === "login" || value.mode === "register")
-        ? { t: "form-mode", id: value.id, mode: value.mode } : null;
+    case "field-submit":
+      return isInt(value.id, 0, 0xffffff) && typeof value.value === "string" && value.value.length <= FIELD_VALUE_MAX
+        ? { t: "field-submit", id: value.id, value: value.value } : null;
+    case "field-cancel":
+      return isInt(value.id, 0, 0xffffff) ? { t: "field-cancel", id: value.id } : null;
     default:
       return null;
   }
 };
 
-const parseAccountForm = (value: unknown): AccountForm | null | undefined => {
+const parsePhoneField = (value: unknown): PhoneField | null | undefined => {
   if (value === null) return null;
-  if (!isObject(value) || !isInt(value.id, 0, 0xffffff) || (value.mode !== "login" && value.mode !== "register")) return undefined;
-  if (value.error !== undefined && !(typeof value.error === "string" && /^[a-z-]{1,32}$/.test(value.error))) return undefined;
-  if (value.busy !== undefined && typeof value.busy !== "boolean") return undefined;
+  if (!isObject(value) || !isInt(value.id, 0, 0xffffff)) return undefined;
+  if (!(PHONE_FIELD_KINDS as readonly unknown[]).includes(value.kind)) return undefined;
+  const kind = value.kind as PhoneFieldKind;
+  if (value.value !== undefined && !(typeof value.value === "string" && value.value.length <= FIELD_VALUE_MAX)) return undefined;
+  if (value.open !== undefined && typeof value.open !== "boolean") return undefined;
+  // A password field never carries its text, whatever the sender put in it.
+  const secret = kind === "password" || kind === "new-password";
   return {
     id: value.id,
-    mode: value.mode,
-    ...(value.error === undefined ? {} : { error: value.error }),
-    ...(value.busy === undefined ? {} : { busy: value.busy }),
+    kind,
+    ...(value.value === undefined || secret ? {} : { value: value.value as string }),
+    ...(value.open ? { open: true } : {}),
   };
 };
 
@@ -349,9 +350,9 @@ export const parseHostToPhone = (value: unknown): HostToPhone | null => {
     case "ui":
       return (PAD_LAYOUTS as readonly unknown[]).includes(value.layout) && typeof value.leader === "boolean"
         ? { t: "ui", layout: value.layout as PadLayout, leader: value.leader } : null;
-    case "form": {
-      const form = parseAccountForm(value.form);
-      return form === undefined ? null : { t: "form", form };
+    case "field": {
+      const field = parsePhoneField(value.field);
+      return field === undefined ? null : { t: "field", field };
     }
     default:
       return null;

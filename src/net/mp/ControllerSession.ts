@@ -22,10 +22,9 @@ import {
   buttonBit,
   encodeInputFrame,
   parseHostToPhone,
-  FORM_PASSWORD_MAX,
-  FORM_USERNAME_MAX,
+  FIELD_VALUE_MAX,
   safeJson,
-  type AccountForm,
+  type PhoneField,
   type ApiErrorCode,
   type HostToPhone,
   type IceServerConfig,
@@ -62,8 +61,8 @@ export interface ControllerView {
   readonly layout: PadLayout;
   /** This phone drives the menus (player 1). */
   readonly leader: boolean;
-  /** The account form the TV asks this phone to fill in (player 1 only), or null. */
-  readonly form: AccountForm | null;
+  /** The TV field this phone is the keyboard for (player 1 only), or null. */
+  readonly field: PhoneField | null;
   /** Why the current transport is not WebRTC, for the diagnostics line. */
   readonly fallbackReason: string;
   readonly sent: number;
@@ -122,7 +121,7 @@ export class ControllerSession {
   private phase: RoomPhase = "lobby";
   private layout: PadLayout = "wait";
   private leader = false;
-  private form: AccountForm | null = null;
+  private field: PhoneField | null = null;
   private relayAllowed = true;
   private transportValue: TransportKind = "none";
   private reportedTransport: TransportKind | null = null;
@@ -182,7 +181,7 @@ export class ControllerSession {
       phase: this.phase,
       layout: this.layout,
       leader: this.leader,
-      form: this.form,
+      field: this.field,
       fallbackReason: this.fallbackReason,
       sent: this.traffic.sentMessages,
       received: this.traffic.receivedMessages,
@@ -367,22 +366,15 @@ export class ControllerSession {
     else this.sender.congested();
   }
 
-  /** Sends the typed account details to the TV (end to end, nothing is stored here). */
-  submitForm(username: string, password: string): void {
-    if (!this.form) return;
-    this.sendToHost({
-      t: "form-submit", id: this.form.id,
-      username: username.slice(0, FORM_USERNAME_MAX), password: password.slice(0, FORM_PASSWORD_MAX),
-    });
+  /** Sends what was typed to the TV's field (end to end; nothing is kept on the phone). */
+  submitField(value: string): void {
+    if (!this.field) return;
+    this.sendToHost({ t: "field-submit", id: this.field.id, value: value.slice(0, FIELD_VALUE_MAX) });
   }
 
-  /** Asks the TV to switch its form (sign in ↔ create account). */
-  switchForm(mode: AccountForm["mode"]): void {
-    if (this.form && this.form.mode !== mode) this.sendToHost({ t: "form-mode", id: this.form.id, mode });
-  }
-
-  cancelForm(): void {
-    if (this.form) this.sendToHost({ t: "form-cancel", id: this.form.id });
+  /** Puts the keyboard away without changing the TV's field. */
+  cancelField(): void {
+    if (this.field) this.sendToHost({ t: "field-cancel", id: this.field.id });
   }
 
   /** End-to-end message to the host: data channel first, then the room. */
@@ -515,8 +507,8 @@ export class ControllerSession {
       case "buzz":
         this.onBuzz?.(message.ms);
         return;
-      case "form":
-        this.form = message.form;
+      case "field":
+        this.field = message.field;
         this.emit();
         return;
       case "ui":

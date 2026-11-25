@@ -15,7 +15,7 @@ import { t } from "../../i18n";
 import { menuCommandFor, type MenuCommand } from "../../ui/menuInput";
 import { ApiError } from "./api";
 import { HostSession, type HostSnapshot, type PadState, type PhonePeer } from "./HostSession";
-import type { AccountForm, PhoneToHost, RoomPhase } from "./protocol";
+import type { PhoneField, PhoneToHost, RoomPhase } from "./protocol";
 import type { RemoteInputDevice } from "./remoteInput";
 
 export interface PhoneHubOptions {
@@ -31,8 +31,8 @@ export interface PhoneHubOptions {
   readonly onMenuCommand: (slot: number, command: MenuCommand) => void;
   /** The pairing panel's players changed (joined, left, reconnected). */
   readonly onPlayersChanged?: () => void;
-  /** Player 1 answered the account form on their phone. */
-  readonly onAccountForm?: (message: Extract<PhoneToHost, { t: "form-submit" | "form-cancel" | "form-mode" }>) => void;
+  /** Player 1 typed (or put away) the TV field their phone offered. */
+  readonly onPhoneField?: (message: Extract<PhoneToHost, { t: "field-submit" | "field-cancel" }>) => void;
 }
 
 /** How often the pads are re-checked against the game's state. Sends only on change. */
@@ -65,7 +65,7 @@ export class PhoneHub {
   private opening: Promise<HostSession | null> | null = null;
   private inputs: readonly InputManager[] = [];
   private attached: (RemoteInputDevice | null)[] = [];
-  private accountForm: AccountForm | null = null;
+  private phoneField: PhoneField | null = null;
   private padTimer = 0;
   private readonly knownNames = new Map<string, string>();
   private readonly slots: HTMLElement[] = [];
@@ -122,10 +122,10 @@ export class PhoneHub {
     this.session?.setLocked(false);
   }
 
-  /** Shows the account form on player 1's phone (null closes it). */
-  setAccountForm(form: AccountForm | null): void {
-    this.accountForm = form;
-    this.session?.setForm(form);
+  /** Offers a TV field to player 1's phone as a keyboard (null puts it away). */
+  setPhoneField(field: PhoneField | null): void {
+    this.phoneField = field;
+    this.session?.setField(field);
   }
 
   /** Player 1's phone is connected and can type for the TV. */
@@ -178,8 +178,8 @@ export class PhoneHub {
           const command = menuCommandFor(button);
           if (command) this.options.onMenuCommand(slot, command);
         };
-        session.onForm = (message) => this.options.onAccountForm?.(message);
-        session.setForm(this.accountForm);
+        session.onField = (message) => this.options.onPhoneField?.(message);
+        session.setField(this.phoneField);
         session.setPadSource(this.options.padFor);
         window.clearInterval(this.padTimer);
         this.padTimer = window.setInterval(() => this.refreshPads(), PAD_REFRESH_MS);

@@ -137,16 +137,13 @@
   border-color: #c7aaff;
 }
 .bistro-collection form { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; }
-.bistro-collection form :is(label, p, .bistro-avatars) { flex: 0 0 100%; min-inline-size: 0; }
+.bistro-collection form :is(label, p, .bistro-avatar-wheel) { flex: 0 0 100%; min-inline-size: 0; }
 .bistro-collection label { display: grid; gap: .25rem; }
 .bistro-collection input {
   box-sizing: border-box; width: 100%; min-inline-size: 0;
   padding: .55rem .75rem; border: 1px solid var(--bistro-blue);
   border-radius: .65rem; font: inherit;
 }
-.bistro-avatars { display: flex; flex-wrap: wrap; gap: .5rem; }
-.bistro-avatars button { padding: .25rem; }
-.bistro-avatars img { display: block; object-fit: contain; }
 
 .game-ui :is(.shift-chip, .station-progress, .player-status) {
   border-color: var(--bistro-cyan);
@@ -1092,17 +1089,6 @@
   text-align: center;
 }
 
-/* 24 avatars: a compact scrolling grid instead of one long row. */
-.bistro-collection .bistro-avatars {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(3.4rem, 1fr));
-  gap: .35rem;
-  max-block-size: 12.5rem;
-  overflow-y: auto;
-  padding: .2rem;
-}
-.bistro-collection .bistro-avatars button { padding: .15rem; border-radius: .7rem; }
-.bistro-collection .bistro-avatars img { inline-size: 100%; block-size: auto; aspect-ratio: 1; }
 .bistro-collection .bistro-avatar-label { margin: 0; font-weight: 800; }
 
 /* Item cards carry their short description, two lines at most (the detail has it all). */
@@ -1114,3 +1100,60 @@
   font-size: .8rem;
   line-height: 1.25;
 }
+
+/* The avatar wheel: the chosen one big in the middle, neighbours shrinking and fading on
+   each side; ◀ ▶ (player 1's D-pad, the arrow keys, a click or a swipe) turn it. */
+.bistro-avatar-wheel {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  justify-items: center;
+  gap: .2rem .4rem;
+  padding: .4rem .5rem .5rem;
+  border: 3px solid transparent;
+  border-radius: 1.1rem;
+  background: color-mix(in srgb, var(--bistro-aqua, #2bb3c0) 12%, transparent);
+  outline: none;
+  touch-action: pan-y;
+  user-select: none;
+}
+.bistro-avatar-wheel:is(:focus-visible, .nav-focus) { border-color: var(--bistro-yellow, #ffc93c); }
+.bistro-wheel-arrow {
+  display: grid;
+  place-items: center;
+  inline-size: 2.4rem;
+  block-size: 2.4rem;
+  border-radius: 50%;
+  background: var(--bistro-blue, #0c56b8);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.bistro-wheel-track { display: flex; align-items: center; justify-content: center; gap: .2rem; min-block-size: 7.5rem; }
+.bistro-wheel-track img { display: block; aspect-ratio: 1; transition: inline-size .18s ease, opacity .18s ease; }
+.bistro-wheel-track img[data-offset="0"] { inline-size: 7.2rem; filter: drop-shadow(0 4px 8px #0003); }
+.bistro-wheel-track img:is([data-offset="-1"], [data-offset="1"]) { inline-size: 4.2rem; opacity: .7; }
+.bistro-wheel-track img:is([data-offset="-2"], [data-offset="2"]) { inline-size: 2.8rem; opacity: .35; }
+.bistro-wheel-track.turning { animation: bistro-wheel-turn .2s ease-out; }
+.bistro-avatar-wheel[data-turn="left"] .bistro-wheel-track.turning { animation-name: bistro-wheel-turn-left; }
+@keyframes bistro-wheel-turn { from { transform: translateX(1.4rem); } to { transform: none; } }
+@keyframes bistro-wheel-turn-left { from { transform: translateX(-1.4rem); } to { transform: none; } }
+.bistro-wheel-count, .bistro-wheel-hint { grid-column: 1 / -1; font-size: .8rem; font-weight: 800; color: var(--bistro-ink, #24304a); }
+.bistro-wheel-hint { margin-block-start: -.2rem; opacity: .65; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  .bistro-wheel-track.turning { animation: none; }
+  .bistro-wheel-track img { transition: none; }
+}
+
+/* The field player 1's phone is typing right now. */
+.bistro-collection input[data-phone-active] {
+  border-color: var(--bistro-yellow, #ffc93c);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bistro-yellow, #ffc93c) 45%, transparent);
+}
+
+/* Dialogs scroll with the cursor (D-pad) or the wheel, without a scrollbar in the way. */
+.bistro-collection, .bistro-collection * { scrollbar-width: none; }
+.bistro-collection::-webkit-scrollbar, .bistro-collection *::-webkit-scrollbar { display: none; }
+
+/* The form's main action (Entrar, Criar conta, Salvar) gets its own full-width row. */
+.bistro-collection form .bistro-form-main { flex: 1 0 100%; min-block-size: 2.8rem; font-size: 1.05rem; }

@@ -37,6 +37,7 @@ import { SceneManager } from "./SceneManager";
 import { GamepadBinder } from "./GamepadBinder";
 import type { PhoneHub } from "../net/mp/PhoneHub";
 import type { PadState } from "../net/mp/HostSession";
+import { PhoneTyping } from "../ui/PhoneTyping";
 import { MenuNavigator } from "../ui/MenuNavigator";
 import type { MenuCommand } from "../ui/menuInput";
 import { MAX_PLAYERS } from "../data/players";
@@ -144,6 +145,12 @@ export class Game {
   private phoneHubLoading: Promise<PhoneHub> | null = null;
   /** Player one's D-pad through the menus. */
   private readonly navigator: MenuNavigator;
+  /** Player one's phone as the keyboard for the TV's text fields (the account form). */
+  private readonly phoneTyping = new PhoneTyping({
+    available: () => this.phoneHub?.leaderConnected ?? false,
+    offer: (field) => this.phoneHub?.setPhoneField(field),
+    advance: () => this.navigator.advance(),
+  });
 
   /**
    * Starts the game. The menu's files are requested first: creating the engine blocks the
@@ -264,6 +271,7 @@ export class Game {
     this.disposed = true;
     this.stopLanguage();
     this.gamepads.dispose();
+    this.phoneTyping.dispose();
     this.phoneHub?.dispose();
     this.phoneHub = null;
     void this.accountPanel?.then((panel) => panel.dispose());
@@ -675,7 +683,7 @@ export class Game {
           phase: () => (this.ui.isSplashVisible ? "lobby" : this.kitchenScene?.shiftPhase ?? "lobby"),
           padFor: (slot) => this.padFor(slot),
           onMenuCommand: (slot, command) => this.onMenuCommand(slot, command),
-          onAccountForm: (message) => this.account?.answerPhone(message),
+          onPhoneField: (message) => this.phoneTyping.answer(message),
         });
         if (this.kitchenScene) hub.attachKitchen(this.kitchenScene.cookInputs);
         return hub;
@@ -761,6 +769,7 @@ export class Game {
     }
     if (slot !== 0) return;
     this.navigator.command(command);
+    this.phoneTyping.sync();
   }
 
   private getAccountPanel() {
@@ -775,11 +784,8 @@ export class Game {
         (user) => { if (!this.disposed) void this.accountChanged(user); },
       );
       panel.onAvatar = (path) => { if (!this.disposed) this.ui.setAccountAvatar(path ? publicUrl(path) : null); };
-      // The TV has no keyboard: player 1's phone can type the sign-in form for it.
-      panel.phoneKeyboard = {
-        available: () => this.phoneHub?.leaderConnected ?? false,
-        show: (form) => this.phoneHub?.setAccountForm(form),
-      };
+      panel.phoneTypingAvailable = () => this.phoneHub?.leaderConnected ?? false;
+      panel.onShown = () => this.phoneTyping.sync(true);
       this.account = panel;
       return panel;
     });
