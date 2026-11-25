@@ -1,50 +1,74 @@
-import { accountAvailable, avatars, getAccountClient, readAccount, syncAccount, mergeProgress, type AccountSnapshot } from "../core/PlayerAccount";
+import {
+  AccountApiError, avatars, changePassword, currentUser, deleteAccount, logIn, logOut, mergeProgress,
+  readAccount, register, syncAccount, type AccountSnapshot, type AccountUser,
+} from "../core/PlayerAccount";
 import { sanitizePersistentState } from "../core/SaveSystem";
 import { createDefaultPersistentState } from "../core/GameState";
 import { publicUrl } from "../utils/assetUrl";
-import { t } from "../i18n";
+import { t, type MessageKey } from "../i18n";
 import type { PersistentGameState } from "../types/game";
+import { PASSWORD_MAX, PASSWORD_MIN, USERNAME_MAX, USERNAME_MIN, cleanUsername, validPassword } from "../../workers/accounts/src/rules";
 
+type Mode = "login" | "register" | "password" | "delete";
+
+/**
+ * Remembers that this browser has an account session, so the game only asks the server
+ * who is signed in when there may be someone (Game.ts reads the same key).
+ */
+const ACCOUNT_SESSION_HINT = "byte-bistro:account:session";
+const setSessionHint = (on: boolean): void => {
+  try {
+    if (on) localStorage.setItem(ACCOUNT_SESSION_HINT, "1");
+    else localStorage.removeItem(ACCOUNT_SESSION_HINT);
+  } catch { /* private mode: the account still works when opened */ }
+};
+
+/** What each API error tells the player. */
+const ERROR_TEXT: Readonly<Record<string, MessageKey>> = {
+  "wrong-login": "account.wrongLogin",
+  "username-taken": "account.usernameTaken",
+  locked: "account.tooManyAttempts",
+  "rate-limited": "account.tooManyAttempts",
+  "bad-request": "account.invalidDetails",
+  "not-configured": "account.unavailable",
+};
+
+/**
+ * The player's account: sign up or in with a username and password, then a profile (name,
+ * avatar), the progress synced to Cloudflare, password change and account deletion.
+ *
+ * The session lives in an HttpOnly cookie the browser sends by itself; this panel only asks
+ * the API who is signed in (`resume`). Progress is cached per account in localStorage and
+ * synced with revisions, so playing offline or on two devices never loses a save.
+ */
 export class AccountPanel {
   private dialog: HTMLDialogElement | null = null;
-  private id: string | null = null;
+  private user: AccountUser | null = null;
   private snapshot: AccountSnapshot | null = null;
+  /** The account server answered `not-configured`: the game stays guest-only. */
+  private unavailable = false;
   private sending = false;
   private pending = false;
   private generation = 0;
   private readonly listeners = new AbortController();
-  private readonly unsubscribe: (() => void) | undefined;
 
   constructor(
     private readonly readGuest: () => PersistentGameState,
     private readonly activate: (progress: PersistentGameState | null) => void,
   ) {
-    if (!accountAvailable) return;
-    const { data } = getAccountClient().auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") queueMicrotask(() => this.show("reset"));
-      if (event === "SIGNED_OUT" || (this.id && session && this.id !== session.user.id)) {
-        this.generation++;
-        this.id = null;
-        this.snapshot = null;
-        this.pending = false;
-        this.activate(null);
-      }
-    });
-    this.unsubscribe = () => data.subscription.unsubscribe();
     window.addEventListener("online", () => void this.flush(), { signal: this.listeners.signal });
   }
 
   dispose(): void {
     this.generation++;
     this.listeners.abort();
-    this.unsubscribe?.();
     this.dialog?.close();
   }
 
   private key(id: string) { return `byte-bistro:account:${id}`; }
 
   update(progress: PersistentGameState): boolean {
-    if (!this.id || !this.snapshot) return false;
+    if (!this.user || !this.snapshot) return false;
     const settingsAt = JSON.stringify(this.snapshot.progress.settings) === JSON.stringify(progress.settings)
       ? this.snapshot.settingsAt : Date.now();
     this.snapshot = { ...this.snapshot, progress, settingsAt };
@@ -53,27 +77,32 @@ export class AccountPanel {
   }
 
   private persist() {
-    if (!this.id || !this.snapshot) return;
+    if (!this.user || !this.snapshot) return;
     this.pending = true;
-    try { localStorage.setItem(this.key(this.id), JSON.stringify(this.snapshot)); } catch { /* in-memory retry */ }
+    try { localStorage.setItem(this.key(this.user.id), JSON.stringify(this.snapshot)); } catch { /* in-memory retry */ }
     void this.flush();
   }
 
   private async flush(): Promise<void> {
-    if (this.sending || !this.pending || !this.id || !this.snapshot) return;
-    const id = this.id;
+    if (this.sending || !this.pending || !this.user || !this.snapshot) return;
+    const user = this.user;
     const generation = this.generation;
     const sent = this.snapshot;
     this.sending = true;
     this.pending = false;
     try {
-      const synced = await syncAccount(id, sent);
+      const synced = await syncAccount(sent);
       if (generation === this.generation && this.snapshot === sent) {
         this.snapshot = synced;
         this.activate(synced.progress);
-        try { localStorage.setItem(this.key(id), JSON.stringify(synced)); } catch { /* cloud copy is current */ }
+        try { localStorage.setItem(this.key(user.id), JSON.stringify(synced)); } catch { /* cloud copy is current */ }
       }
-    } catch {
+    } catch (error) {
+      // The session ended elsewhere (password changed, account deleted): back to guest.
+      if (error instanceof AccountApiError && error.status === 401) {
+        if (generation === this.generation) this.signedOut();
+        return;
+      }
       if (generation === this.generation) {
         this.pending = true;
         return;
@@ -84,35 +113,52 @@ export class AccountPanel {
     if (this.pending) void this.flush();
   }
 
-  private async load(id: string): Promise<void> {
+  private async load(user: AccountUser): Promise<void> {
     const generation = ++this.generation;
     let cached: AccountSnapshot | null = null;
     try {
-      const stored = JSON.parse(localStorage.getItem(this.key(id)) ?? "null") as AccountSnapshot | null;
+      const stored = JSON.parse(localStorage.getItem(this.key(user.id)) ?? "null") as AccountSnapshot | null;
       if (stored?.profile && avatars.includes(stored.profile.avatar)) {
         cached = { ...stored, progress: sanitizePersistentState(stored.progress, createDefaultPersistentState()) };
       }
     } catch { /* invalid cache */ }
-    const remote = await readAccount(id).catch((error: unknown) => {
+    const remote = await readAccount().catch((error: unknown) => {
       if (!cached) throw error;
       return null;
     });
     if (generation !== this.generation) return;
-    this.id = id;
+    this.user = user;
+    setSessionHint(true);
     this.snapshot = cached ?? remote?.snapshot ?? {
-      progress: createDefaultPersistentState(), profile: { name: "", avatar: "william" }, settingsAt: 0,
+      progress: createDefaultPersistentState(), profile: { name: user.username, avatar: "william" }, settingsAt: 0,
     };
     this.activate(this.snapshot.progress);
     if (cached) this.persist();
   }
 
-  async resume(): Promise<void> {
-    if (!accountAvailable || this.id) return;
-    const { data } = await getAccountClient().auth.getSession();
-    if (data.session) await this.load(data.session.user.id);
+  private signedOut(): void {
+    setSessionHint(false);
+    this.generation++;
+    this.user = null;
+    this.snapshot = null;
+    this.pending = false;
+    this.activate(null);
   }
 
-  show(mode: "login" | "register" | "recover" | "reset" = "login"): void {
+  /** Restores a signed-in session (the cookie survives reloads). Quiet when there is none. */
+  async resume(): Promise<void> {
+    if (this.user || this.unavailable) return;
+    try {
+      const user = await currentUser();
+      if (user) await this.load(user);
+      else setSessionHint(false);
+    } catch (error) {
+      if (error instanceof AccountApiError && error.code === "not-configured") this.unavailable = true;
+      else throw error;
+    }
+  }
+
+  show(mode: Mode = "login"): void {
     if (this.dialog?.open) this.dialog.close();
     const dialog = document.createElement("dialog");
     this.dialog = dialog;
@@ -128,6 +174,11 @@ export class AccountPanel {
     close.textContent = t("common.close");
     close.onclick = () => dialog.close();
     const form = document.createElement("form");
+    const hint = (text: string) => {
+      const small = document.createElement("small");
+      small.textContent = text;
+      form.append(small);
+    };
     const field = (label: string, type: string, autocomplete: string) => {
       const wrapper = document.createElement("label");
       wrapper.textContent = label;
@@ -139,6 +190,21 @@ export class AccountPanel {
       form.append(wrapper);
       return input;
     };
+    const usernameField = (autocomplete: string) => {
+      const input = field(t("account.username"), "text", autocomplete);
+      input.minLength = USERNAME_MIN;
+      input.maxLength = USERNAME_MAX;
+      input.pattern = "[A-Za-z0-9_.]+";
+      input.spellcheck = false;
+      input.setAttribute("autocapitalize", "none");
+      return input;
+    };
+    const passwordField = (label: string, autocomplete: string) => {
+      const input = field(label, "password", autocomplete);
+      input.minLength = autocomplete === "new-password" ? PASSWORD_MIN : 1;
+      input.maxLength = PASSWORD_MAX;
+      return input;
+    };
     const action = (label: string, run: () => void, parent: HTMLElement = form) => {
       const button = document.createElement("button");
       button.type = "button";
@@ -146,11 +212,15 @@ export class AccountPanel {
       button.onclick = run;
       parent.append(button);
     };
+    const explain = (error: unknown) => {
+      const code = error instanceof AccountApiError ? error.code : "";
+      message.textContent = t(ERROR_TEXT[code] ?? "account.failed");
+    };
     const handle = (run: () => Promise<void>) => {
       if (form.getAttribute("aria-busy") === "true") return;
       form.setAttribute("aria-busy", "true");
       for (const control of form.querySelectorAll("button")) control.disabled = true;
-      void run().catch(() => { message.textContent = t("account.failed"); }).finally(() => {
+      void run().catch(explain).finally(() => {
         form.removeAttribute("aria-busy");
         for (const control of form.querySelectorAll("button")) control.disabled = false;
       });
@@ -163,11 +233,38 @@ export class AccountPanel {
       form.onsubmit = (event) => { event.preventDefault(); handle(run); };
     };
 
-    if (!accountAvailable) {
+    if (this.unavailable) {
       message.textContent = t("account.unavailable");
-    } else if (this.snapshot && mode !== "reset") {
+    } else if (this.snapshot && this.user && mode === "password") {
+      const current = passwordField(t("account.currentPassword"), "current-password");
+      const next = passwordField(t("account.newPassword"), "new-password");
+      hint(t("account.passwordRules"));
+      submit(t("account.changePassword"), async () => {
+        if (!validPassword(next.value)) throw new AccountApiError("bad-request", 400);
+        await changePassword(current.value, next.value);
+        this.show();
+        this.setMessage(t("account.passwordChanged"));
+      });
+      action(t("account.back"), () => this.show());
+    } else if (this.snapshot && this.user && mode === "delete") {
+      const warning = document.createElement("p");
+      warning.textContent = t("account.confirmDelete");
+      form.append(warning);
+      const password = passwordField(t("account.password"), "current-password");
+      submit(t("account.deleteAccount"), async () => {
+        const id = this.user?.id;
+        await deleteAccount(password.value);
+        if (id) try { localStorage.removeItem(this.key(id)); } catch { /* nothing cached */ }
+        this.signedOut();
+        this.show();
+      });
+      action(t("account.back"), () => this.show());
+    } else if (this.snapshot && this.user) {
       const profile = this.snapshot.profile;
       const progress = this.snapshot.progress;
+      const who = document.createElement("p");
+      who.textContent = t("account.signedInAs", { username: this.user.username });
+      form.append(who);
       const name = field(t("account.name"), "text", "nickname");
       name.required = false;
       name.maxLength = 40;
@@ -224,46 +321,44 @@ export class AccountPanel {
         this.persist();
         this.show();
       });
+      action(t("account.changePassword"), () => this.show("password"));
       action(t("account.logout"), () => handle(async () => {
-        const { error } = await getAccountClient().auth.signOut({ scope: "local" });
-        if (error) throw error;
+        await logOut();
+        this.signedOut();
         this.show();
       }));
+      action(t("account.deleteAccount"), () => this.show("delete"));
     } else {
-      const email = mode === "reset" ? null : field(t("account.email"), "email", "email");
-      const password = mode === "recover" ? null : field(t("account.password"), "password", mode === "login" ? "current-password" : "new-password");
-      const redirectTo = new URL("./", location.href).href;
-      submit(t(`account.${mode}`), async () => {
-        const auth = getAccountClient().auth;
-        if (mode === "login") {
-          const { data, error } = await auth.signInWithPassword({ email: email!.value, password: password!.value });
-          if (error) throw error;
-          if (data.user) await this.load(data.user.id);
-          this.show();
-        } else if (mode === "register") {
-          const { error } = await auth.signUp({ email: email!.value, password: password!.value, options: { emailRedirectTo: redirectTo } });
-          if (error) throw error;
-          message.textContent = t("account.emailSent");
-        } else if (mode === "recover") {
-          const { error } = await auth.resetPasswordForEmail(email!.value, { redirectTo });
-          if (error) throw error;
-          message.textContent = t("account.emailSent");
-        } else {
-          const { error } = await auth.updateUser({ password: password!.value });
-          if (error) throw error;
-          await this.resume();
-          this.show();
-        }
-      });
-      if (mode !== "login") action(t("account.login"), () => this.show());
-      if (mode === "login") {
-        action(t("account.register"), () => this.show("register"));
-        action(t("account.recover"), () => this.show("recover"));
+      const creating = mode === "register";
+      const username = usernameField(creating ? "username" : "username");
+      if (creating) hint(t("account.usernameRules"));
+      const password = passwordField(t("account.password"), creating ? "new-password" : "current-password");
+      if (creating) {
+        hint(t("account.passwordRules"));
+        const warning = document.createElement("p");
+        warning.className = "bistro-account-warning";
+        warning.textContent = t("account.noRecoveryWarning");
+        form.append(warning);
       }
+      submit(t(creating ? "account.register" : "account.login"), async () => {
+        const name = cleanUsername(username.value);
+        if (!name || (creating && !validPassword(password.value))) throw new AccountApiError("bad-request", 400);
+        const user = creating ? await register(name, password.value) : await logIn(name, password.value);
+        await this.load(user);
+        this.show();
+      });
+      if (creating) action(t("account.haveAccount"), () => this.show("login"));
+      else action(t("account.register"), () => this.show("register"));
     }
     dialog.append(heading, form, message, close);
     document.body.append(dialog);
     dialog.addEventListener("close", () => dialog.remove(), { once: true });
     dialog.showModal();
+  }
+
+  /** A status line on the open dialog, e.g. after a step that redraws it. */
+  private setMessage(text: string): void {
+    const status = this.dialog?.querySelector("[role=status]");
+    if (status) status.textContent = text;
   }
 }

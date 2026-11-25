@@ -204,6 +204,17 @@ flowchart LR
 
 **Segurança:** tokens de 256 bits por sessão (guardados só como SHA-256), enviados no cabeçalho do WebSocket e nunca na URL; validação de origem e de cada mensagem; limites por IP e por conexão; só o host expulsa, tranca ou encerra a sala.
 
+## Contas de jogador
+
+O botão de conta no menu permite criar uma conta com **usuário e senha** e guardar o progresso (estrelas, recordes, ranks, desbloqueios, nome e avatar) para continuar em outro aparelho. Sem conta, o progresso fica só no navegador, e ele pode ser importado para a conta depois.
+
+- Tudo roda na Cloudflare: a Pages Function `functions/api/auth/[[path]].ts` atende `/api/auth/*` na mesma origem do jogo, com os dados no **D1** (`workers/accounts/`).
+- As senhas são guardadas com PBKDF2-SHA256 e sal próprio. A sessão fica num cookie `HttpOnly`, `Secure` e `SameSite=Strict`, e no banco só o hash do token. Toda escrita confere a origem da página.
+- Errar a senha várias vezes bloqueia a conta por alguns minutos.
+- O salvamento usa número de revisão: dois aparelhos salvando ao mesmo tempo nunca apagam o progresso um do outro, porque o jogo mescla e tenta de novo.
+- No perfil dá para trocar a senha (desconecta os outros aparelhos) e excluir a conta com todo o progresso.
+- **Não há e-mail:** quem esquecer a senha não consegue recuperar a conta.
+
 ## Configurar e publicar
 
 O site fica no **Cloudflare Pages** e as salas num **Worker** separado (o Pages não define Durable Objects). Tudo cabe no plano **Workers Free**: ao estourar uma cota, a Cloudflare recusa a operação em vez de cobrar, e o jogo ainda se limita a 60 % de cada cota.
@@ -225,6 +236,15 @@ O site fica no **Cloudflare Pages** e as salas num **Worker** separado (o Pages 
 
 4. **Conferir:** `https://<site>/api/mp/status` deve responder com `"mode":"STRICT_FREE_MODE"`. Se aparecer `not-configured`, faltam os bindings do passo 2.
 
+5. **Contas (D1):**
+
+   ```bash
+   npx wrangler d1 create byte-bistro-accounts   # copie o database_id para workers/accounts/wrangler.toml
+   npm run accounts:migrate                       # cria as tabelas no banco remoto
+   ```
+
+   No Pages: Settings → Bindings → Add → **D1 database**, em *Production* e *Preview*: `ACCOUNTS` → `byte-bistro-accounts`. Sem esse binding, `/api/auth/me` responde `not-configured` e o jogo segue só com o progresso local.
+
 **TURN (opcional, pode cobrar):** crie uma chave em Realtime → TURN, grave `TURN_KEY_ID` e `TURN_KEY_API_TOKEN` com `npx wrangler secret put … --config workers/mp/wrangler.toml` e, em `wrangler.toml`, defina `MP_MODE = "TURN_FREE_TIER"` e `TURN_ACK_NO_HARD_CAP = "yes"`.
 
 ## Tecnologias
@@ -241,6 +261,7 @@ O site fica no **Cloudflare Pages** e as salas num **Worker** separado (o Pages 
 | **Cloudflare Pages** | Hospedagem da versão online |
 | **Cloudflare Workers + Durable Objects (SQLite)** | Salas dos celulares: sinalização, relay WebSocket com Hibernation, limites e cota |
 | **WebRTC (DataChannels)** | Ligação direta celular ↔ jogo, com baixa latência |
+| **Cloudflare D1** | Contas de jogador (usuário e senha), sessões e progresso salvo |
 
 Também foram usados modelos gratuitos (licença CC0) dos pacotes **KayKit**, de Kay Lousberg, e **Kenney**.
 
@@ -248,8 +269,9 @@ Também foram usados modelos gratuitos (licença CC0) dos pacotes **KayKit**, de
 
 ```bash
 npm install
-npm run mp:dev     # terminal 1: Worker das salas (porta 8787)
-npm run dev        # terminal 2: o jogo (http://127.0.0.1:5173)
+npm run mp:dev        # terminal 1: Worker das salas (porta 8787)
+npm run accounts:dev  # terminal 2: contas com D1 local (porta 8789)
+npm run dev           # terminal 3: o jogo (http://127.0.0.1:5173)
 ```
 
 Para usar um celular de verdade na mesma rede, rode `MP_LAN=1 npm run dev` e abra no celular `http://<ip-do-pc>:5173/controller#CÓDIGO`. Sem celular, use **Jogar pelo computador** na tela de pareamento.

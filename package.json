@@ -9,7 +9,7 @@
     "api": "node --disable-warning=ExperimentalWarning api/server.mjs",
     "test:api": "vitest run api",
     "prebuild": "npm run check:perf",
-    "build": "tsc -b && tsc -p workers/mp/tsconfig.json && vite build && node scripts/perf/check-bundle-budget.mjs",
+    "build": "tsc -b && tsc -p workers/mp/tsconfig.json && tsc -p workers/accounts/tsconfig.json && vite build && node scripts/perf/check-bundle-budget.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -24,12 +24,13 @@
     "mp:typecheck": "tsc -p workers/mp/tsconfig.json",
     "mp:test:integration": "node workers/mp/test/integration.mjs",
     "mp:test:e2e": "node workers/mp/test/e2e-browser.mjs",
-    "mp:deploy": "wrangler deploy --config workers/mp/wrangler.toml"
+    "mp:deploy": "wrangler deploy --config workers/mp/wrangler.toml",
+    "accounts:dev": "wrangler d1 migrations apply byte-bistro-accounts --local --config workers/accounts/wrangler.toml && wrangler dev --config workers/accounts/wrangler.toml --port 8789 --ip 127.0.0.1",
+    "accounts:migrate": "wrangler d1 migrations apply byte-bistro-accounts --remote --config workers/accounts/wrangler.toml"
   },
   "dependencies": {
     "@babylonjs/core": "^8.21.0",
     "@babylonjs/loaders": "^8.21.0",
-    "@supabase/supabase-js": "^2.119.0",
     "qrcode-generator": "2.0.4"
   },
   "devDependencies": {

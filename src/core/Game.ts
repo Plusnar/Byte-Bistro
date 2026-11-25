@@ -88,6 +88,15 @@ const whenIdle = (callback: () => void): void => {
 /** How long the phones vibrate as a disaster breaks out (the protocol allows up to 400). */
 const DISASTER_BUZZ_MS = 380;
 
+/** Set by the account panel while a session is open (see ACCOUNT_SESSION_HINT there). */
+const hadAccountSession = (): boolean => {
+  try {
+    return localStorage.getItem("byte-bistro:account:session") === "1";
+  } catch {
+    return false;
+  }
+};
+
 export class Game {
   private readonly engine: AbstractEngine;
   private readonly sceneManager: SceneManager;
@@ -361,7 +370,9 @@ export class Game {
     // Priority 2 starts only now, so it never competed with the menu for bandwidth.
     whenIdle(() => {
       void this.preloadGameplay();
-      if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY && !this.disposed) {
+      // Only a browser that signed in before asks the account server who is signed in:
+      // guests never pay for the request (the session cookie itself is unreadable here).
+      if (hadAccountSession() && !this.disposed) {
         void this.getAccountPanel().then((panel) => panel.resume()).catch(() => undefined);
       }
     });

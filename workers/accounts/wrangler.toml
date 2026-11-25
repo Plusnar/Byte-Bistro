@@ -1,0 +1,21 @@
+# Byte Bistro accounts: username + password, sessions and saves on Cloudflare D1.
+#
+# Production runs as the Pages Function functions/api/auth/[[path]].ts, with the D1
+# database bound on the Pages project (Settings → Bindings → D1: ACCOUNTS →
+# byte-bistro-accounts). This file serves local development (`npm run accounts:dev`) and
+# the D1 commands (create, migrations):
+#   npx wrangler d1 migrations apply byte-bistro-accounts --remote --config workers/accounts/wrangler.toml
+name = "byte-bistro-accounts-dev"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[[d1_databases]]
+binding = "ACCOUNTS"
+database_name = "byte-bistro-accounts"
+database_id = "e5d3c3ba-890a-4369-a9e0-8b1c37efeb78"
+migrations_dir = "migrations"
+
+[vars]
+# The game's dev and preview servers, which reach this Worker through Vite's proxy.
+ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5191,http://127.0.0.1:5191"

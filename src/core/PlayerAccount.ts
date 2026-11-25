@@ -1,14 +1,53 @@
-import { createClient } from "@supabase/supabase-js";
 import { createDefaultPersistentState } from "./GameState";
 import { sanitizePersistentState } from "./SaveSystem";
 import { recordLevelRank } from "../data/levelRanks";
 import type { PersistentGameState } from "../types/game";
 
-const env = import.meta.env;
-export const accountAvailable = Boolean(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY);
-const client = accountAvailable
-  ? createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { flowType: "pkce" } })
-  : null;
+/**
+ * Player accounts on Cloudflare (D1 behind `/api/auth/*`, see workers/accounts): username +
+ * password, a session in an HttpOnly cookie the browser sends by itself, and one saved
+ * snapshot per player with a revision number so two devices never overwrite each other.
+ */
+
+/** An API answer that is not a success: its error code (`wrong-login`, `conflict`, …). */
+export class AccountApiError extends Error {
+  constructor(readonly code: string, readonly status: number) {
+    super(`Account API: ${code}`);
+  }
+}
+
+export interface AccountUser { readonly id: string; readonly username: string }
+
+const call = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
+  const response = await fetch(`/api/auth/${path}`, { // perf-allow: account API call (JSON), not an asset
+    method,
+    credentials: "same-origin",
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({})) as T & { error?: string };
+  if (!response.ok) throw new AccountApiError(data.error ?? "failed", response.status);
+  return data;
+};
+
+/** The signed-in user, null when signed out; throws `not-configured` without a server. */
+export const currentUser = async (): Promise<AccountUser | null> => {
+  try {
+    return (await call<{ user: AccountUser }>("GET", "me")).user;
+  } catch (error) {
+    if (error instanceof AccountApiError && error.status === 401) return null;
+    throw error;
+  }
+};
+export const register = async (username: string, password: string): Promise<AccountUser> =>
+  (await call<{ user: AccountUser }>("POST", "register", { username, password })).user;
+export const logIn = async (username: string, password: string): Promise<AccountUser> =>
+  (await call<{ user: AccountUser }>("POST", "login", { username, password })).user;
+export const logOut = async (): Promise<void> => { await call("POST", "logout", {}); };
+export const changePassword = async (current: string, next: string): Promise<void> => {
+  await call("POST", "password", { current, next });
+};
+export const deleteAccount = async (password: string): Promise<void> => { await call("POST", "delete", { password }); };
 
 export const avatars = ["william", "milena", "jean", "sandy"] as const;
 export type Avatar = typeof avatars[number];
@@ -48,20 +87,13 @@ export function mergeProgress(local: PersistentGameState, remote: PersistentGame
   };
 }
 
-export function getAccountClient() {
-  if (!client) throw new Error("Account service unavailable");
-  return client;
-}
-
-export async function readAccount(id: string) {
-  const { data, error } = await getAccountClient().from("player_saves")
-    .select("snapshot,revision").eq("user_id", id).maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
+export async function readAccount() {
+  const data = await call<{ snapshot: unknown; revision: number | null }>("GET", "save");
+  if (data.revision === null || !data.snapshot) return null;
   const s = data.snapshot as Partial<AccountSnapshot>;
   const avatar = s.profile?.avatar;
   return {
-    revision: data.revision as number,
+    revision: data.revision,
     snapshot: {
       progress: sanitizePersistentState(s.progress, createDefaultPersistentState()),
       profile: { name: String(s.profile?.name ?? "").slice(0, 40), avatar: avatars.find((id) => id === avatar) ?? "william" },
@@ -70,10 +102,14 @@ export async function readAccount(id: string) {
   };
 }
 
-export async function syncAccount(id: string, local: AccountSnapshot): Promise<AccountSnapshot> {
-  const store = getAccountClient().from("player_saves");
+/**
+ * Merges the local snapshot with the saved one and writes it on top of the revision read.
+ * Another device saving in between makes the server refuse (`conflict`): read, merge and
+ * try again, a few times.
+ */
+export async function syncAccount(local: AccountSnapshot): Promise<AccountSnapshot> {
   for (let attempt = 0; attempt < 4; attempt++) {
-    const remote = await readAccount(id);
+    const remote = await readAccount();
     const settingsAt = Math.max(local.settingsAt, remote?.snapshot.settingsAt ?? 0);
     const progress = remote
       ? mergeProgress(local.progress, remote.snapshot.progress, local.settingsAt >= remote.snapshot.settingsAt)
@@ -88,16 +124,13 @@ export async function syncAccount(id: string, local: AccountSnapshot): Promise<A
         levelBestScore: onlyOfficial(progress.levelBestScore),
       },
     };
-    if (!remote) {
-      const { error } = await store.insert({ user_id: id, snapshot, revision: 0 });
-      if (!error) return next;
-      if (error.code === "23505") continue;
+    try {
+      await call("PUT", "save", { snapshot, revision: remote?.revision ?? null });
+      return next;
+    } catch (error) {
+      if (error instanceof AccountApiError && error.code === "conflict") continue;
       throw error;
     }
-    const { data, error } = await store.update({ snapshot, revision: remote.revision + 1 })
-      .eq("user_id", id).eq("revision", remote.revision).select("revision").maybeSingle();
-    if (error) throw error;
-    if (data) return next;
   }
   throw new Error("Concurrent account updates");
 }
