@@ -561,6 +561,7 @@ export class KitchenScene implements ManagedScene {
       // across frames, because this runs while the players are still in the menu.
       await this.createStationViews();
       if (this.disposed) return;
+      this.environment.pauliLighting?.reserveLightSlots();
       // Counters, crates, boards and stoves are glTF art that cannot glow; the decor above
       // already left the glow pass for the same reason. ~450 draw calls a frame on the
       // official level, each painting black.
@@ -875,6 +876,7 @@ export class KitchenScene implements ManagedScene {
     }
 
     this.kitchenClockMs += delta * 1_000;
+    this.environment.pauliLighting?.update(delta);
     this.updateOrders(delta);
     this.wedding.syncOrders(this.runtime.activeOrders, this.orderUrgencySeconds());
     this.wedding.update(delta);

@@ -882,6 +882,7 @@ export const pt = {
     packChurch: "Igreja Matriz",
     packSquare: "Praça",
     packSchlachtfest: "Schlachtfest",
+    packPauli: "Salão Pauli",
   },
   phone: {
     pageTitle: "Controle · Byte Bistro",

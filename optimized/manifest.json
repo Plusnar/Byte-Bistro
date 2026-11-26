@@ -2176,6 +2176,552 @@
         "primitives": 9,
         "textures": []
       }
+    },
+    "public/asset-library/Scenario/SalaoPauli/wall_interior.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "667c94640b689f40a3cfc3449d67aa9787aeda676b2a417a64bb3fe7a8fe73f5",
+      "sourceBytes": 24272,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/wall_interior.glb",
+      "outputHash": "135a1ade933ed4f9b801b77b58d6e2a95a91651ce464986b9f70804950585284",
+      "outputBytes": 9888,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/wall_exterior.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "77eb1e03f578533f1f7af299105564f5351d6e498d57502afaba22565de3625b",
+      "sourceBytes": 46896,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/wall_exterior.glb",
+      "outputHash": "af728cce0ed58e9914863faf48befd466e7e864c477e92793591595691c398e3",
+      "outputBytes": 17792,
+      "meshopt": true,
+      "before": {
+        "meshes": 16,
+        "primitives": 16,
+        "textures": []
+      },
+      "after": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/wall_half.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "19018ef076bfd5fd3af427cab892c8ba66e9e2f59b422f6a418d0c0fb02cc2a0",
+      "sourceBytes": 38944,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/wall_half.glb",
+      "outputHash": "d0dbdc75f4e4fceb9637450004be6fbea1bc6cfb82edc15e220661aa0d67ed0d",
+      "outputBytes": 11428,
+      "meshopt": true,
+      "before": {
+        "meshes": 13,
+        "primitives": 13,
+        "textures": []
+      },
+      "after": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/floor_dance.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "1153edfb6fca5b4be42b0fec2c4dcd59e41da60e866157fdd07d0247dd7211fa",
+      "sourceBytes": 62032,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/floor_dance.glb",
+      "outputHash": "d13e4dc25bdb025f959377e80a601229e2dff2bc4d19eaea66f4096d69c2b061",
+      "outputBytes": 21420,
+      "meshopt": true,
+      "before": {
+        "meshes": 21,
+        "primitives": 21,
+        "textures": []
+      },
+      "after": {
+        "meshes": 7,
+        "primitives": 7,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/floor_tile.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "943879b810b15c82e4ddb411b1a5c19beb7868d6bc92f33ea2bf07b033b60865",
+      "sourceBytes": 188404,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/floor_tile.glb",
+      "outputHash": "196c19d92c39b80b2343ea04b53870a3e6d6f216ecb6ed39cec7e95fafcf10c1",
+      "outputBytes": 50056,
+      "meshopt": true,
+      "before": {
+        "meshes": 65,
+        "primitives": 65,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/column.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "1b773246ef39d24263fcdef31d1da590bd29e989e8d4f4e28ac0ae91c0717cb5",
+      "sourceBytes": 27272,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/column.glb",
+      "outputHash": "c8d59481d2f54ed2e46ce956518989ba0e37fabe9bd76fafd3614c626aca8498",
+      "outputBytes": 9876,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/pilaster.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "b00ac8df1e1edfc37a413e8916c891d8c8d1e3ac190ee195f7df26d735ae94f8",
+      "sourceBytes": 12652,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/pilaster.glb",
+      "outputHash": "8fbf2a8e04f2536d7f61a0ad3104065a684528b429d50856436df7ff150d9d0c",
+      "outputBytes": 6132,
+      "meshopt": true,
+      "before": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/truss.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "ded1ea12468086dd6155e270bbdf56ece3e5c440ff5d0e0d4af89024c317f928",
+      "sourceBytes": 18604,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/truss.glb",
+      "outputHash": "680cbc701521744c29867c39122ae98c2c2b13390ebaec8e349a064ccd16ed31",
+      "outputBytes": 6504,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/gable.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "2a2a26f2afdbf28c6f54d26c51a9b7d4b162f04709f14841ef6d08526e285971",
+      "sourceBytes": 375176,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/gable.glb",
+      "outputHash": "127c313560de4006e0f2913c475dca14b4cebbf417fccf8244099f68fe3ea662",
+      "outputBytes": 74632,
+      "meshopt": true,
+      "before": {
+        "meshes": 126,
+        "primitives": 126,
+        "textures": []
+      },
+      "after": {
+        "meshes": 12,
+        "primitives": 12,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/window_narrow.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "48c9d0def1337a2b6c78463887ee5dcc4ab10b66a69738b1a170b4aad7ce9938",
+      "sourceBytes": 22968,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/window_narrow.glb",
+      "outputHash": "4b984d8b1db459f5a4f36b67ed39843c8f83f1010807efc7e68d013cbbe0c9e4",
+      "outputBytes": 9800,
+      "meshopt": true,
+      "before": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/window_wide.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "9205b56a499adfb728b514e3c8c29f0a61920ab562cdde0c5eb303000973cf5b",
+      "sourceBytes": 28908,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/window_wide.glb",
+      "outputHash": "6748808d6d896100b092f4894687005ac9ab1ff38280a510ba526519cd165310",
+      "outputBytes": 11028,
+      "meshopt": true,
+      "before": {
+        "meshes": 10,
+        "primitives": 10,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/door_single.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "9fa1d40cb51d12a7335bd86c82d4368ad0b5b2d0218faece0265ad03d6da829b",
+      "sourceBytes": 24344,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/door_single.glb",
+      "outputHash": "3c11bd125f0dee4040b82989f4b8151a1f0b9965a4baac9951fc3bd001c9d385",
+      "outputBytes": 10180,
+      "meshopt": true,
+      "before": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/door_double.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "3ca9ddfe5db83059a0d9d36a89c00e2ad2bd8a060bb62b9655b0a65ca3e2f1d5",
+      "sourceBytes": 21780,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/door_double.glb",
+      "outputHash": "66347125bb10706448a8c342fbb594fd5240dedbb3f0b7a8ed53b1ff404e28a6",
+      "outputBytes": 9716,
+      "meshopt": true,
+      "before": {
+        "meshes": 7,
+        "primitives": 7,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/table_square.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "57f446c5ffc289a4250f827a0f155a066087a3b3774a2398339ad48b6574f311",
+      "sourceBytes": 18504,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/table_square.glb",
+      "outputHash": "82b4d7d8b64cc675e2e860e019528bb3a1ded6d10314faaad89007049d01df47",
+      "outputBytes": 7664,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/table_floral.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "e6ada23e6be4a85ad9da6b0d299d2356184acc2153285f9215be8e5662e7465a",
+      "sourceBytes": 116752,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/table_floral.glb",
+      "outputHash": "d21b821b312fa3ae4f28b7e139ae66cdb2d9a29d215f71f464a7cca244316970",
+      "outputBytes": 28048,
+      "meshopt": true,
+      "before": {
+        "meshes": 65,
+        "primitives": 65,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/chair.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "b21a7f14ce783529b86bec9b98f80eab7cf896714660f0073f4b7e77ac4f28d3",
+      "sourceBytes": 30324,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/chair.glb",
+      "outputHash": "f53b0f8970ba7a9c982d4d21a6da24dff05c603cabfa111665b9616d2903cf20",
+      "outputBytes": 10668,
+      "meshopt": true,
+      "before": {
+        "meshes": 10,
+        "primitives": 10,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/flowers.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "5077853adb14c871da496c9e138160acad39f7f8acd9cb4232a3e1ed97a9eb21",
+      "sourceBytes": 72064,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/flowers.glb",
+      "outputHash": "b153cdb2dfdd86871ed7e632011df25abe3dd790a9134ef826832ce091c5bb07",
+      "outputBytes": 24584,
+      "meshopt": true,
+      "before": {
+        "meshes": 37,
+        "primitives": 37,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/bunting.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "b63b5d6c0434f078e6df04c618edf5fd72620f7542a0b9a8cc29c2be5c9acf08",
+      "sourceBytes": 45996,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/bunting.glb",
+      "outputHash": "f13d2234ccb58cbfb52ad1f553bbea1090c39f1011fc8cfb9261be2e7624a910",
+      "outputBytes": 16124,
+      "meshopt": true,
+      "before": {
+        "meshes": 21,
+        "primitives": 21,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/venue_sign.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "e2e4d9bcf8bcde8b1f14308c1aa9eef6bfb871047ea47a1a62261beb3f581e92",
+      "sourceBytes": 43756,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/venue_sign.glb",
+      "outputHash": "ce1d6a62196298408d7713f97823b329e83ea68156f4f4b47452a1dfb1a8d50a",
+      "outputBytes": 14232,
+      "meshopt": true,
+      "before": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/stage_deck.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "3d7a87cf6005ce1b8fb1c792ba41cd6d626dd4b01c66fcc7d47903b4b1bae384",
+      "sourceBytes": 82952,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/stage_deck.glb",
+      "outputHash": "d03ed1e16e702c013884c305036369e8d9dbdbac3833a5ad81381e7e23132b50",
+      "outputBytes": 25400,
+      "meshopt": true,
+      "before": {
+        "meshes": 28,
+        "primitives": 28,
+        "textures": []
+      },
+      "after": {
+        "meshes": 10,
+        "primitives": 10,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/stage_steps.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "e08a57c1e921c0ac14133c907f44f44291c6617f38eb7f0574393a419b4e30c5",
+      "sourceBytes": 18376,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/stage_steps.glb",
+      "outputHash": "5dd77f7f41ccdb27a617298b097c3ff18f386b025f5c5dc738ed5b4300cf4761",
+      "outputBytes": 6124,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/stage_portal.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "be21b94ac784882be857197af6fb4fd729e2c3bf262b5f848eee51a96b2f8d5c",
+      "sourceBytes": 18568,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/stage_portal.glb",
+      "outputHash": "fc505188c5ad92ba8161b6a6f6eae0dfd3a5977f4c678ca6c85bbf25918c19d6",
+      "outputBytes": 6008,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/stage_curtain.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "9fb6cb5a891f07c9540582a8ec8fb6a77b05222383afaf257b43e9647d55f391",
+      "sourceBytes": 36224,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/stage_curtain.glb",
+      "outputHash": "9d18b9801fb3c170b80dcf17108631591f5226f3054c9a83b137fe6b7a93d4d7",
+      "outputBytes": 13072,
+      "meshopt": true,
+      "before": {
+        "meshes": 12,
+        "primitives": 12,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/light_spot.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "51a4210284c6ef0d519e12a36316df0641b5d3fb6269f935b8b93693b7fa90af",
+      "sourceBytes": 17484,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/light_spot.glb",
+      "outputHash": "4c83a3c6396db9059764b1be31fc19e70f439ebcaec1dc4ba91c7eea366b1f02",
+      "outputBytes": 7556,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/light_wash.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "315205ca1edbe8cdff30ad3692cd0453647a43f1f3bd5c22d99f3016820d3371",
+      "sourceBytes": 23084,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/light_wash.glb",
+      "outputHash": "3a2a6ede47140792a40978ee24f7c792f75c58db25c1e5e2c896c7e5ffaf26a2",
+      "outputBytes": 8628,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/SalaoPauli/light_disco.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "81611f56ceef7df93fbe74367a95c23915fff72fd144e566111c4d66e7dabfdd",
+      "sourceBytes": 150292,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/SalaoPauli/light_disco.glb",
+      "outputHash": "465a6b9462752f21b2c917a93c1739a85a6dd798621f1bbaafb9bbd561d39e78",
+      "outputBytes": 60044,
+      "meshopt": true,
+      "before": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
     }
   },
   "images": {

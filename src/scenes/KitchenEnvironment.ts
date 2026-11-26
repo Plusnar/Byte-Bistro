@@ -49,6 +49,7 @@ import { OutdoorBackdrop } from "./OutdoorBackdrop";
 import { BUILD_LOT_HALF, depthNudge, isPostAsset, isWallCutAway } from "../editor/buildTools";
 import { GAME_CONFIG } from "../config";
 import { applyColorOverrides, MaterialOverrideCache } from "./materialOverrides";
+import { MAX_PAULI_EMITTERS, PauliLighting, isPauliFixture } from "./PauliLighting";
 
 export interface StationAnchor {
   readonly id: StationId;
@@ -614,6 +615,7 @@ export class KitchenEnvironment {
   readonly receptionArea: Readonly<MovementBounds> | null;
 
   private readonly lights: Light[] = [];
+  readonly pauliLighting: PauliLighting | null;
   private readonly instances: ModelInstance[] = [];
   private readonly placementRoots: TransformNode[] = [];
   /** Recoloured material clones, shared by every object painted the same. */
@@ -679,6 +681,7 @@ export class KitchenEnvironment {
         camera: { x: centre.x + GAME_CONFIG.camera.offsetX, z: centre.z + GAME_CONFIG.camera.offsetZ },
       })
       : WEDDING_HALL_PLACEMENTS;
+    this.pauliLighting = placements.some(({ assetId }) => isPauliFixture(assetId)) ? new PauliLighting(scene, this.root) : null;
     // Every level is batched, the editor's maps included: the official wedding is one, and
     // skipping them left its ~1,550 decor meshes as separate draw calls.
     this.ready = this.loadScenario(placements).then(() => this.batchStaticDecor());
@@ -695,6 +698,7 @@ export class KitchenEnvironment {
     this.crews.length = 0;
     for (const placementRoot of this.placementRoots) placementRoot.dispose(false, false);
     this.placementRoots.length = 0;
+    this.pauliLighting?.dispose();
     for (const light of this.lights) light.dispose();
     this.backdrop.dispose();
     this.colorCache.dispose();
@@ -750,10 +754,14 @@ export class KitchenEnvironment {
   }
 
   private async loadScenario(placements: readonly ScenarioPlacement[]): Promise<void> {
-    await Promise.all(placements.map((placement, index) => this.placeAsset(placement, index)));
+    let remainingEmitters = MAX_PAULI_EMITTERS;
+    await Promise.all(placements.map((placement, index) => {
+      const fixture = this.pauliLighting && isPauliFixture(placement.assetId);
+      return this.placeAsset(placement, index, fixture ? remainingEmitters-- > 0 : false);
+    }));
   }
 
-  private async placeAsset(placement: ScenarioPlacement, index: number): Promise<void> {
+  private async placeAsset(placement: ScenarioPlacement, index: number, poweredFixture: boolean): Promise<void> {
     const placementRoot = new TransformNode(`scenario-${placement.name}-${index}`, this.scene);
     placementRoot.parent = this.root;
     placementRoot.position.copyFrom(placement.position);
@@ -843,8 +851,10 @@ export class KitchenEnvironment {
     const meshes = instance.rootNodes
       .flatMap((rootNode) => [rootNode, ...rootNode.getDescendants()])
       .filter((node): node is AbstractMesh => node instanceof AbstractMesh);
+    const fixture = isPauliFixture(placement.assetId);
+    if (fixture) this.pauliLighting?.attach(placement.assetId, placementRoot, meshes, poweredFixture);
     const modelHeight = this.measureModelHeight(instance.rootNodes);
-    applyPlacementCollision(meshes, placement.assetId, authoredSolid, modelHeight);
+    applyPlacementCollision(meshes, placement.assetId, authoredSolid && !fixture, modelHeight);
     if (placement.mechanism) this.setMechanismTop(placementRoot, modelHeight);
     for (const rootNode of instance.rootNodes) {
       for (const node of [rootNode, ...rootNode.getDescendants()]) {

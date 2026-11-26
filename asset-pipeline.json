@@ -197,6 +197,110 @@
     {
       "path": "public/asset-library/Scenario/Praca/canteiro_flores.glb",
       "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/wall_interior.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/wall_exterior.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/wall_half.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/floor_dance.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/floor_tile.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/column.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/pilaster.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/truss.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/gable.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/window_narrow.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/window_wide.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/door_single.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/door_double.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/table_square.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/table_floral.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/chair.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/flowers.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/bunting.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/venue_sign.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/stage_deck.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/stage_steps.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/stage_portal.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/stage_curtain.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/light_spot.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/light_wash.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/SalaoPauli/light_disco.glb",
+      "profile": "staticProp"
     }
   ],
   "images": {

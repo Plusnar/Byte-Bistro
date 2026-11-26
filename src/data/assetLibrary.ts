@@ -1,5 +1,6 @@
 import { getLanguage } from "../i18n";
 import { portugueseAssetName } from "../i18n/assetNames";
+import { publicModelUrl } from "../core/assets/assetRegistry";
 import manifest from "./assetLibrary.json";
 import type { PlacedObjectCategory } from "../editor/MapData";
 
@@ -18,7 +19,7 @@ interface LibraryManifestEntry {
 
 export const ASSET_LIBRARY = (manifest as readonly LibraryManifestEntry[]).map(entry => ({
   ...entry,
-  url: `${import.meta.env.BASE_URL}${entry.path}`,
+  url: publicModelUrl(decodeURIComponent(entry.path)),
   category: entry.category as PlacedObjectCategory,
 }));
 

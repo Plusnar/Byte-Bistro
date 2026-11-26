@@ -878,6 +878,7 @@ export const en: Messages = {
     packChurch: "Mother Church",
     packSquare: "Town square",
     packSchlachtfest: "Schlachtfest",
+    packPauli: "Salão Pauli Dance Hall",
   },
   phone: {
     pageTitle: "Controller · Byte Bistro",

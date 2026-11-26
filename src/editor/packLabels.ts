@@ -24,6 +24,7 @@ const PACK_LABELS: Readonly<Record<string, MessageKey>> = {
   "Igreja Matriz": "editor.packChurch",
   "Praça": "editor.packSquare",
   Schlachtfest: "editor.packSchlachtfest",
+  "Salão Pauli": "editor.packPauli",
 };
 
 const VENDOR = /^(KayKit|Kenney)\s+/;

@@ -12612,5 +12612,213 @@
     "label": "Rogue Hooded",
     "pack": "Personagens e acessórios",
     "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/wall_interior.glb",
+    "path": "asset-library/Scenario/SalaoPauli/wall_interior.glb",
+    "label": "Parede com madeiramento",
+    "labelEn": "Timber-framed wall",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/wall_exterior.glb",
+    "path": "asset-library/Scenario/SalaoPauli/wall_exterior.glb",
+    "label": "Parede de fachada",
+    "labelEn": "Clad exterior wall",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/wall_half.glb",
+    "path": "asset-library/Scenario/SalaoPauli/wall_half.glb",
+    "label": "Meia-parede com lambril",
+    "labelEn": "Half-height wainscot wall",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/floor_dance.glb",
+    "path": "asset-library/Scenario/SalaoPauli/floor_dance.glb",
+    "label": "Piso de dança em tábuas",
+    "labelEn": "Plank dance floor",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/floor_tile.glb",
+    "path": "asset-library/Scenario/SalaoPauli/floor_tile.glb",
+    "label": "Piso ladrilhado",
+    "labelEn": "Tiled floor",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/column.glb",
+    "path": "asset-library/Scenario/SalaoPauli/column.glb",
+    "label": "Coluna de madeira",
+    "labelEn": "Wooden column",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/pilaster.glb",
+    "path": "asset-library/Scenario/SalaoPauli/pilaster.glb",
+    "label": "Pilastra de parede",
+    "labelEn": "Wall pilaster",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/truss.glb",
+    "path": "asset-library/Scenario/SalaoPauli/truss.glb",
+    "label": "Tesoura de madeira",
+    "labelEn": "Timber roof truss",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/gable.glb",
+    "path": "asset-library/Scenario/SalaoPauli/gable.glb",
+    "label": "Oitão com telhas",
+    "labelEn": "Tiled gable",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/window_narrow.glb",
+    "path": "asset-library/Scenario/SalaoPauli/window_narrow.glb",
+    "label": "Janela estreita quadriculada",
+    "labelEn": "Tall divided window",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/window_wide.glb",
+    "path": "asset-library/Scenario/SalaoPauli/window_wide.glb",
+    "label": "Janela dupla com peitoril",
+    "labelEn": "Double window with sill",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/door_single.glb",
+    "path": "asset-library/Scenario/SalaoPauli/door_single.glb",
+    "label": "Porta de madeira",
+    "labelEn": "Wooden door",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/door_double.glb",
+    "path": "asset-library/Scenario/SalaoPauli/door_double.glb",
+    "label": "Porta dupla aberta",
+    "labelEn": "Open double door",
+    "pack": "Salão Pauli",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/table_square.glb",
+    "path": "asset-library/Scenario/SalaoPauli/table_square.glb",
+    "label": "Mesa quadrada",
+    "labelEn": "Square table",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/table_floral.glb",
+    "path": "asset-library/Scenario/SalaoPauli/table_floral.glb",
+    "label": "Mesa com toalha florida",
+    "labelEn": "Table with floral linen",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/chair.glb",
+    "path": "asset-library/Scenario/SalaoPauli/chair.glb",
+    "label": "Cadeira de encosto ripado",
+    "labelEn": "Slat-back chair",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/flowers.glb",
+    "path": "asset-library/Scenario/SalaoPauli/flowers.glb",
+    "label": "Vaso com flores cor-de-rosa",
+    "labelEn": "Vase of pink flowers",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/bunting.glb",
+    "path": "asset-library/Scenario/SalaoPauli/bunting.glb",
+    "label": "Cordão de bandeirinhas",
+    "labelEn": "Party bunting",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/venue_sign.glb",
+    "path": "asset-library/Scenario/SalaoPauli/venue_sign.glb",
+    "label": "Placa Salão Pauli",
+    "labelEn": "Salão Pauli sign",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/stage_deck.glb",
+    "path": "asset-library/Scenario/SalaoPauli/stage_deck.glb",
+    "label": "Módulo de palco livre",
+    "labelEn": "Stage deck",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/stage_steps.glb",
+    "path": "asset-library/Scenario/SalaoPauli/stage_steps.glb",
+    "label": "Escada de palco",
+    "labelEn": "Stage steps",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/stage_portal.glb",
+    "path": "asset-library/Scenario/SalaoPauli/stage_portal.glb",
+    "label": "Pórtico do palco",
+    "labelEn": "Stage proscenium",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/stage_curtain.glb",
+    "path": "asset-library/Scenario/SalaoPauli/stage_curtain.glb",
+    "label": "Cortina lateral franzida",
+    "labelEn": "Pleated stage curtain",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/light_disco.glb",
+    "path": "asset-library/Scenario/SalaoPauli/light_disco.glb",
+    "label": "Globo espelhado RGB",
+    "labelEn": "RGB mirror ball",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/light_spot.glb",
+    "path": "asset-library/Scenario/SalaoPauli/light_spot.glb",
+    "label": "Refletor móvel RGB de palco",
+    "labelEn": "Moving RGB stage spotlight",
+    "pack": "Salão Pauli",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/SalaoPauli/light_wash.glb",
+    "path": "asset-library/Scenario/SalaoPauli/light_wash.glb",
+    "label": "Barra de luz RGB",
+    "labelEn": "RGB light bar",
+    "pack": "Salão Pauli",
+    "category": "decor"
   }
 ]
