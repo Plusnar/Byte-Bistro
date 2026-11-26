@@ -26,7 +26,16 @@ export type MechanismKind =
    * A column of seven robots in festival dress marching in step: out along the way it
    * faces, about-turn, and back the same way. Solid: it pushes cooks aside.
    */
-  | "march";
+  | "march"
+  /**
+   * Two tipsy robots a few metres apart lobbing bottles at each other, in turn. A bottle
+   * knocks over any cook it hits on the way.
+   */
+  | "bottle_fight"
+  /** Two robots brawling forever: pushed over, punched on the floor, back up, revenge. */
+  | "brawl"
+  /** One robot running round in circles, arms in the air. */
+  | "panic_run";
 
 /** How a mechanism behaves over time. */
 export type MechanismActivation =
@@ -74,6 +83,9 @@ export const MECHANISM_KINDS: readonly MechanismKind[] = [
   "vanishing_floor",
   "portal",
   "march",
+  "bottle_fight",
+  "brawl",
+  "panic_run",
 ];
 
 /**
@@ -114,6 +126,9 @@ export const MECHANISM_KIND_LABEL: Readonly<Record<MechanismKind, string>> = {
   get vanishing_floor() { return t("editor.mechanismVanishingFloor"); },
   get portal() { return t("editor.mechanismPortal"); },
   get march() { return t("editor.mechanismMarch"); },
+  get bottle_fight() { return t("editor.mechanismBottleFight"); },
+  get brawl() { return t("editor.mechanismBrawl"); },
+  get panic_run() { return t("editor.mechanismPanicRun"); },
 };
 
 const clamp = (value: number, min: number, max: number): number =>

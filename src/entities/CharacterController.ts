@@ -344,6 +344,14 @@ export class CharacterController {
     if (fraction > 0) group.goToFrame(group.from + (group.to - group.from) * fraction);
   }
 
+  /** How far through its loop the clip playing now is, 0..1 (0 when nothing plays). */
+  animationProgress(): number {
+    const group = this.activeAnimation;
+    const frame = group?.animatables[0]?.masterFrame;
+    if (!group || frame === undefined || group.to <= group.from) return 0;
+    return Math.min(1, Math.max(0, (frame - group.from) / (group.to - group.from)));
+  }
+
   /** Playback rate of the clip playing now (1 is as authored). */
   setAnimationSpeed(ratio: number): void {
     if (this.activeAnimation) this.activeAnimation.speedRatio = ratio;

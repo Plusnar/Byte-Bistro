@@ -221,6 +221,32 @@ const MECHANISM_PRESETS: readonly EditorAssetEntry[] = [
       waypoints: [{ x: 0, y: 0, z: 5 }],
     },
   },
+  // The party gone wrong, in the plain robot. The model shown is a handle; the editor
+  // draws the crew around it as it will play.
+  {
+    assetId: ROBOT_ASSET_ID,
+    get label() { return t("editor.mechanismPrefix", { name: MECHANISM_KIND_LABEL.bottle_fight }); },
+    category: "mechanism",
+    role: "mechanism",
+    color: "#2F9E4A",
+    mechanism: { ...DEFAULT_MECHANISM_CONFIG, kind: "bottle_fight", speed: 1, waypoints: [{ x: 0, y: 0, z: 4 }] },
+  },
+  {
+    assetId: ROBOT_ASSET_ID,
+    get label() { return t("editor.mechanismPrefix", { name: MECHANISM_KIND_LABEL.brawl }); },
+    category: "mechanism",
+    role: "mechanism",
+    color: "#D9534F",
+    mechanism: { ...DEFAULT_MECHANISM_CONFIG, kind: "brawl", speed: 1 },
+  },
+  {
+    assetId: ROBOT_ASSET_ID,
+    get label() { return t("editor.mechanismPrefix", { name: MECHANISM_KIND_LABEL.panic_run }); },
+    category: "mechanism",
+    role: "mechanism",
+    color: "#FF8C42",
+    mechanism: { ...DEFAULT_MECHANISM_CONFIG, kind: "panic_run", speed: 2.2, waypoints: [{ x: 0, y: 0, z: 1.5 }] },
+  },
 ];
 
 export const kitchenStationEntry = (kind: KitchenStationKind): EditorAssetEntry => ({

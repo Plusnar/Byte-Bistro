@@ -852,12 +852,12 @@ export class EditorUI {
    */
   private renderMechanismFields(kind: MechanismKind): HTMLElement {
     const section = createElement("section", "bm-section");
-    const moves = kind === "conveyor" || kind === "platform" || kind === "turntable" || kind === "march";
+    const moves = kind === "conveyor" || kind === "platform" || kind === "turntable" || kind === "march" || kind === "panic_run";
     section.innerHTML = `
       <h3>${MECHANISM_KIND_LABEL[kind]}</h3>
       ${moves ? `<label class="bm-field">${t("editor.mechanismSpeed")}<input type="number" data-mechanism="speed" min="0.1" max="6" step="0.1"></label>` : ""}
       ${kind === "platform" || kind === "march" ? `<label class="bm-field">${t("editor.mechanismPause")}<input type="number" data-mechanism="pauseSeconds" min="0" max="10" step="0.1"></label>` : ""}
-      ${kind === "march" ? `<label class="bm-field">${t("editor.mechanismDistance")}<input type="number" data-mechanism-distance min="1" max="20" step="0.5"></label>` : ""}
+      ${kind === "march" || kind === "bottle_fight" || kind === "panic_run" ? `<label class="bm-field">${t(kind === "panic_run" ? "editor.mechanismRadius" : kind === "bottle_fight" ? "editor.mechanismGap" : "editor.mechanismDistance")}<input type="number" data-mechanism-distance min="0.5" max="20" step="0.5"></label>` : ""}
       ${kind === "portal" ? `<label class="bm-field">${t("editor.mechanismPairId")}<input type="text" data-mechanism="portalPairId" maxlength="24"></label>` : ""}
       <label class="bm-field">${t("editor.mechanismPhase")}<input type="number" data-mechanism="phase" min="0" step="0.1"></label>
       <label class="bm-field">${t("editor.mechanismActivation")}<select data-mechanism-activation="mode">

@@ -175,6 +175,8 @@ const EMOTE_COOLDOWN_MS = 900;
 const DASH_SHOVE_REACH = 0.95;
 /** A shove is a nudge, not a thrown pan: see `stunSlideSpeed`. */
 const DASH_SHOVE_STRENGTH = 0.3;
+/** A drunk robot's bottle: a real knock, harder than a shove (bottle_fight mechanisms). */
+const BOTTLE_STUN_STRENGTH = 0.45;
 /** How far ahead of the player the "tile in front" probe sits. */
 const REACH_PROBE = 0.85;
 /** Max distance from the probe to a station centre for it to be targetable. */
@@ -654,6 +656,7 @@ export class KitchenScene implements ManagedScene {
         position: player.position,
         carry: (x: number, z: number) => player.applyCarry(x, z),
         fell: () => this.fallFromFloor(slot),
+        hit: (fromX: number, fromZ: number) => this.knockCook(slot, fromX, fromZ, BOTTLE_STUN_STRENGTH),
       },
       held: null,
       target: null,

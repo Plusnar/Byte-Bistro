@@ -27,7 +27,9 @@ export const isVisualPreservingChange = (
     if (previous[key] !== next[key]) return false;
   }
   // A parade draws its route on the floor: a new distance redraws it.
-  if (next.mechanism?.kind === "march" && paradeDistance(previous) !== paradeDistance(next)) return false;
+  // The same for a crew's gap or circle.
+  const kind = next.mechanism?.kind;
+  if ((kind === "march" || kind === "bottle_fight" || kind === "panic_run") && paradeDistance(previous) !== paradeDistance(next)) return false;
   return true;
 };
 

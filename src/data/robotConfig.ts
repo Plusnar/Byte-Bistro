@@ -50,6 +50,9 @@ export const ROBOT_CLIPS: readonly RobotClip[] = [
   { id: "Band_Guitar", get label() { return t("editor.clipBandGuitar"); }, pack: "fest" },
   { id: "Band_Sing", get label() { return t("editor.clipBandSing"); }, pack: "fest" },
   { id: "Band_Keyboard", get label() { return t("editor.clipBandKeyboard"); }, pack: "fest" },
+  { id: "Drunk_Throw", get label() { return t("editor.clipDrunk"); }, pack: "fest" },
+  { id: "Brawl", get label() { return t("editor.clipBrawl"); }, pack: "fest" },
+  { id: "Panic_Run", get label() { return t("editor.clipPanic"); }, pack: "fest" },
 ];
 
 export const DEFAULT_ROBOT_CLIP = "Idle_A";
@@ -148,6 +151,11 @@ export const ROBOT_PRESETS: readonly RobotPreset[] = [
   {
     get label() { return t("editor.presetSitting"); },
     config: { ...DEFAULT_ROBOT_CONFIG, customer: true, canMove: false, idleClip: "Sit_Chair_Idle" },
+  },
+  // Out cold on the floor after the party: orders nothing, goes nowhere.
+  {
+    get label() { return t("editor.presetPassedOut"); },
+    config: { ...DEFAULT_ROBOT_CONFIG, customer: false, canMove: false, idleClip: "Lie_Idle" },
   },
   // Dressed robots. The festival pair and the couple order food like any guest; the band
   // plays where it was placed and orders nothing.

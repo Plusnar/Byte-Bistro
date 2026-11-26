@@ -233,6 +233,108 @@ export const marchInWorld = (config: MechanismConfig, yaw: number): MechanismCon
   };
 };
 
+// ---------------------------------------------------------------------------------------
+// The party gone wrong: bottle throwers, brawlers, a robot running in circles
+
+export type CrewKind = "bottle_fight" | "brawl" | "panic_run";
+export const isCrewKind = (kind: string): kind is CrewKind =>
+  kind === "bottle_fight" || kind === "brawl" || kind === "panic_run";
+
+/** Brawlers stand this far apart, face to face. */
+export const BRAWL_GAP = 1.1;
+/** The bottle throwers' gap and the panic runner's radius, unless the editor sets one. */
+export const BOTTLE_GAP = { default: 4, min: 2, max: 8 } as const;
+export const PANIC_RADIUS = { default: 1.5, min: 0.6, max: 5 } as const;
+
+/** A crew's size from its one waypoint: the throwers' gap, or the runner's radius. */
+export const crewSpan = (config: MechanismConfig): number => {
+  const first = config.waypoints[0];
+  const length = first ? Math.hypot(first.x, first.z) : 0;
+  const range = config.kind === "panic_run" ? PANIC_RADIUS : BOTTLE_GAP;
+  return length > 0 ? Math.min(range.max, Math.max(range.min, length)) : range.default;
+};
+
+/**
+ * Where each robot of a crew stands, in the world, around the mechanism's node: the pair
+ * face to face along the node's own x (turned by `yaw`), or the runner on the node itself.
+ */
+export const crewMembers = (
+  config: MechanismConfig,
+  center: { readonly x: number; readonly z: number },
+  yaw: number,
+  out: { x: number; z: number }[] = [],
+): { x: number; z: number }[] => {
+  if (config.kind === "march") return marchMembers(config, center, out);
+  const half = config.kind === "brawl" ? BRAWL_GAP / 2 : config.kind === "bottle_fight" ? crewSpan(config) / 2 : 0;
+  const count = config.kind === "panic_run" ? 1 : 2;
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
+  for (let index = 0; index < count; index += 1) {
+    const along = count === 1 ? 0 : (index === 0 ? -half : half);
+    const member = out[index] ?? (out[index] = { x: 0, z: 0 });
+    // The node's local +x in the world, for a node turned by `yaw` (Babylon's convention).
+    member.x = center.x + along * cos;
+    member.z = center.z - along * sin;
+  }
+  out.length = count;
+  return out;
+};
+
+/** Where Drunk_Throw lets go of the bottle, as a fraction of the clip (robot_poses.py). */
+export const BOTTLE_RELEASE = 0.48;
+/** How much of the clip a bottle spends in the air (0.3 × 2.4 s ≈ 0.7 s). */
+export const BOTTLE_FLIGHT = 0.3;
+/** How high a bottle leaves the hand, lands, and arcs over the gap, in metres. */
+export const BOTTLE_HEIGHTS = { release: 1.35, landing: 1.05, arc: 0.35 } as const;
+/** A cook this close to a bottle in the air is hit. */
+export const BOTTLE_HIT_RADIUS = 0.45;
+
+export interface BottleFlight {
+  /** Which thrower it left: 0 or 1. */
+  readonly thrower: 0 | 1;
+  /** 0 at the hand, 1 at the other robot. */
+  readonly progress: number;
+  /** Which throw this is, so one bottle hits at most once. */
+  readonly throwIndex: number;
+}
+
+/**
+ * The bottle in the air, if any, when the first thrower's clip is at `clipProgress`
+ * (0..1, `cycles` loops played so far). The second thrower runs half a clip behind, so
+ * they take turns: one throws, the other ducks, then throws back.
+ */
+export const bottleFlight = (clipProgress: number, cycles = 0): BottleFlight | null => {
+  const p = ((clipProgress % 1) + 1) % 1;
+  const first = (p - BOTTLE_RELEASE + 1) % 1;
+  if (first < BOTTLE_FLIGHT) return { thrower: 0, progress: first / BOTTLE_FLIGHT, throwIndex: cycles * 2 };
+  const second = (p - BOTTLE_RELEASE - 0.5 + 2) % 1;
+  if (second < BOTTLE_FLIGHT) return { thrower: 1, progress: second / BOTTLE_FLIGHT, throwIndex: cycles * 2 + 1 };
+  return null;
+};
+
+/** Where the bottle is, between the two throwers, on its arc. */
+export const bottlePosition = (
+  flight: BottleFlight,
+  members: readonly { readonly x: number; readonly z: number }[],
+): { x: number; y: number; z: number } => {
+  const from = members[flight.thrower]!;
+  const to = members[flight.thrower === 0 ? 1 : 0]!;
+  const s = flight.progress;
+  return {
+    x: from.x + (to.x - from.x) * s,
+    z: from.z + (to.z - from.z) * s,
+    y: BOTTLE_HEIGHTS.release + (BOTTLE_HEIGHTS.landing - BOTTLE_HEIGHTS.release) * s + BOTTLE_HEIGHTS.arc * 4 * s * (1 - s),
+  };
+};
+
+/** Whether a bottle at `bottle` hits a cook standing at `cook` (feet), cooks being ~1.8 m tall. */
+export const bottleHits = (
+  bottle: { readonly x: number; readonly y: number; readonly z: number },
+  cook: { readonly x: number; readonly y: number; readonly z: number },
+): boolean =>
+  Math.hypot(bottle.x - cook.x, bottle.z - cook.z) < BOTTLE_HIT_RADIUS &&
+  bottle.y > cook.y + 0.2 && bottle.y < cook.y + 2;
+
 /** Where a mechanism sits at `seconds`, ignoring whether it is resting. */
 export const poseAt = (config: MechanismConfig, seconds: number): MechanismPose => {
   switch (config.kind) {
@@ -244,6 +346,21 @@ export const poseAt = (config: MechanismConfig, seconds: number): MechanismPose 
       // The column travels like a platform; its yaw is which way the marchers face
       // (see marchHeading), applied to each of them, never to the column as a whole.
       return { ...platformPose(config, seconds), yaw: marchHeading(config, seconds) };
+    case "panic_run": {
+      // Round and round the placed spot, facing the way it runs.
+      const radius = crewSpan(config);
+      const angle = ((seconds + config.phase) * config.speed) / radius;
+      return {
+        x: radius * Math.sin(angle),
+        y: 0,
+        z: radius * Math.cos(angle),
+        yaw: Math.atan2(Math.cos(angle), -Math.sin(angle)),
+      };
+    }
+    case "bottle_fight":
+    case "brawl":
+      // They stay where they were placed; all the action is in their clips.
+      return STILL;
     case "conveyor":
       // A conveyor's belt is scenery; only what rides it moves.
     case "vanishing_floor":
@@ -328,6 +445,12 @@ export const footprintOf = (
     maxX = Math.max(maxX, origin.x + stop.x);
     minZ = Math.min(minZ, origin.z + stop.z);
     maxZ = Math.max(maxZ, origin.z + stop.z);
+  }
+  if (isCrewKind(config.kind)) {
+    // Pessimistic square: the robots can stand any way round the placed spot.
+    const reach = (config.kind === "panic_run" ? crewSpan(config) : config.kind === "brawl" ? BRAWL_GAP / 2 : crewSpan(config) / 2)
+      + MARCH_BODY_RADIUS;
+    return { minX: origin.x - reach, maxX: origin.x + reach, minZ: origin.z - reach, maxZ: origin.z + reach };
   }
   if (config.kind === "march") {
     // The whole column, at both ends of its route: a marcher reaches half the column's

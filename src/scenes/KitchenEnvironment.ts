@@ -21,8 +21,9 @@ import type { MovementBounds } from "../entities/Player";
 import type { StationId } from "../types/game";
 import type { MapData, MapPlacedObject } from "../editor/MapData";
 import type { MechanismConfig } from "../data/mechanismConfig";
-import { footprintOf, marchInWorld, type MechanismFootprint } from "../gameplay/mechanisms/MechanismSystem";
+import { footprintOf, isCrewKind, marchInWorld, type MechanismFootprint } from "../gameplay/mechanisms/MechanismSystem";
 import { MarchLine } from "./MarchLine";
+import { RobotCrew } from "./RobotCrew";
 import { wrapAngle } from "../editor/MapData";
 import {
   DEFAULT_KITCHEN_LAYOUT,
@@ -121,6 +122,8 @@ export interface MechanismPlacement {
   centerZ: number;
   /** A German parade's robots; only `march` mechanisms have them. */
   march?: MarchLine;
+  /** Bottle throwers, brawlers or a panicking runner; only those kinds have them. */
+  crew?: RobotCrew;
 }
 
 export const KITCHEN_STATION_ANCHORS: readonly StationAnchor[] = [
@@ -624,6 +627,7 @@ export class KitchenEnvironment {
    */
   private readonly mechanismPlacements: MechanismPlacement[] = [];
   private readonly marchLines: MarchLine[] = [];
+  private readonly crews: RobotCrew[] = [];
   private disposed = false;
 
   constructor(
@@ -687,6 +691,8 @@ export class KitchenEnvironment {
     this.instances.length = 0;
     for (const line of this.marchLines) line.dispose();
     this.marchLines.length = 0;
+    for (const crew of this.crews) crew.dispose();
+    this.crews.length = 0;
     for (const placementRoot of this.placementRoots) placementRoot.dispose(false, false);
     this.placementRoots.length = 0;
     for (const light of this.lights) light.dispose();
@@ -787,6 +793,15 @@ export class KitchenEnvironment {
       const entry = this.mechanismPlacements.find((candidate) => candidate.node === placementRoot);
       if (entry) entry.march = line;
       await line.ready.catch((error: unknown) => console.warn("German parade could not be loaded.", error));
+      return;
+    }
+    // Likewise the party crews: robots, not the placed model.
+    if (mechanism && isCrewKind(mechanism.kind)) {
+      const crew = new RobotCrew(this.scene, this.assets, this.root, mechanism);
+      this.crews.push(crew);
+      const entry = this.mechanismPlacements.find((candidate) => candidate.node === placementRoot);
+      if (entry) entry.crew = crew;
+      await crew.ready.catch((error: unknown) => console.warn("Robot crew could not be loaded.", error));
       return;
     }
 

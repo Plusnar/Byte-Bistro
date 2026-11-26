@@ -33,7 +33,7 @@ import type { ManagedScene } from "../core/SceneManager";
 import { CHARACTERS, SCENARIO_ASSETS } from "../data";
 import { MANNEQUIN } from "../systems/WeddingGuests";
 import { ROBOT_VARIANT_ASSETS, robotAssetId } from "../data/robotVariants";
-import { MARCH_BODY_RADIUS, MARCH_SIZE, MARCH_SPACING, marchMembers } from "../gameplay/mechanisms/MechanismSystem";
+import { MARCH_BODY_RADIUS, MARCH_SIZE, MARCH_SPACING, crewMembers, crewSpan, isCrewKind, marchMembers } from "../gameplay/mechanisms/MechanismSystem";
 import { sanitizeRobotConfig, type RobotConfig } from "../data/robotConfig";
 import { sanitizeMechanismConfig, type MechanismConfig } from "../data/mechanismConfig";
 import { hasColorChange, hasTransformChange, isVisualPreservingChange } from "../editor/objectDiff";
@@ -1169,7 +1169,9 @@ export class EditorScene implements ManagedScene {
     const dressing = await this.dressStation(object, root);
     const extras = object.role === "mechanism" && object.mechanism?.kind === "march"
       ? await this.dressParade(object, body)
-      : [];
+      : object.role === "mechanism" && object.mechanism && isCrewKind(object.mechanism.kind)
+        ? await this.dressCrew(object, body)
+        : [];
     for (const mesh of root.getChildMeshes()) {
       mesh.isPickable = true;
       mesh.metadata = { objectId: object.id };
@@ -2001,6 +2003,53 @@ export class EditorScene implements ManagedScene {
    * placed model is the middle one) and the ground it covers, from the column's back at
    * the start to its front at the far end, so its size can be judged while building.
    */
+  /**
+   * A party crew drawn as it will play, in the plain robot: the throwers or brawlers face
+   * to face (the placed model stands between them), or the runner on its circle, with the
+   * circle on the floor.
+   */
+  private async dressCrew(object: MapPlacedObject, body: TransformNode): Promise<ModelInstance[]> {
+    const config = object.mechanism!;
+    const members = crewMembers(config, { x: 0, z: 0 }, 0);
+    if (config.kind === "panic_run") {
+      const radius = crewSpan(config);
+      const ring = MeshBuilder.CreateTorus(`editor-crew-ring-${object.id}`, {
+        diameter: radius * 2, thickness: 0.08, tessellation: 40,
+      }, this.scene);
+      ring.parent = body;
+      ring.position.y = 0.04;
+      const material = new StandardMaterial(`editor-crew-ring-material-${object.id}`, this.scene);
+      material.diffuseColor = Color3.FromHexString("#FF6B6B");
+      material.emissiveColor = Color3.FromHexString("#7A1F1F");
+      material.alpha = 0.6;
+      ring.material = material;
+      ring.onDisposeObservable.addOnce(() => material.dispose());
+      // The runner starts on the circle, not in its middle.
+      members[0] = { x: 0, z: radius };
+    }
+    const placed = await Promise.all(members.map(async (member, index) => {
+      const node = new TransformNode(`editor-crew-${object.id}-${index}`, this.scene);
+      node.parent = body;
+      node.position.set(member.x, 0, member.z);
+      if (members.length === 2) node.rotation.y = index === 0 ? Math.PI / 2 : -Math.PI / 2;
+      try {
+        return await this.assets.instantiateModel(MANNEQUIN.modelAssetId, {
+          namePrefix: `${node.name}-`,
+          parent: node,
+          cloneMaterials: false,
+        });
+      } catch (error) {
+        console.warn("Editor could not draw a crew robot", error);
+        return null;
+      }
+    }));
+    // The placed model itself is only a handle here: the crew stands around it.
+    for (const mesh of body.getChildMeshes(true)) {
+      if (!mesh.name.startsWith(`editor-crew-`)) mesh.visibility = 0.25;
+    }
+    return placed.filter((instance): instance is ModelInstance => instance !== null);
+  }
+
   private async dressParade(object: MapPlacedObject, body: TransformNode): Promise<ModelInstance[]> {
     const config = object.mechanism!;
     const members = marchMembers({ ...config, waypoints: [{ x: 0, y: 0, z: 1 }] }, { x: 0, z: 0 });

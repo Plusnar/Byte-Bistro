@@ -331,12 +331,12 @@
     "src/assets/robots/Rig_Medium_Fest.glb": {
       "profile": "animation",
       "profileKey": "df76d2badf34",
-      "sourceHash": "05354b5fc2620224f6d43a94e1f2870b4fde9b1155f46fcc6d16d40039343625",
-      "sourceBytes": 135592,
+      "sourceHash": "783044853868a0021dca872ec507af0adbd22970dc10f5ef9a17bfc6ec18db31",
+      "sourceBytes": 226192,
       "status": "optimized",
       "output": "optimized/src/assets/robots/Rig_Medium_Fest.glb",
-      "outputHash": "623ec7108323a722ecbdfc8157922c0758374bd9fc6158464fdd160a0d1ef270",
-      "outputBytes": 126872,
+      "outputHash": "22e4c19651b6ca6259ab1ac4e07b8ae530f027cf6d51116ce0c6aed623d89944",
+      "outputBytes": 214580,
       "meshopt": false,
       "before": {
         "meshes": 0,

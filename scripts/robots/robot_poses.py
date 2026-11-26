@@ -100,7 +100,11 @@ def apply_pose(arm, pose):
         deltas[lower_name] = lower_vec.normalized().rotation_difference((end - elbow).normalized())
         for child in lower_pb.children_recursive:
             extra = pose.deltas.get(child.name)
-            deltas[child.name] = extra @ deltas[lower_name] if extra else deltas[lower_name]
+            if limb.startswith("leg"):
+                # Feet stay level with the floor whatever the shin does (sitting, hopping).
+                deltas[child.name] = extra or Quaternion()
+            else:
+                deltas[child.name] = extra @ deltas[lower_name] if extra else deltas[lower_name]
         _write_bases(arm, deltas, pose.hips)
         bpy.context.view_layer.update()
 
@@ -304,7 +308,134 @@ def clip_band_keyboard():
     return frames, pose_at
 
 
+# ---------------------------------------------------------------------------------------
+# The party gone wrong: drunk bottle throwers, a brawl, panic. Loops built from keyed
+# "beats" (u from 0 to 1), eased between, so a long choreography reads like a script.
+
+def _smooth(t):
+    t = min(1.0, max(0.0, t))
+    return t * t * (3 - 2 * t)
+
+
+def track(u, keys):
+    """Value at `u` along (u, value) keys, eased between neighbours. Values are tuples."""
+    u = u % 1.0
+    for (u0, a), (u1, b) in zip(keys, keys[1:]):
+        if u0 <= u <= u1:
+            s = _smooth((u - u0) / max(1e-6, u1 - u0))
+            return tuple(x + (y - x) * s for x, y in zip(a, b))
+    return keys[-1][1]
+
+
+# Where the throw lets go, as a fraction of Drunk_Throw: the game launches the bottle here.
+DRUNK_RELEASE = 0.48
+
+
+def clip_drunk_throw():
+    """Tipsy: swaying and wobbling at the knees, then a bottle wound back and hurled."""
+    frames = 72
+
+    def pose_at(f):
+        u = f / frames
+        p = 2 * math.pi * u
+        lean = rot((0, 1, 0), 7 * math.sin(p)) @ rot((1, 0, 0), 4 * math.sin(2 * p))
+        throw = track(u, [(0, (0,)), (0.3, (0,)), (0.44, (-10,)), (0.5, (14,)), (0.62, (8,)), (0.85, (0,)), (1, (0,))])[0]
+        spine = rot((1, 0, 0), throw) @ lean
+        pose = Pose().turn("spine", spine).turn("head", rot((0, 0, 1), 9 * math.sin(p + 1)) @ rot((0, 1, 0), -6 * math.sin(p)) @ spine)
+        pose.hips = Vector((0.03 * math.sin(p), 0, -0.02 * (1 - math.cos(2 * p)) / 2))
+        planted_feet(pose)
+        right = track(u, [
+            (0, (-0.24, -0.26, 0.95)), (0.3, (-0.24, -0.26, 0.95)), (0.44, (-0.26, 0.22, 1.32)),
+            (0.5, (-0.14, -0.5, 1.22)), (0.62, (-0.14, -0.44, 0.84)), (0.85, (-0.24, -0.26, 0.95)), (1, (-0.24, -0.26, 0.95)),
+        ])
+        left = (0.42 + 0.05 * math.sin(p * 2), -0.1 + 0.05 * math.sin(p), 0.72 + 0.04 * math.sin(p * 3))
+        pose.targets["arm.r"] = (around(right, spine, SPINE_PIVOT) + pose.hips, (-1, 0.4, -0.3))
+        pose.targets["arm.l"] = (around(left, spine, SPINE_PIVOT) + pose.hips, (1, 0.3, 0))
+        return pose
+
+    return frames, pose_at
+
+
+def clip_brawl():
+    """Half attacker, half victim. Two brawlers half a loop apart fight each other forever:
+    push, punches on the floor, step back with fists up; then pushed over, beaten, back up.
+    """
+    frames = 160
+
+    def pose_at(f):
+        u = f / frames
+        attacker = u < 0.5
+        v = (u * 2) % 1.0
+        guard = (0.15, -0.32, 1.12)
+        planted = {"l": ANKLE["l"], "r": ANKLE["r"]}
+        knee_pole = KNEE_POLE
+        if attacker:
+            pitch, hips_z = track(v, [(0, (0, 0)), (0.12, (14, -0.03)), (0.2, (4, 0)), (0.28, (28, -0.16)),
+                                       (0.62, (28, -0.16)), (0.75, (0, 0)), (1, (0, 0))])
+            punch = max(0.0, math.sin((v - 0.28) / 0.34 * 2 * math.pi)) if 0.28 <= v <= 0.62 else 0.0
+            right = track(v, [(0, guard), (0.12, (-0.15, -0.5, 1.05)), (0.2, guard), (0.28, (-0.2, -0.22, 1.05)),
+                              (0.62, (-0.2, -0.22, 1.05)), (0.75, guard), (1, guard)])
+            right = (right[0], right[1] - 0.3 * punch, right[2] - 0.45 * punch)
+            left = track(v, [(0, guard), (0.12, (0.15, -0.5, 1.05)), (0.2, guard), (0.28, (0.2, -0.3, 0.95)),
+                             (0.62, (0.2, -0.3, 0.95)), (0.75, guard), (1, guard)])
+            left = (abs(left[0]), left[1], left[2])
+            hips_y = 0.0
+            bob = 0.015 * math.sin(v * 12 * math.pi) if v > 0.75 else 0.0
+            hips = Vector((0, hips_y, hips_z + bob))
+        else:
+            pitch, hips_y, hips_z, feet_y = track(v, [
+                (0, (0, 0, 0, 0)), (0.12, (-16, 0.14, -0.02, 0)), (0.25, (-24, 0.18, -0.33, -0.28)),
+                (0.62, (-24, 0.18, -0.33, -0.28)), (0.75, (0, 0.05, 0, 0)), (1, (0, 0, 0, 0)),
+            ])
+            hit = max(0.0, math.sin((v - 0.28) / 0.34 * 2 * math.pi)) if 0.28 <= v <= 0.62 else 0.0
+            pitch -= 8 * hit
+            hips = Vector((0, hips_y, hips_z))
+            planted = {side: ANKLE[side] + Vector((0, feet_y + hips_y, 0)) for side in "lr"}
+            knee_pole = (0, -1, 0.8)
+            cover = (0.12, -0.3, 0.98)
+            right = track(v, [(0, guard), (0.12, (-0.3, -0.05, 1.35)), (0.25, (-cover[0], cover[1], cover[2])),
+                              (0.62, (-cover[0], cover[1], cover[2])), (0.75, guard), (1, guard)])
+            left = track(v, [(0, guard), (0.12, (0.3, -0.05, 1.35)), (0.25, cover), (0.62, cover), (0.75, guard), (1, guard)])
+            right = (-abs(right[0]), right[1], right[2])
+        spine = rot((1, 0, 0), pitch)
+        pose = Pose().turn("spine", spine).turn("head", rot((1, 0, 0), -pitch * 0.4) @ spine)
+        pose.hips = hips
+        for side in "lr":
+            pose.targets[f"leg.{side}"] = (planted[side], knee_pole)
+        right = (-abs(right[0]), right[1], right[2])
+        pose.targets["arm.r"] = (around(right, spine, SPINE_PIVOT) + hips, (-1, 0.5, -0.4))
+        pose.targets["arm.l"] = (around(left, spine, SPINE_PIVOT) + hips, (1, 0.5, -0.4))
+        return pose
+
+    return frames, pose_at
+
+
+def clip_panic_run():
+    """Running in a panic: knees pumping, both arms up over the head, head shaking."""
+    frames = 20
+
+    def pose_at(f):
+        p = 2 * math.pi * f / frames
+        lift = {"l": max(0.0, math.sin(p)), "r": max(0.0, -math.sin(p))}
+        lean = rot((1, 0, 0), 9)
+        pose = Pose().turn("spine", lean).turn("head", rot((0, 0, 1), 14 * math.sin(2 * p)) @ lean)
+        pose.hips = Vector((0, 0, 0.03 * abs(math.sin(p))))
+        for side in "lr":
+            ankle = ANKLE[side] + Vector((0, -0.1 * lift[side] + 0.06 * lift["r" if side == "l" else "l"], 0.15 * lift[side]))
+            pose.targets[f"leg.{side}"] = (ankle, KNEE_POLE)
+        for side, sign, phase in (("l", 1, 0.0), ("r", -1, math.pi)):
+            wave = math.sin(2 * p + phase)
+            hand = Vector((sign * (0.3 + 0.06 * wave), -0.08, 1.5 + 0.05 * wave))
+            pose.targets[f"arm.{side}"] = (around(hand, lean, SPINE_PIVOT) + pose.hips, (sign, 0.6, 0.2))
+        return pose
+
+    return frames, pose_at
+
+
 CLIPS = {
+    "Drunk_Throw": clip_drunk_throw,
+    "Brawl": clip_brawl,
+    "Panic_Run": clip_panic_run,
     "Fest_Sway": clip_fest_sway,
     "Fest_March": clip_fest_march,
     "Fest_Hop": clip_fest_hop,

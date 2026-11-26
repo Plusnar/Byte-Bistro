@@ -7,6 +7,11 @@ import {
   isPresentAt,
   isRunningAt,
   isWarningAt,
+  bottleFlight,
+  bottleHits,
+  bottlePosition,
+  crewMembers,
+  isCrewKind,
   MARCH_BODY_RADIUS,
   marchMembers,
   pairPortals,
@@ -62,6 +67,8 @@ export interface MechanismRider {
   carry(x: number, z: number): void;
   /** Their floor vanished from under them. */
   fell?(): void;
+  /** Something thrown (a bottle) hit them, coming from (fromX, fromZ). */
+  hit?(fromX: number, fromZ: number): void;
 }
 
 /** Where the shift is, for phases and for warning ahead of one. */
@@ -77,6 +84,8 @@ interface Runtime {
   frozen: number;
   /** The local clock last frame, so motion resumes exactly where it stopped. */
   previousLocal: number;
+  /** Bottle fights: the throw that last hit someone, so one bottle hits once. */
+  lastHitThrow: number;
   /** Vanishing floors: whether it was there last frame. */
   present: boolean;
   /** The visibility last written, so a steady floor costs no writes. */
@@ -106,6 +115,7 @@ export class KitchenMechanisms {
     this.runtimes = placements.map((placement) => ({
       frozen: 0,
       previousLocal: 0,
+      lastHitThrow: -1,
       present: true,
       visibility: 1,
       pushX: 0,
@@ -174,6 +184,11 @@ export class KitchenMechanisms {
         // Nobody rides a parade: it faces its way, steps while it travels, and shoves.
         placement.march?.update(placement.node.position, state.pose.yaw, running && state.active);
         this.pushOutOfMarch(placement, riders);
+      } else if (isCrewKind(placement.config.kind)) {
+        // The party crews: solid like the parade, and the throwers' bottles hit.
+        placement.crew?.update(placement.node.position, placement.node.rotation.y, running && state.active);
+        this.pushOutOfCrew(placement, riders);
+        if (placement.config.kind === "bottle_fight") this.flyBottle(placement, runtime, running && state.active, riders);
       } else if (running) {
         this.carryRiders(placement, runtime, state, step, riders);
       }
@@ -345,6 +360,42 @@ export class KitchenMechanisms {
     for (const rider of riders) {
       const push = pushOutOfMarch(rider.position, members, MARCH_BODY_RADIUS + RIDER_RADIUS);
       if (push) rider.carry(push.x, push.z);
+    }
+  }
+
+  /** Brawlers and runners are solid too: cooks are moved out of them. */
+  private pushOutOfCrew(placement: MechanismPlacement, riders: readonly MechanismRider[]): void {
+    const members = crewMembers(placement.config, placement.node.position, placement.node.rotation.y, this.marchScratch);
+    for (const rider of riders) {
+      const push = pushOutOfMarch(rider.position, members, MARCH_BODY_RADIUS + RIDER_RADIUS);
+      if (push) rider.carry(push.x, push.z);
+    }
+  }
+
+  /**
+   * The bottle between two throwers: where the first thrower's clip is decides whether one
+   * is in the air and where (MechanismSystem.bottleFlight). A cook in its way is knocked
+   * over, once per bottle.
+   */
+  private flyBottle(placement: MechanismPlacement, runtime: Runtime, active: boolean, riders: readonly MechanismRider[]): void {
+    const crew = placement.crew;
+    if (!crew) return;
+    const { progress, cycles } = crew.throwProgress();
+    const flight = active ? bottleFlight(progress, cycles) : null;
+    if (!flight) {
+      crew.showBottle(null, 0);
+      return;
+    }
+    const members = crewMembers(placement.config, placement.node.position, placement.node.rotation.y, this.marchScratch);
+    const bottle = bottlePosition(flight, members);
+    crew.showBottle(bottle, flight.progress);
+    if (runtime.lastHitThrow === flight.throwIndex) return;
+    for (const rider of riders) {
+      if (!bottleHits(bottle, rider.position)) continue;
+      runtime.lastHitThrow = flight.throwIndex;
+      rider.hit?.(bottle.x, bottle.z);
+      crew.showBottle(null, 0);
+      return;
     }
   }
 
