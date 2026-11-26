@@ -10,11 +10,14 @@ import { nextFrame, runSliced } from "../core/assets/MainThreadQueue";
 import {
   Color3,
   GlowLayer,
+  Matrix,
   Scene,
   Vector3,
+  Viewport,
   type AbstractEngine,
   type Mesh,
 } from "@babylonjs/core";
+import { DeliveryBeacon, type BeaconTarget } from "../ui/DeliveryBeacon";
 import { GAME_CONFIG, isDevelopmentMode } from "../config";
 import type { AssetManager } from "../core/AssetManager";
 import { assetStreaming } from "../core/assets/AssetStreamingManager";
@@ -42,6 +45,7 @@ import {
   COUNTER_HEIGHT,
   KITCHEN_TILE,
   STATION_KIND_LABEL,
+  cookableState,
   getFoodDefinition,
   type CookwareKind,
 } from "../data/kitchen";
@@ -76,6 +80,7 @@ import {
   createCookware,
   createExtinguisher,
   describeItem,
+  findMatchingRecipe,
   getCookwareProgress,
   isCookware,
   isCookwareBurnt,
@@ -329,6 +334,15 @@ export class KitchenScene implements ManagedScene {
   private shakeLeft = 0;
   private shakeTotal = 0;
   private readonly floorItems: FloorItem[] = [];
+  /** "Deliver here": the counters a finished dish should go to, re-chosen with the HUD. */
+  private readonly deliveryBeacon: DeliveryBeacon;
+  private readonly beaconStations: Workstation[] = [];
+  private readonly beaconTargets: { x: number; y: number; inFront: boolean }[] = [];
+  private readonly beaconWorld = new Vector3();
+  private readonly beaconScreen = new Vector3();
+  private readonly beaconViewport = new Viewport(0, 0, 1, 1);
+  /** HUD-layer pixels per render pixel, and the canvas's offset inside the HUD layer. */
+  private readonly beaconFrame = { scaleX: 1, scaleY: 1, left: 0, top: 0, width: 0, height: 0 };
   private readonly spokenDialogueIds = new Set<string>();
   private readonly activeCriticals = new Set<AIStateKey>();
   private readonly assets: AssetManager;
@@ -526,12 +540,13 @@ export class KitchenScene implements ManagedScene {
     );
     this.punishment = new PunishmentSystem(this.disasterHost());
 
+    this.deliveryBeacon = new DeliveryBeacon(this.ui.hudLayer);
     this.ai = new AIStateSystem(createInitialRuntimeState(options.shiftDuration).aiState);
     this.runtime = createInitialRuntimeState(options.shiftDuration);
     this.bindEvents();
     for (const slot of this.players) slot.input.enabled = false;
     this.ui.update(this.runtime);
-    this.ui.setRecipes(this.recipeList);
+    this.ui.setMenuRecipes(this.recipeList.map((recipe) => recipe.id));
     void Promise.all(this.players.map((slot) => slot.player.prepareCharacterAnimations())).catch((error: unknown) => {
       console.warn("Character animations could not be preloaded.", error);
     });
@@ -867,6 +882,7 @@ export class KitchenScene implements ManagedScene {
     if (previousTimeRemaining > 0 && this.runtime.shiftEnded) {
       // ShiftSystem has no EventBus, so the orders it just failed are diffed out here.
       this.reportOrdersLostAtBuzzer(previousOrders);
+      this.deliveryBeacon.hideAll();
       this.finishShift();
       this.updateCamera(delta);
       this.ui.update(this.runtime);
@@ -922,9 +938,11 @@ export class KitchenScene implements ManagedScene {
       this.hudAccumulator = 0;
       this.updateGuide();
       this.updateHUD();
+      this.chooseDeliveryBeacons();
     }
 
     this.updateCamera(delta);
+    this.updateDeliveryBeacons();
     this.syncKitchenVisuals(delta);
     this.ui.update(this.runtime);
     this.updateDebug();
@@ -933,6 +951,8 @@ export class KitchenScene implements ManagedScene {
 
   dispose(): void {
     this.disposed = true;
+    this.ui.setMenuRecipes([]);
+    this.deliveryBeacon.dispose();
     this.punishment.reset();
     this.stopKitchenSounds();
     this.chaos.dispose();
@@ -2096,12 +2116,14 @@ export class KitchenScene implements ManagedScene {
     const held = slot.held;
     if (held?.kind === "food") {
       const definition = getFoodDefinition(held.ingredientId);
-      const wanted = held.state === "raw" && definition?.chop
-        ? "cutting_board"
-        : definition?.cook && held.state !== "cooked"
-          ? "stove"
-          : "plate_rack";
-      const match = this.preferFocused(slot, free.filter((task) => task.stationKind === wanted));
+      // Ready for a vessel: whichever station a task wants it at (stove, oven or mixer).
+      const prepared = definition !== undefined && held.state === cookableState(definition);
+      const wanted: readonly string[] = held.state === "raw" && definition?.chop
+        ? ["cutting_board"]
+        : prepared
+          ? ["stove", "oven", "mixer", "plate_rack"]
+          : ["plate_rack"];
+      const match = this.preferFocused(slot, free.filter((task) => wanted.includes(task.stationKind)));
       if (match) return match;
     }
     if (held?.kind === "plate" && !held.dirty && held.contents.length > 0) {
@@ -2137,6 +2159,89 @@ export class KitchenScene implements ManagedScene {
     }
     for (const entry of this.floorItems) locations.push({ item: entry.item, holder: null });
     return locations;
+  }
+
+  // -------------------------------------------------------------------------
+  // Delivery beacon
+
+  /**
+   * Which delivery counters to point at: the nearest one to each finished plate that some
+   * open order is waiting for, wherever that plate is (in a cook's hands, on a counter or
+   * on the floor). Runs with the HUD (~12Hz); the beacons themselves move every frame.
+   */
+  private chooseDeliveryBeacons(): void {
+    this.beaconStations.length = 0;
+    const wanted = new Set<string>();
+    let anyDish = false;
+    for (const order of this.runtime.activeOrders) {
+      if (order.status !== "active") continue;
+      if (order.requestedRecipeId) wanted.add(order.requestedRecipeId);
+      else anyDish = true;
+    }
+    if (wanted.size > 0 || anyDish) {
+      const consider = (item: KitchenItem | null, x: number, z: number): void => {
+        if (item?.kind !== "plate" || item.dirty || item.contents.length === 0) return;
+        const recipe = findMatchingRecipe(item.contents, this.recipeList);
+        if (!recipe || !(anyDish || wanted.has(recipe.id))) return;
+        let nearest: Workstation | null = null;
+        let best = Infinity;
+        for (const station of this.kitchen.stations) {
+          if (station.spec.kind !== "delivery") continue;
+          const distance = (station.spec.x - x) ** 2 + (station.spec.z - z) ** 2;
+          if (distance < best) {
+            best = distance;
+            nearest = station;
+          }
+        }
+        if (nearest && !this.beaconStations.includes(nearest)) this.beaconStations.push(nearest);
+      };
+      for (const slot of this.players) consider(slot.held, slot.player.position.x, slot.player.position.z);
+      for (const station of this.kitchen.stations) {
+        if (station.spec.kind !== "delivery") consider(station.item, station.spec.x, station.spec.z);
+      }
+      for (const entry of this.floorItems) consider(entry.item, entry.position.x, entry.position.z);
+    }
+    // The canvas's place in the HUD layer only changes on resize; reading it here, not per
+    // frame, keeps layout reads off the render loop.
+    const canvas = this.scene.getEngine().getRenderingCanvas();
+    const hud = this.ui.hudLayer;
+    if (canvas && this.beaconStations.length > 0) {
+      const engine = this.scene.getEngine();
+      const canvasRect = canvas.getBoundingClientRect();
+      const hudRect = hud.getBoundingClientRect();
+      const frame = this.beaconFrame;
+      frame.scaleX = canvasRect.width / Math.max(1, engine.getRenderWidth());
+      frame.scaleY = canvasRect.height / Math.max(1, engine.getRenderHeight());
+      frame.left = canvasRect.left - hudRect.left;
+      frame.top = canvasRect.top - hudRect.top;
+      frame.width = hudRect.width;
+      frame.height = hudRect.height;
+    }
+  }
+
+  private updateDeliveryBeacons(): void {
+    const camera = this.scene.activeCamera;
+    const targets = this.beaconTargets;
+    targets.length = 0;
+    if (!camera || this.beaconStations.length === 0) {
+      this.deliveryBeacon.hideAll();
+      return;
+    }
+    const engine = this.scene.getEngine();
+    camera.viewport.toGlobalToRef(engine.getRenderWidth(), engine.getRenderHeight(), this.beaconViewport);
+    const transform = this.scene.getTransformMatrix();
+    const frame = this.beaconFrame;
+    for (const station of this.beaconStations) {
+      this.beaconWorld.set(station.spec.x, COUNTER_HEIGHT + 0.9, station.spec.z);
+      Vector3.ProjectToRef(this.beaconWorld, Matrix.IdentityReadOnly, transform, this.beaconViewport, this.beaconScreen);
+      const screen = this.beaconScreen;
+      targets.push({
+        x: frame.left + screen.x * frame.scaleX,
+        y: frame.top + screen.y * frame.scaleY,
+        inFront: screen.z >= 0 && screen.z <= 1,
+      });
+    }
+    this.deliveryBeacon.update(targets as readonly BeaconTarget[], frame.width, frame.height);
   }
 
   // -------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import type { FoodState, KitchenStationKind, RecipeComponent } from "../types/game";
+import type { FoodState, KitchenStationKind } from "../types/game";
 import { localizedRecord } from "../i18n";
 import { publicModelUrl } from "../core/assets/assetRegistry";
 import {
@@ -8,6 +8,7 @@ import {
   ingredientModelId,
 } from "./ingredientAssets";
 import { STATION_ASSETS } from "./stationAssets";
+import { RECIPES } from "./recipes";
 
 /** Side of one kitchen grid tile in world units; every station occupies one tile. */
 export const KITCHEN_TILE = 1.2;
@@ -46,12 +47,22 @@ export interface ModelVisual {
 
 export interface FoodDefinition {
   readonly ingredientId: string;
-  /** Needs a cutting board before it can be cooked or plated. */
+  /** Needs a cutting board before it can go into any vessel or onto a plate. */
   readonly chop: boolean;
-  /** Cookware that turns the prepared food into its cooked state. */
-  readonly cook: CookwareKind | null;
   readonly visuals: Readonly<Partial<Record<FoodState, ModelVisual>>>;
 }
+
+/** What each vessel does to what is in it. */
+export const STATE_OF_VESSEL: Readonly<Record<CookwareKind, FoodState>> = {
+  pan: "fried",
+  pot: "boiled",
+  tray: "baked",
+  bowl: "mixed",
+};
+
+/** The vessel a processed state comes out of; undefined for raw, chopped and burnt. */
+export const vesselForState = (state: FoodState): CookwareKind | undefined =>
+  (Object.keys(STATE_OF_VESSEL) as CookwareKind[]).find((kind) => STATE_OF_VESSEL[kind] === state);
 
 // Paths match the editor asset library so both share asset ids ("library:<path>").
 const RESTAURANT_BASE =
@@ -118,104 +129,58 @@ export const FOOD_DEFINITIONS: Readonly<Record<string, FoodDefinition>> = {
   ram_module: {
     ingredientId: "ram_module",
     chop: true,
-    cook: "pan",
     visuals: { raw: ingredientVisual("ram_module", 0.85) },
   },
   binary_sugar: {
     ingredientId: "binary_sugar",
     chop: false,
-    cook: null,
     visuals: { raw: ingredientVisual("binary_sugar", 0.85) },
   },
   cache_cream: {
     ingredientId: "cache_cream",
     chop: true,
-    cook: null,
     visuals: { raw: ingredientVisual("cache_cream", 0.85) },
   },
   cache_fragment: {
     ingredientId: "cache_fragment",
     chop: true,
-    cook: "pot",
     visuals: { raw: ingredientVisual("cache_fragment", 0.85) },
   },
   cooling_fluid: {
     ingredientId: "cooling_fluid",
     chop: true,
-    cook: null,
     visuals: { raw: ingredientVisual("cooling_fluid", 0.85) },
   },
   data_cream: {
     ingredientId: "data_cream",
     chop: true,
-    cook: null,
     visuals: { raw: ingredientVisual("data_cream", 0.85) },
-  },
-
-  /*
-   * Prepared ingredients: what the mixer turns a bowlful into. They are ordinary foods
-   * from here on, which is why multi-step recipes need no new matching rule — a dough is
-   * just an ingredient that happens to be made rather than fetched.
-   */
-  ram_dough: {
-    ingredientId: "ram_dough",
-    chop: false,
-    cook: "tray",
-    visuals: { raw: ingredientVisual("ram_dough", 0.85) },
-  },
-  donut_dough: {
-    ingredientId: "donut_dough",
-    chop: false,
-    cook: "tray",
-    visuals: { raw: ingredientVisual("donut_dough", 0.85) },
-  },
-  gelato_mix: {
-    ingredientId: "gelato_mix",
-    chop: false,
-    cook: null,
-    visuals: { raw: ingredientVisual("gelato_mix", 0.85) },
   },
 };
 
 /**
- * What the mixer makes. Each entry is a bowl's worth of ingredients, in the state they
- * have to be in, and the one prepared ingredient they become.
- *
- * This is the chain the old machine pipeline described and never ran, rebuilt on the live
- * model: no buffers, no station ids, just "these go in, that comes out".
+ * The vessels an ingredient may go into: those some recipe wants it out of. A pan refuses
+ * sugar because no dish asks for fried sugar, which keeps a fumble from looking like a bug.
  */
-export interface MixRecipe {
-  readonly id: string;
-  readonly inputs: readonly RecipeComponent[];
-  readonly output: string;
-}
+const VESSELS_BY_INGREDIENT: ReadonlyMap<string, ReadonlySet<CookwareKind>> = (() => {
+  const map = new Map<string, Set<CookwareKind>>();
+  for (const recipe of RECIPES) {
+    for (const component of recipe.components) {
+      const vessel = vesselForState(component.state);
+      if (!vessel) continue;
+      const set = map.get(component.ingredientId) ?? new Set<CookwareKind>();
+      set.add(vessel);
+      map.set(component.ingredientId, set);
+    }
+  }
+  return map;
+})();
 
-export const MIX_RECIPES: readonly MixRecipe[] = [
-  {
-    id: "mix_ram_dough",
-    inputs: [
-      { ingredientId: "ram_module", state: "chopped" },
-      { ingredientId: "binary_sugar", state: "raw" },
-    ],
-    output: "ram_dough",
-  },
-  {
-    id: "mix_donut_dough",
-    inputs: [
-      { ingredientId: "cache_fragment", state: "chopped" },
-      { ingredientId: "binary_sugar", state: "raw" },
-    ],
-    output: "donut_dough",
-  },
-  {
-    id: "mix_gelato",
-    inputs: [
-      { ingredientId: "cooling_fluid", state: "chopped" },
-      { ingredientId: "data_cream", state: "chopped" },
-    ],
-    output: "gelato_mix",
-  },
-];
+const NO_VESSELS: ReadonlySet<CookwareKind> = new Set();
+
+export const vesselsFor = (ingredientId: string): ReadonlySet<CookwareKind> =>
+  VESSELS_BY_INGREDIENT.get(ingredientId) ?? NO_VESSELS;
+
 
 /**
  * How each preparation state reads on the shared per-ingredient model.
@@ -227,7 +192,10 @@ export const MIX_RECIPES: readonly MixRecipe[] = [
 export const STATE_PRESENTATION: Readonly<Record<FoodState, { tint: string; stateScale: number }>> = {
   raw: { tint: "#FFFFFF", stateScale: 1 },
   chopped: { tint: "#DCEEF5", stateScale: 0.74 },
-  cooked: { tint: "#FFC98A", stateScale: 0.92 },
+  mixed: { tint: "#F4E6FF", stateScale: 0.8 },
+  fried: { tint: "#FFC98A", stateScale: 0.92 },
+  boiled: { tint: "#CFF5E4", stateScale: 0.9 },
+  baked: { tint: "#F2B36B", stateScale: 0.95 },
   burnt: { tint: "#4A4038", stateScale: 0.88 },
 };
 
@@ -260,17 +228,34 @@ export const CRATE_MODEL_BY_INGREDIENT: Readonly<Record<string, string>> = Objec
 export const getFoodDefinition = (ingredientId: string): FoodDefinition | undefined =>
   FOOD_DEFINITIONS[ingredientId];
 
-/** The one state in which an ingredient may be plated (Overcooked rule). */
-export const plateableState = (definition: FoodDefinition): FoodState =>
-  definition.cook ? "cooked" : definition.chop ? "chopped" : "raw";
-
-/** The state an ingredient must be in before it enters cookware. */
+/** The state an ingredient must be in before it enters any vessel. */
 export const cookableState = (definition: FoodDefinition): FoodState =>
   definition.chop ? "chopped" : "raw";
 
+/** Every state some recipe asks for each ingredient in. */
+const PLATED_STATES: ReadonlyMap<string, ReadonlySet<FoodState>> = (() => {
+  const map = new Map<string, Set<FoodState>>();
+  for (const recipe of RECIPES) {
+    for (const component of recipe.components) {
+      const set = map.get(component.ingredientId) ?? new Set<FoodState>();
+      set.add(component.state);
+      map.set(component.ingredientId, set);
+    }
+  }
+  return map;
+})();
+
+/**
+ * Whether an ingredient may be plated in `state`: one some recipe asks for it in (Overcooked
+ * rule: only correctly-processed food goes on a plate). Chopped RAM is refused because every
+ * dish wants it fried or baked; burnt food is never asked for.
+ */
+export const isPlateableState = (definition: FoodDefinition, state: FoodState): boolean =>
+  PLATED_STATES.get(definition.ingredientId)?.has(state) ?? false;
+
 /** Read through, never spread: each access gives the current language's text. */
 export const FOOD_STATE_LABEL: Readonly<Record<FoodState, string>> = localizedRecord(
-  ["raw", "chopped", "cooked", "burnt"],
+  ["raw", "chopped", "mixed", "fried", "boiled", "baked", "burnt"],
   "foodStates",
 );
 

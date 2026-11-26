@@ -1,4 +1,4 @@
-const generated = new Set(["ram_module", "ram_dough", "donut_dough", "gelato_mix"]);
+const generated = new Set(["ram_module"]);
 
 export function ingredientIllustration(ingredientId: string): string {
   return generated.has(ingredientId)

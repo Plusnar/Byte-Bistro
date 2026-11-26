@@ -36,6 +36,12 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       // The phone controller is a page of its own, without Babylon.
       input: { main: "index.html", controller: "controller.html" },
+      output: {
+        // The official levels (editor JSON, ~180 kB each) in a chunk of their own: still
+        // loaded at boot, since the level picker needs them, but cached apart from the
+        // engine code, so a new level or a code change does not re-download the other.
+        manualChunks: (id) => (/\/src\/data\/levels\/[^/]+\.json$/.test(id) ? "levels" : undefined),
+      },
     },
     // Hashed output only, in a folder of its own: public/assets holds files without a hash,
     // so `/bundle/*` is the one path public/_headers can mark immutable safely.

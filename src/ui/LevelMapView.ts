@@ -162,7 +162,8 @@ export class LevelMapView {
   }
 
   setLevels(keys: readonly string[]): void {
-    // The official levels take the landmarks in order (church: wedding, SGD: Schlachtfest);
+    // The official levels take the landmarks in order (church: wedding, SGD: Schlachtfest,
+    // Pauli: the dance hall);
     // the rest stay "coming soon".
     this.keys = LANDMARKS.map((landmark, index) => keys[index] ?? landmark.fallback);
     this.places.forEach((place, index) => {

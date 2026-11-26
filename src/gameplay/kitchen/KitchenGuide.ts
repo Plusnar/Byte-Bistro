@@ -1,6 +1,6 @@
 import type { PlayerIndex } from "../../types/events";
 import { t } from "../../i18n";
-import { MIX_RECIPES, getFoodDefinition, plateableState } from "../../data/kitchen";
+import { cookableState, getFoodDefinition, vesselForState, type CookwareKind } from "../../data/kitchen";
 import { getIngredient } from "../../data/ingredients";
 import type { FoodState, KitchenStationKind, RecipeComponent, RecipeData } from "../../types/game";
 import { isCookware, type FoodItem, type KitchenItem } from "./KitchenItems";
@@ -56,6 +56,8 @@ interface TrackedFood {
   readonly food: FoodItem;
   readonly holder: PlayerIndex | null;
   readonly inCookware: boolean;
+  /** Which vessel it is in, when `inCookware`. */
+  readonly vessel?: CookwareKind;
   readonly onPlate: boolean;
 }
 
@@ -65,14 +67,10 @@ const STAGE_RANK: Readonly<Record<Stage, number>> = {
   cooking: 4,
   cook: 3,
   chop: 2,
-  /** A prepared ingredient has to be made before it can be anything else. */
+  /** Unused since nothing is made out of other ingredients; kept for the ticket's type. */
   mix: 1,
   fetch: 0,
 };
-
-/** Whether this ingredient comes out of the mixer rather than out of a crate. */
-const mixRecipeFor = (ingredientId: string) =>
-  MIX_RECIPES.find((recipe) => recipe.output === ingredientId) ?? null;
 
 const nameOf = (ingredientId: string): string =>
   getIngredient(ingredientId)?.displayName ?? ingredientId;
@@ -83,8 +81,11 @@ const stageOf = (tracked: TrackedFood, component: RecipeComponent): Stage | null
   const state = tracked.food.state;
   if (state === "burnt") return null;
   if (state === component.state) return tracked.onPlate ? "plated" : "plate";
-  if (tracked.inCookware) return "cooking";
-  if (definition.cook && state === (definition.chop ? "chopped" : "raw")) return "cook";
+  const vessel = vesselForState(component.state);
+  const prepared = state === cookableState(definition);
+  if (tracked.inCookware) return vessel && tracked.vessel === vessel && prepared ? "cooking" : null;
+  if (tracked.onPlate) return null;
+  if (vessel && prepared) return "cook";
   if (definition.chop && state === "raw") return "chop";
   return null;
 };
@@ -97,7 +98,9 @@ const collectFood = (locations: readonly ItemLocation[]): TrackedFood[] => {
     } else if (item.kind === "plate" && !item.dirty) {
       for (const food of item.contents) result.push({ food, holder, inCookware: false, onPlate: true });
     } else if (isCookware(item)) {
-      for (const food of item.contents) result.push({ food, holder, inCookware: true, onPlate: false });
+      for (const food of item.contents) {
+        result.push({ food, holder, inCookware: true, vessel: item.kind, onPlate: false });
+      }
     }
   }
   return result;
@@ -134,10 +137,8 @@ const computeGuideWithClaims = (
       if (!best || STAGE_RANK[stage] > STAGE_RANK[best.stage]) best = { tracked, stage };
     }
     if (best) used.add(best.tracked.food);
-    // Nothing of this ingredient exists yet: a prepared one has to be mixed, and anything
-    // else is fetched. Without this the guide would send a cook to a crate of dough.
-    const missing: Stage = mixRecipeFor(component.ingredientId) ? "mix" : "fetch";
-    const stage = best?.stage ?? missing;
+    // Nothing of this ingredient exists yet: fetch one from its crate.
+    const stage = best?.stage ?? "fetch";
     componentStages.push({ ingredientId: component.ingredientId, state: component.state, stage });
     if (stage === "plated") {
       completed += 1;
@@ -207,7 +208,6 @@ export const computeQueueGuide = (
 
 const taskFor = (stage: Stage, component: RecipeComponent, index: number): GuideTask => {
   const name = nameOf(component.ingredientId);
-  const definition = getFoodDefinition(component.ingredientId);
   const key = `${stage}:${component.ingredientId}:${index}`;
   switch (stage) {
     case "fetch":
@@ -225,41 +225,51 @@ const taskFor = (stage: Stage, component: RecipeComponent, index: number): Guide
         detail: t("kitchen.guideChopDetail"),
         stationKind: "cutting_board",
       };
-    case "mix": {
-      const inputs = mixRecipeFor(component.ingredientId)?.inputs ?? [];
+    case "mix":
+    case "cook": {
+      const vessel = vesselForState(component.state);
+      if (vessel === "bowl") {
+        return {
+          key,
+          title: t("kitchen.guideMixTitle", { name }),
+          detail: t("kitchen.guideMixDetail"),
+          stationKind: "mixer",
+        };
+      }
       return {
         key,
-        title: t("kitchen.guideMixTitle", { name }),
-        detail: t("kitchen.guideMixDetail", {
-          inputs: inputs.map((input) => nameOf(input.ingredientId)).join(" + "),
-        }),
-        stationKind: "mixer",
-      };
-    }
-    case "cook":
-      return {
-        key,
-        title: t("kitchen.guideCookTitle", { name }),
-        detail: definition?.cook === "tray"
+        title: t(vessel === "tray" ? "kitchen.guideBakeTitle" : vessel === "pot" ? "kitchen.guideBoilTitle" : "kitchen.guideCookTitle", { name }),
+        detail: vessel === "tray"
           ? t("kitchen.guideBakeDetail")
-          : definition?.cook === "pot"
+          : vessel === "pot"
             ? t("kitchen.guideCookInPot")
             : t("kitchen.guideCookInPan"),
-        stationKind: definition?.cook === "tray" ? "oven" : "stove",
+        stationKind: vessel === "tray" ? "oven" : "stove",
       };
-    case "cooking":
+    }
+    case "cooking": {
+      const vessel = vesselForState(component.state);
+      if (vessel === "bowl") {
+        return {
+          key,
+          title: t("kitchen.guideMixingTitle", { name }),
+          detail: t("kitchen.guideMixingDetail"),
+          stationKind: "mixer",
+        };
+      }
       return {
         key,
         title: t("kitchen.guideCookingTitle", { name }),
         detail: t("kitchen.guideCookingDetail"),
-        stationKind: definition?.cook === "tray" ? "oven" : "stove",
+        stationKind: vessel === "tray" ? "oven" : "stove",
       };
+    }
     case "plate":
     case "plated":
       return {
         key,
         title: t("kitchen.guidePlateTitle", { name }),
-        detail: definition && plateableState(definition) === "cooked"
+        detail: vesselForState(component.state)
           ? t("kitchen.guidePlateCooked")
           : t("kitchen.guidePlateRaw"),
         stationKind: "plate_rack",

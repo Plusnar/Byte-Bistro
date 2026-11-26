@@ -171,7 +171,28 @@ export const SCHLACHTFEST_SCENARIO: ScenarioDefinition = {
   levelId: "schlachtfest",
 };
 
-export const SCENARIOS: readonly ScenarioDefinition[] = [WEDDING_SCENARIO, SCHLACHTFEST_SCENARIO];
+/** What the Salão Pauli serves: a burger and three drinks for the dance floor. */
+export const PAULI_MENU: readonly string[] = ["x_salada", "drink_404", "cyber_soda", "pixel_punch"];
+
+/**
+ * The Salão Pauli dance hall: the third official level, intense. A show on stage, a brawl
+ * on the floor and bottles in the air while the crew serves four dishes.
+ */
+export const PAULI_SCENARIO: ScenarioDefinition = {
+  id: "pauli",
+  get displayName() { return translate("scenarios.pauli.name"); },
+  get description() { return translate("scenarios.pauli.description"); },
+  thumbnailUrl: publicUrl("images/scenarios/wedding.png"),
+  shiftDurationSeconds: 195,
+  difficultyId: "intense",
+  lighting: WEDDING_LIGHTING,
+  receptionArea: null,
+  recipeIds: PAULI_MENU,
+  requirements: WEDDING_REQUIREMENTS,
+  levelId: "salao-pauli",
+};
+
+export const SCENARIOS: readonly ScenarioDefinition[] = [WEDDING_SCENARIO, SCHLACHTFEST_SCENARIO, PAULI_SCENARIO];
 
 export const DEFAULT_SCENARIO_ID = WEDDING_SCENARIO.id;
 

@@ -7,11 +7,12 @@ import {
   FIRE_DELAY_SECONDS,
   FOOD_STATE_LABEL,
   HEATED_COOKWARE,
-  MIX_RECIPES,
   PLATE_CAPACITY,
+  STATE_OF_VESSEL,
   cookableState,
   getFoodDefinition,
-  plateableState,
+  isPlateableState,
+  vesselsFor,
   type CookwareKind,
 } from "../../data/kitchen";
 import { getIngredient } from "../../data/ingredients";
@@ -139,28 +140,21 @@ export const isCookwareBurnt = (cookware: CookwareItem): boolean =>
   cookware.contents.some((food) => food.state === "burnt");
 
 export const isCookwareCooked = (cookware: CookwareItem): boolean =>
-  cookware.contents.length > 0 && cookware.contents.every((food) => food.state === "cooked");
+  cookware.contents.length > 0 &&
+  cookware.contents.every((food) => food.state === STATE_OF_VESSEL[cookware.kind]);
+
+/** Whether the bowl holds something still waiting to be beaten. */
+export const bowlHasUnmixed = (bowl: CookwareItem): boolean =>
+  bowl.contents.some((food) => food.state !== STATE_OF_VESSEL.bowl);
 
 /**
- * Whether `food` may go into the bowl.
- *
- * A bowl is not a cooking vessel, so "does this cook in here?" is the wrong question: it
- * takes anything that some mixture is made of, in the state that mixture wants it. That
- * also means it refuses an ingredient no recipe mixes, instead of silently swallowing it.
+ * Whether `food` may go into `cookware`: prepared (chopped when it needs the board), and an
+ * ingredient some recipe wants out of this vessel. A bowl takes the same rule as a pan: it
+ * beats each ingredient in it, and none of them turns into something else.
  */
-export const canAddToBowl = (bowl: CookwareItem, food: FoodItem): boolean => {
-  if (bowl.contents.length >= cookwareCapacity(bowl)) return false;
-  return MIX_RECIPES.some((recipe) =>
-    recipe.inputs.some(
-      (input) => input.ingredientId === food.ingredientId && input.state === food.state,
-    ),
-  );
-};
-
 export const canAddToCookware = (cookware: CookwareItem, food: FoodItem): boolean => {
-  if (cookware.kind === "bowl") return canAddToBowl(cookware, food);
   const definition = getFoodDefinition(food.ingredientId);
-  if (!definition || definition.cook !== cookware.kind) return false;
+  if (!definition || !vesselsFor(food.ingredientId).has(cookware.kind)) return false;
   if (food.state !== cookableState(definition)) return false;
   if (isCookwareBurnt(cookware)) return false;
   return cookware.contents.length < cookwareCapacity(cookware);
@@ -179,20 +173,6 @@ export const addToCookware = (cookware: CookwareItem, food: FoodItem): void => {
     const definition = getFoodDefinition(entry.ingredientId);
     if (definition) entry.state = cookableState(definition);
   }
-};
-
-/** Whether a whole bowlful fits into `cookware` and is something it will take. */
-export const canPourInto = (
-  cookware: CookwareItem,
-  foods: readonly FoodItem[],
-): boolean => {
-  if (foods.length === 0) return false;
-  if (cookware.contents.length + foods.length > cookwareCapacity(cookware)) return false;
-  return foods.every((food) => {
-    const definition = getFoodDefinition(food.ingredientId);
-    return Boolean(definition) && definition!.cook === cookware.kind &&
-      food.state === cookableState(definition!);
-  });
 };
 
 export const emptyCookware = (cookware: CookwareItem): FoodItem[] => {
@@ -219,7 +199,8 @@ export const tickCookware = (cookware: CookwareItem, deltaSeconds: number): Cook
   const ignite = burnt + FIRE_DELAY_SECONDS;
   const events: CookEvent[] = [];
   if (before < cooked && cookware.heat >= cooked) {
-    for (const food of cookware.contents) if (food.state !== "burnt") food.state = "cooked";
+    const done = STATE_OF_VESSEL[cookware.kind];
+    for (const food of cookware.contents) if (food.state !== "burnt") food.state = done;
     events.push("cooked");
   }
   if (before < burnt && cookware.heat >= burnt) {
@@ -310,17 +291,15 @@ export const findMatchingRecipe = (
  * Any correctly-processed ingredient may be plated, even one that completes no recipe.
  *
  * Overcooked plates are dumb: you can ruin one, and the only recovery is the bin. Refusing
- * the ingredient instead would remove a real failure mode from the game.
- *
- * Burnt food is still rejected, because `plateableState` only ever returns raw, chopped or
- * cooked — no extra guard needed.
+ * the ingredient instead would remove a real failure mode from the game. Burnt food is
+ * rejected by `isPlateableState`.
  */
 export const plateCanAccept = (plate: PlateItem, foods: readonly FoodItem[]): boolean => {
   if (plate.dirty || foods.length === 0) return false;
   if (plate.contents.length + foods.length > PLATE_CAPACITY) return false;
   for (const food of foods) {
     const definition = getFoodDefinition(food.ingredientId);
-    if (!definition || food.state !== plateableState(definition)) return false;
+    if (!definition || !isPlateableState(definition, food.state)) return false;
   }
   return true;
 };
@@ -344,7 +323,7 @@ export const plateQuality = (
   const burnt = plate.contents.some((food) => food.state === "burnt");
   const misplated = plate.contents.some((food) => {
     const definition = getFoodDefinition(food.ingredientId);
-    return !definition || food.state !== plateableState(definition);
+    return !definition || !isPlateableState(definition, food.state);
   });
   const presentation = burnt ? 0.2 : misplated ? 0.55 : 0.95;
   return { cookingAccuracy, presentation };
@@ -370,27 +349,14 @@ export const combineItems = (
     target.contents.push(held);
     return { held: null, target };
   }
-  // Pouring a vessel onto a plate. `plateCanAccept` already insists every item is in the
-  // state it may be plated in, which is what makes this safe for a bowl of mixture as
-  // well as a cooked pan: a pan of raw food still fails, because raw is not its state.
+  // Pouring a vessel onto a plate. `plateCanAccept` already insists every item is in a
+  // state it may be plated in: a pan of raw food fails, a beaten bowl or a fried pan pours.
   if (held.kind === "plate" && isCookware(target) && plateCanAccept(held, target.contents)) {
     held.contents.push(...emptyCookware(target));
     return { held, target };
   }
   if (isCookware(held) && target.kind === "plate" && plateCanAccept(target, held.contents)) {
     target.contents.push(...emptyCookware(held));
-    return { held, target };
-  }
-  // Tipping a mixed bowl into the vessel that cooks it. One way only: nothing goes back
-  // into a bowl, so a half-baked tray cannot be poured back and re-mixed.
-  if (held.kind === "bowl" && isCookware(target) && target.kind !== "bowl" &&
-    canPourInto(target, held.contents)) {
-    for (const food of emptyCookware(held)) addToCookware(target, food);
-    return { held, target };
-  }
-  if (isCookware(held) && held.kind !== "bowl" && target.kind === "bowl" &&
-    canPourInto(held, target.contents)) {
-    for (const food of emptyCookware(target)) addToCookware(held, food);
     return { held, target };
   }
   if (held.kind === "food" && isCookware(target) && canAddToCookware(target, held)) {

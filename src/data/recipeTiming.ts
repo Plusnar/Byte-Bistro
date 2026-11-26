@@ -1,13 +1,7 @@
 import type { RecipeData } from "../types/game";
 import { BALANCE } from "./balance";
 import { STANDARD_DIFFICULTY, type DifficultyTuning } from "./difficulty";
-import {
-  CHOP_SECONDS,
-  COOKWARE_CAPACITY,
-  COOK_SECONDS,
-  FOOD_DEFINITIONS,
-  type CookwareKind,
-} from "./kitchen";
+import { CHOP_SECONDS, COOKWARE_CAPACITY, COOK_SECONDS, FOOD_DEFINITIONS, type CookwareKind, vesselForState } from "./kitchen";
 
 /**
  * Derives each order's deadline from the real work its recipe demands instead of a flat
@@ -50,7 +44,8 @@ export const recipeWorkload = (recipe: RecipeData): RecipeWorkload => {
     const definition = FOOD_DEFINITIONS[component.ingredientId];
     if (!definition) continue;
     if (definition.chop && component.state !== "raw") chopSeconds += CHOP_SECONDS;
-    if (definition.cook && component.state === "cooked") cookCounts[definition.cook] += 1;
+    const vessel = vesselForState(component.state);
+    if (vessel) cookCounts[vessel] += 1;
   }
 
   const cookSeconds = (Object.keys(cookCounts) as CookwareKind[])

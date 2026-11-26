@@ -64,7 +64,12 @@ export type KitchenStationKind =
   | "delivery"
   | "extinguisher_stand";
 
-export type FoodState = "raw" | "chopped" | "cooked" | "burnt";
+/**
+ * Where an ingredient is in its preparation. Every process keeps the ingredient itself and
+ * only changes its state: the board chops, the bowl on the mixer beats, the pan fries, the
+ * pot boils and the oven's tray bakes. Nothing ever turns into a different ingredient.
+ */
+export type FoodState = "raw" | "chopped" | "mixed" | "fried" | "boiled" | "baked" | "burnt";
 
 export interface RecipeComponent {
   readonly ingredientId: string;

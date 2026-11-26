@@ -1,4 +1,4 @@
-import { MIX_RECIPES, getFoodDefinition } from "../data/kitchen";
+import { getFoodDefinition, vesselForState } from "../data/kitchen";
 import type { FoodState } from "../types/game";
 import type { OrderTicketComponent } from "./GameUI";
 
@@ -9,15 +9,15 @@ export type PrepStepStatus = "done" | "active" | "todo";
 
 /**
  * Every station a recipe component passes through, in order, so the ticket can show the
- * whole job under the ingredient: a cooked RAM module is board *and* stove, a dough is
- * mixer *and* oven. Pans and pots share the stove icon, which already shows a pan.
+ * whole job under the ingredient: a fried RAM module is board *and* stove, a beaten cream
+ * is board *and* mixer. Pans and pots share the stove icon, which already shows a pan.
  */
 export const preparationSteps = (ingredientId: string, state: FoodState): PrepStation[] => {
   const steps: PrepStation[] = [];
   const food = getFoodDefinition(ingredientId);
-  if (MIX_RECIPES.some((recipe) => recipe.output === ingredientId)) steps.push("mixer");
-  if (state === "chopped" || (state === "cooked" && food?.chop)) steps.push("cutting_board");
-  if (state === "cooked") steps.push(food?.cook === "tray" ? "oven" : "stove");
+  const vessel = vesselForState(state);
+  if (state === "chopped" || (vessel && food?.chop)) steps.push("cutting_board");
+  if (vessel) steps.push(vessel === "tray" ? "oven" : vessel === "bowl" ? "mixer" : "stove");
   return steps;
 };
 
@@ -27,7 +27,7 @@ const STAGE_RANK: Readonly<Record<OrderTicketComponent["stage"], number>> = {
 
 /** The stage band in which each station is the one being worked: [first, last]. */
 const STEP_BAND: Readonly<Record<PrepStation, readonly [number, number]>> = {
-  mixer: [STAGE_RANK.mix, STAGE_RANK.mix],
+  mixer: [STAGE_RANK.cook, STAGE_RANK.cooking],
   cutting_board: [STAGE_RANK.chop, STAGE_RANK.chop],
   stove: [STAGE_RANK.cook, STAGE_RANK.cooking],
   oven: [STAGE_RANK.cook, STAGE_RANK.cooking],

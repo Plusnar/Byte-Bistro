@@ -538,6 +538,27 @@
         "textures": []
       }
     },
+    "src/assets/ingredients/cyber_soda.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "db8531db89c7b103b21c0b3c3c9ffe91024807d2090b89a1dd033152aee79fe2",
+      "sourceBytes": 119568,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/cyber_soda.glb",
+      "outputHash": "f078fcbc182dfa86bf478d997db22ca2423107ef6895cd58ccef02164b3d819c",
+      "outputBytes": 51904,
+      "meshopt": true,
+      "before": {
+        "meshes": 10,
+        "primitives": 10,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
     "src/assets/ingredients/data_cream.glb": {
       "profile": "staticProp",
       "profileKey": "4e621bd19fb7",
@@ -601,6 +622,27 @@
         "textures": []
       }
     },
+    "src/assets/ingredients/drink_404.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "577da06c226f19a0ed34bce32627889dfe6b538bb6eb9799f8867e2b98bac618",
+      "sourceBytes": 88760,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/drink_404.glb",
+      "outputHash": "3b9ac75eda3c3b0dd975f96e8a48d219ed48af6d7be1e7071e107f89ad16ec6a",
+      "outputBytes": 43576,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
     "src/assets/ingredients/gelato_mix.glb": {
       "profile": "staticProp",
       "profileKey": "4e621bd19fb7",
@@ -661,6 +703,27 @@
       "after": {
         "meshes": 2,
         "primitives": 2,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/pixel_punch.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "bcd18eddc8d29150820c11cf5f464d9d5144d42234e3445c9cb1fb93731dd72d",
+      "sourceBytes": 139364,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/pixel_punch.glb",
+      "outputHash": "37320529c7b2fee9cb6b93602fdaaab514612349e191137aae3aa566143d127b",
+      "outputBytes": 58292,
+      "meshopt": true,
+      "before": {
+        "meshes": 13,
+        "primitives": 13,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
         "textures": []
       }
     },
@@ -761,6 +824,27 @@
       "after": {
         "meshes": 4,
         "primitives": 4,
+        "textures": []
+      }
+    },
+    "src/assets/ingredients/x_salada.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "d8455b589647a88faa8e99f036bb97566cf35cf7ee1df2d165b3bf610637d119",
+      "sourceBytes": 220900,
+      "status": "optimized",
+      "output": "optimized/src/assets/ingredients/x_salada.glb",
+      "outputHash": "f17c72ffb63629fea8229d81e7491a27717643070af175023ae9ca2b6b4b9ff3",
+      "outputBytes": 89720,
+      "meshopt": true,
+      "before": {
+        "meshes": 17,
+        "primitives": 17,
+        "textures": []
+      },
+      "after": {
+        "meshes": 8,
+        "primitives": 8,
         "textures": []
       }
     },

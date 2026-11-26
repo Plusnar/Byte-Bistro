@@ -5,14 +5,15 @@ import {
   EXTINGUISH_SECONDS,
   FIRE_SPREAD_SECONDS,
   KITCHEN_TILE,
-  MIX_RECIPES,
   MIX_SECONDS,
+  STATE_OF_VESSEL,
   STARTING_CLEAN_PLATES,
   WASH_SECONDS,
   getFoodDefinition,
 } from "../../data/kitchen";
 import type { KitchenStationKind, RecipeData } from "../../types/game";
 import {
+  bowlHasUnmixed,
   combineItems,
   decayProgress,
   createFood,
@@ -57,7 +58,7 @@ export interface Workstation {
 export type KitchenEvent =
   | { readonly type: "chopped"; readonly station: Workstation; readonly food: FoodItem }
   | { readonly type: "washed"; readonly station: Workstation }
-  | { readonly type: "mixed"; readonly station: Workstation; readonly output: string }
+  | { readonly type: "mixed"; readonly station: Workstation }
   | { readonly type: "cook"; readonly station: Workstation; readonly event: CookEvent }
   | { readonly type: "fire"; readonly station: Workstation }
   | { readonly type: "extinguished"; readonly station: Workstation }
@@ -77,15 +78,6 @@ const LANDABLE_STATIONS: ReadonlySet<KitchenStationKind> = new Set<KitchenStatio
   "oven",
   "mixer",
 ]);
-
-/** The mixer's recipe for exactly this bowlful, or null when it is not a known mixture. */
-const findMixRecipe = (contents: readonly FoodItem[]) => {
-  if (contents.length === 0) return null;
-  const key = (entries: readonly { ingredientId: string; state: string }[]): string =>
-    entries.map((entry) => `${entry.ingredientId}:${entry.state}`).sort().join("|");
-  const bowl = key(contents);
-  return MIX_RECIPES.find((recipe) => key(recipe.inputs) === bowl) ?? null;
-};
 
 export type GrabOutcome =
   | { readonly kind: "changed"; readonly held: KitchenItem | null; readonly message?: string }
@@ -268,18 +260,15 @@ export class KitchenModel {
 
     if (station.spec.kind === "mixer" && station.item?.kind === "bowl") {
       const bowl = station.item;
-      const recipe = findMixRecipe(bowl.contents);
-      if (!recipe) return { kind: "none" };
+      if (!bowlHasUnmixed(bowl)) return { kind: "none" };
       this.touchedThisFrame.add(station);
       station.mixProgress = Math.min(1, station.mixProgress + deltaSeconds / MIX_SECONDS);
       if (station.mixProgress >= 1) {
         station.mixProgress = 0;
-        // The bowl keeps its identity; only what is in it changes, so the cook can carry
-        // the result away in the same vessel and start the next bowlful here.
-        const oldest = bowl.contents.reduce((first, food) => Math.min(first, food.createdAt), Infinity);
-        emptyCookware(bowl);
-        bowl.contents.push(createFood(recipe.output, Number.isFinite(oldest) ? oldest : 0));
-        this.events.push({ type: "mixed", station, output: recipe.output });
+        // Every ingredient in the bowl is beaten and stays itself: the cook pours the bowl
+        // onto a plate, the same way a fried pan is poured.
+        for (const food of bowl.contents) food.state = STATE_OF_VESSEL.bowl;
+        this.events.push({ type: "mixed", station });
         return { kind: "mixing", progress: 1 };
       }
       return { kind: "mixing", progress: station.mixProgress };
@@ -329,7 +318,7 @@ export class KitchenModel {
     if (held || station.onFire) return false;
     if (station.spec.kind === "sink") return station.dirtyPlates > 0;
     if (station.spec.kind === "mixer") {
-      return station.item?.kind === "bowl" && findMixRecipe(station.item.contents) !== null;
+      return station.item?.kind === "bowl" && bowlHasUnmixed(station.item);
     }
     if (station.spec.kind !== "cutting_board" || station.item?.kind !== "food") return false;
     return station.item.state === "raw" && getFoodDefinition(station.item.ingredientId)?.chop === true;

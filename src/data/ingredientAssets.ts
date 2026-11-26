@@ -47,14 +47,15 @@ const crateUrl: Readonly<Record<IngredientAssetId, string>> = {
 };
 
 const preparedItems = {
-  ram_dough: bundledModelUrl("src/assets/ingredients/ram_dough.glb"),
-  donut_dough: bundledModelUrl("src/assets/ingredients/donut_dough.glb"),
-  gelato_mix: bundledModelUrl("src/assets/ingredients/gelato_mix.glb"),
   ram_pizza: bundledModelUrl("src/assets/ingredients/ram_pizza.glb"),
   cache_donuts: bundledModelUrl("src/assets/ingredients/cache_donuts.glb"),
   gelato_parfait: bundledModelUrl("src/assets/ingredients/gelato_parfait.glb"),
   ssd_schnitzel: bundledModelUrl("src/assets/ingredients/ssd_schnitzel.glb"),
   thermal_paste_beer: bundledModelUrl("src/assets/ingredients/thermal_paste_beer.glb"),
+  x_salada: bundledModelUrl("src/assets/ingredients/x_salada.glb"),
+  drink_404: bundledModelUrl("src/assets/ingredients/drink_404.glb"),
+  cyber_soda: bundledModelUrl("src/assets/ingredients/cyber_soda.glb"),
+  pixel_punch: bundledModelUrl("src/assets/ingredients/pixel_punch.glb"),
 } as const;
 
 export const OVEN_TRAY_ASSET_ID = "cookware:oven-tray";

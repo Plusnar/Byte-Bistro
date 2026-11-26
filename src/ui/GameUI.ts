@@ -268,6 +268,10 @@ export class GameUI {
   /** Players who confirmed their cook on the selection screen. */
   private readonly readySlots: boolean[] = Array.from({ length: MAX_PLAYERS }, () => false);
   private recipes: readonly RecipeData[] = [];
+  /** Every recipe in the game; the book always lists them all. */
+  private allRecipes: readonly RecipeData[] = [];
+  /** The recipes the level being played serves: listed first and marked in the book. */
+  private menuRecipeIds: ReadonlySet<string> = new Set();
   private selectedRecipeId: string | null = null;
   private cookbookVisible = false;
   private dialogueTimeoutId: number | null = null;
@@ -427,6 +431,11 @@ export class GameUI {
     }, Math.max(600, duration));
   }
 
+  /** The HUD layer over the game view, for markers the scene positions itself. */
+  get hudLayer(): HTMLElement {
+    return this.hud;
+  }
+
   setSplitScreen(amount: number, distance: number): void {
     if (this.destroyed) return;
     const split = clamp(amount, 0, 1);
@@ -503,7 +512,23 @@ export class GameUI {
   }
 
   setRecipes(recipes: readonly RecipeData[]): void {
-    this.recipes = [...recipes];
+    this.allRecipes = [...recipes];
+    this.orderRecipes();
+  }
+
+  /**
+   * The level's menu. The book still lists every recipe in the game (players asked to read
+   * the ones from other levels too); the menu's come first, marked, and open selected.
+   */
+  setMenuRecipes(ids: readonly string[]): void {
+    this.menuRecipeIds = new Set(ids);
+    if (ids[0]) this.selectedRecipeId = ids[0];
+    this.orderRecipes();
+  }
+
+  private orderRecipes(): void {
+    const onMenu = (recipe: RecipeData) => (this.menuRecipeIds.has(recipe.id) ? 0 : 1);
+    this.recipes = [...this.allRecipes].sort((a, b) => onMenu(a) - onMenu(b));
     this.recipeById.clear();
     this.recipes.forEach((recipe) => this.recipeById.set(recipe.id, recipe));
 
@@ -1670,8 +1695,12 @@ export class GameUI {
       const copy = createElement("span", "recipe-tab-copy");
       copy.append(
         createElement("strong", undefined, recipe.displayName),
-        createElement("small", undefined, t("cookbook.tabMeta", { components: recipe.ingredients.length, steps: recipe.steps.length })),
+        createElement("small", undefined, t("cookbook.tabMeta", { components: recipe.components.length, steps: recipe.steps.length })),
       );
+      if (this.menuRecipeIds.has(recipe.id)) {
+        button.classList.add("is-on-menu");
+        copy.append(createElement("em", "recipe-on-menu", t("cookbook.onMenu")));
+      }
       const illustration = document.createElement("img");
       illustration.className = "recipe-illustration";
       illustration.alt = "";
@@ -1718,11 +1747,19 @@ export class GameUI {
     const ingredients = createElement("section", "recipe-section");
     ingredients.append(createElement("h4", undefined, t("cookbook.components")));
     const ingredientList = createElement("ul", "ingredient-list");
-    recipe.ingredients.forEach((ingredient) => {
+    // Each ingredient with the process it goes through: "Módulo de RAM · assado".
+    const counted = new Map<string, { ingredientId: string; state: FoodState; count: number }>();
+    for (const component of recipe.components) {
+      const key = `${component.ingredientId}:${component.state}`;
+      const entry = counted.get(key);
+      if (entry) entry.count += 1;
+      else counted.set(key, { ingredientId: component.ingredientId, state: component.state, count: 1 });
+    }
+    counted.forEach(({ ingredientId, state, count }) => {
       const item = createElement("li");
       item.append(
-        createElement("span", "ingredient-quantity", `${ingredient.quantity}×`),
-        createElement("span", undefined, getIngredient(ingredient.ingredientId)?.displayName ?? ingredient.ingredientId),
+        createElement("span", "ingredient-quantity", `${count}×`),
+        createElement("span", undefined, `${getIngredient(ingredientId)?.displayName ?? ingredientId} · ${FOOD_STATE_LABEL[state]}`),
       );
       ingredientList.append(item);
     });

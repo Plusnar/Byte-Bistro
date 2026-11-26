@@ -288,6 +288,20 @@
   white-space: normal;
 }
 .game-ui .recipe-tab-copy { flex: 1; min-inline-size: 0; }
+.game-ui .cookbook-nav .recipe-tab.is-on-menu { border-color: #e68e00; border-width: 2px; }
+.game-ui .recipe-on-menu {
+  display: inline-block;
+  margin-block-start: .2rem;
+  padding: .05rem .45rem;
+  border-radius: 999px;
+  background: #ffce62;
+  color: #5a3500;
+  font-size: .62rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.4;
+  white-space: nowrap;
+}
 .game-ui .recipe-illustration { flex: none; inline-size: clamp(24px, 5vw, 48px); block-size: auto; object-fit: contain; }
 .game-ui .notification-signal { border: 0; box-shadow: none; }
 .game-ui .order-card .order-card-track { background: #16355b; border-radius: 999px; }
@@ -1208,3 +1222,76 @@
 /* Prepared ingredients come from the mixer, not a crate (Items). */
 .bistro-collection-grid .bistro-item-badge { justify-self: start; padding: .1rem .5rem; border-radius: 999px; background: var(--bistro-yellow, #ffc93c); color: var(--bistro-ink, #24304a); font-size: .72rem; font-style: normal; font-weight: 800; }
 .bistro-item-detail .bistro-item-mixed { font-weight: 800; color: var(--bistro-ink, #24304a); }
+
+/* "Deliver here": a pin over the delivery counter, or an arrow on the screen edge pointing
+   at it while it is out of view (src/ui/DeliveryBeacon.ts). */
+.game-ui .delivery-beacon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  inline-size: 0;
+  block-size: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.game-ui .delivery-beacon[hidden] { display: none; }
+.game-ui .delivery-beacon-pin {
+  position: absolute;
+  left: 0;
+  bottom: 14px;
+  display: flex;
+  gap: .3rem;
+  align-items: center;
+  padding: .25rem .6rem .25rem .3rem;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: linear-gradient(#ffe27a, #ff9f1c);
+  color: #3a2200;
+  font-weight: 900;
+  font-size: .85rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px #0007;
+  transform: translateX(calc(-50% + var(--pin-shift, 0px)));
+  animation: delivery-beacon-bob 0.9s ease-in-out infinite alternate;
+}
+.game-ui .delivery-beacon-icon { inline-size: 26px; block-size: 26px; object-fit: contain; }
+.game-ui .delivery-beacon-arrow {
+  position: absolute;
+  left: -11px;
+  top: -11px;
+  inline-size: 22px;
+  block-size: 22px;
+  background: #ff9f1c;
+  border: 2px solid #fff;
+  clip-path: polygon(0 20%, 60% 20%, 60% 0, 100% 50%, 60% 100%, 60% 80%, 0 80%);
+  transform: rotate(var(--beacon-angle, 90deg));
+}
+.game-ui .delivery-beacon[data-mode="pin"] .delivery-beacon-arrow {
+  top: -6px;
+  animation: delivery-beacon-bob 0.9s ease-in-out infinite alternate;
+}
+.game-ui .delivery-beacon[data-mode="edge"] .delivery-beacon-pin {
+  bottom: auto;
+  top: -17px;
+  padding: .2rem;
+  animation: delivery-beacon-pulse 0.8s ease-in-out infinite alternate;
+}
+.game-ui .delivery-beacon[data-mode="edge"] .delivery-beacon-label { display: none; }
+.game-ui .delivery-beacon[data-mode="edge"] .delivery-beacon-arrow {
+  left: -11px;
+  top: -11px;
+  transform: rotate(var(--beacon-angle, 90deg)) translateX(30px);
+}
+@keyframes delivery-beacon-bob {
+  from { translate: 0 0; }
+  to { translate: 0 -8px; }
+}
+@keyframes delivery-beacon-pulse {
+  from { scale: 1; }
+  to { scale: 1.12; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-ui .delivery-beacon-pin,
+  .game-ui .delivery-beacon[data-mode="pin"] .delivery-beacon-arrow { animation: none; }
+}
