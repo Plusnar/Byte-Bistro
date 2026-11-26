@@ -42,13 +42,27 @@ export const probeGroundHeight = (
 ): number | null => {
   const origin = new Vector3(x, feetY + STEP_HEIGHT, z);
   const ray = new Ray(origin, DOWN, STEP_HEIGHT + PROBE_DROP);
-  const hit = scene.pickWithRay(
-    ray,
-    (mesh) => mesh !== self
-      && mesh.checkCollisions
-      && mesh.isEnabled()
-      && !isCharacterBody(mesh),
-  );
+  const solid = (mesh: AbstractMesh): boolean => mesh !== self
+    && mesh.checkCollisions
+    && mesh.isEnabled()
+    && !isCharacterBody(mesh);
+  // A body handed its nearby colliders (NearbyColliders) only looks at those: the same
+  // floors it can collide with, instead of every mesh in a large level.
+  const nearby = self.surroundingMeshes;
+  if (nearby) {
+    let top: number | null = null;
+    for (const mesh of nearby) {
+      if (!solid(mesh)) continue;
+      const bounds = mesh.getBoundingInfo();
+      if (!ray.intersectsBox(bounds.boundingBox)) continue;
+      const hit = mesh.intersects(ray, false);
+      if (hit.hit && hit.pickedPoint && (top === null || hit.pickedPoint.y > top)) top = hit.pickedPoint.y;
+    }
+    // Nothing near: the body may have just been teleported past its list (a portal, a
+    // respawn), so look properly before letting it fall.
+    if (top !== null) return top;
+  }
+  const hit = scene.pickWithRay(ray, solid);
   if (!hit?.hit || !hit.pickedPoint) return null;
   return hit.pickedPoint.y;
 };

@@ -27,10 +27,10 @@
   },
 
   "runtime": {
-    "$comment": "Checked by `npm run perf:bench` during a running shift of the official level. Ratchets set 2026-10-15 from measurements (before -> after): draw calls 1833 -> 326, active meshes 2227 -> 866, scene meshes 2718 -> 2443, preview textures 134.6 -> 37.6 MB, heap growth over 3 rebuilds 1.6 MB. Counts are hardware-independent; frame times depend on the machine and only fail past the ceiling.",
+    "$comment": "Checked by `npm run perf:bench` during a running shift of the official level. Ratchets set 2026-10-15 from measurements (before -> after): draw calls 1833 -> 326, active meshes 2227 -> 866, scene meshes 2718 -> 2443, preview textures 134.6 -> 37.6 MB, heap growth over 3 rebuilds 1.6 MB. Counts are hardware-independent; frame times depend on the machine and only fail past the ceiling. 2026-11-26: the new official wedding (1,291 objects, a two-storey garden and church) has 6,516 scene meshes, ~4,200 of them invisible colliders kept by the static batch; they are left out of the active-mesh pass and of each body's collision sweep (NearbyColliders), so they cost memory, not frame time: bench CPU mean 34.7 ms vs 29.4 ms on the old wedding (53.5 ms before those fixes). maxSceneMeshes 2800 -> 7000.",
     "maxDrawCalls": 450,
     "maxActiveMeshes": 1100,
-    "maxSceneMeshes": 2800,
+    "maxSceneMeshes": 7000,
     "frameTargets": { "desktopMs": 16.7, "lowEndMs": 33.3 },
     "maxBenchFrameP95Ms": 250,
     "maxTextureMbPerEngine": 64,
@@ -38,9 +38,9 @@
   },
 
   "network": {
-    "$comment": "Cold cache, throttled (perf:bench --mbps 20 --rtt 40). Measured 2026-10-15 (before -> after): before menu 18.86 -> 7.84 MB, until match prepared 25.74 -> 13.07 MB, menu ready 14.5 -> 4.8-5.9 s; warm reload 0 MB of geometry from the network.",
+    "$comment": "Cold cache, throttled (perf:bench --mbps 20 --rtt 40). Measured 2026-10-15 (before -> after): before menu 18.86 -> 7.84 MB, until match prepared 25.74 -> 13.07 MB, menu ready 14.5 -> 4.8-5.9 s; warm reload 0 MB of geometry from the network. 2026-11-26: until match prepared 14.63 -> 16.25 MB with the new official wedding (its garden and church models, all through the asset pipeline); limit 16 -> 17 MB.",
     "maxBytesBeforeMenuMb": 9,
-    "maxBytesUntilGameplayReadyMb": 16,
+    "maxBytesUntilGameplayReadyMb": 17,
     "maxMenuReadyMs": 9000,
     "warmReloadMaxNetworkModelMb": 1
   },

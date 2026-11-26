@@ -10,7 +10,8 @@ import type { Order } from '../types/game';
 import { publicUrl } from '../utils/assetUrl';
 import { bundledModelUrl } from '../core/assets/assetRegistry';
 import { onLanguageChange, t } from '../i18n';
-import { integrateFall, isGrounded } from '../entities/groundedMove';
+import { integrateFall, isGroundedOn } from '../entities/groundedMove';
+import type { NearbyColliders } from '../physics/nearbyColliders';
 import {
   DEFAULT_ROBOT_CONFIG, ROBOT_ASSET_ID, getRobotClip,
   type RobotConfig, type RobotSpawn,
@@ -167,7 +168,8 @@ export class WeddingGuests {
       this.placed
         ? spawns.map(spawn => ({
             name: spawn.name,
-            anchor: new Vector3(spawn.position.x, 0, spawn.position.z),
+            // Robots stand on the floor they were placed on (a raised altar, a terrace).
+            anchor: new Vector3(spawn.position.x, spawn.position.y > 0.05 ? spawn.position.y : 0, spawn.position.z),
             rotationY: spawn.rotationY,
             config: spawn.config,
             variant: spawn.variant,
@@ -286,6 +288,9 @@ export class WeddingGuests {
     this.tickets.delete(orderId);
   }
 
+  /** Narrows each robot's collision sweep to the colliders around it (see NearbyColliders). */
+  nearbyColliders: NearbyColliders | null = null;
+
   update(dt: number): void {
     this.elapsed += dt;
     if (this.elapsed >= this.nextArrival) this.spawn();
@@ -350,13 +355,14 @@ export class WeddingGuests {
       // The Y component is not decoration: a purely horizontal sweep makes Babylon's
       // collider degenerate and pins the guest in place. See entities/groundedMove.ts.
       const step = direction.scale(dt * speed);
-      step.y = integrateFall(0, dt, isGrounded(position.y)) * dt;
+      step.y = integrateFall(0, dt, isGroundedOn(position.y, g.anchor.y)) * dt;
+      this.nearbyColliders?.assign(g.root);
       g.root.moveWithCollisions(step);
       // Placed robots roam the whole room; the wedding's own four stay on the carpet.
       const limit = this.placed ? this.bounds : this.area;
       position.x = Math.max(limit.minX + 0.35, Math.min(limit.maxX - 0.35, position.x));
       position.z = Math.max(limit.minZ + 0.35, Math.min(limit.maxZ - 0.35, position.z));
-      position.y = 0;
+      position.y = g.anchor.y;
 
       const travelled = Vector3.Distance(before, position);
       g.lastSpeed = dt > 0 ? travelled / dt : 0;
@@ -509,7 +515,7 @@ export class WeddingGuests {
     const g = this.guests.find(candidate => !candidate.active);
     // Push the clock even when the reception is full, or this re-scans all guests every frame.
     if (!g) { this.nextArrival = this.elapsed + 5; return; }
-    g.root.position.set(g.anchor.x, 0, g.anchor.z);
+    g.root.position.set(g.anchor.x, g.anchor.y, g.anchor.z);
     g.wait = Math.random() * 1.5;
     g.blockedFor = 0;
     g.lastSpeed = 0;

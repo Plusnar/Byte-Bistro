@@ -274,7 +274,7 @@ export class WorkstationView {
     const kind = placement.kind;
     this.topHeight = TOP_HEIGHT[kind];
     this.root = new TransformNode(`workstation-${kind}-${this.sequence}`, scene);
-    this.root.position.set(placement.x, 0, placement.z);
+    this.root.position.set(placement.x, placement.y ?? 0, placement.z);
     this.root.rotation.y = placement.rotationY;
 
     const collider = MeshBuilder.CreateBox(

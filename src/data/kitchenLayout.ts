@@ -8,6 +8,11 @@ export type InitialItemKind = "pan" | "pot" | "tray" | "bowl" | "extinguisher";
 export interface KitchenStationPlacement {
   readonly kind: KitchenStationKind;
   readonly x: number;
+  /**
+   * Height of the floor it stands on (0 when omitted): a map can put the delivery counter
+   * up a staircase, and the tile, its items and its collider stand there with it.
+   */
+  readonly y?: number;
   readonly z: number;
   readonly rotationY: number;
   readonly ingredientId?: string;
@@ -146,7 +151,8 @@ export const stationsFromMap = (map: MapData): KitchenStationPlacement[] => {
   const stations: KitchenStationPlacement[] = [];
   let stoveCount = 0;
   for (const object of map.objects) {
-    const base = { x: object.position.x, z: object.position.z, rotationY: object.rotation.y };
+    const y = object.position.y > 0.05 ? object.position.y : 0;
+    const base = { x: object.position.x, y, z: object.position.z, rotationY: object.rotation.y };
     if (object.role === "dispenser" && object.ingredientId) {
       stations.push({ ...base, kind: "crate", ingredientId: object.ingredientId });
       continue;

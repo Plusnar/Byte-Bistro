@@ -18,6 +18,7 @@ import {
   type Mesh,
 } from "@babylonjs/core";
 import { DeliveryBeacon, type BeaconTarget } from "../ui/DeliveryBeacon";
+import { NearbyColliders } from "../physics/nearbyColliders";
 import { GAME_CONFIG, isDevelopmentMode } from "../config";
 import type { AssetManager } from "../core/AssetManager";
 import { assetStreaming } from "../core/assets/AssetStreamingManager";
@@ -191,6 +192,8 @@ const EXTINGUISHER_REACH = 2.6;
 const NOTIFY_THROTTLE_MS = 900;
 /** How often the task guide and order cards are rebuilt. */
 const HUD_REFRESH_SECONDS = 1 / 12;
+/** How far above or below a cook's feet a station may stand and still be in reach. */
+const STOREY_REACH = 1.2;
 /** Kept low so the bloom does not wash out speech bubbles and HUD billboards. */
 const GLOW_BASE_INTENSITY = 0.34;
 const COOK_ASSET_IDS: ReadonlySet<string> = new Set(CHARACTERS.map((character) => character.modelAssetId));
@@ -336,6 +339,8 @@ export class KitchenScene implements ManagedScene {
   private readonly floorItems: FloorItem[] = [];
   /** "Deliver here": the counters a finished dish should go to, re-chosen with the HUD. */
   private readonly deliveryBeacon: DeliveryBeacon;
+  /** Each moving body is swept only against the colliders around it. */
+  private readonly nearbyColliders: NearbyColliders;
   private readonly beaconStations: Workstation[] = [];
   private readonly beaconTargets: { x: number; y: number; inFront: boolean }[] = [];
   private readonly beaconWorld = new Vector3();
@@ -427,6 +432,7 @@ export class KitchenScene implements ManagedScene {
     // down per level; a map's `starCoins` overrides it. See src/data/levelGoals.ts.
     this.starThresholds = this.goalsFor(2);
     this.scene = new Scene(engine);
+    this.nearbyColliders = new NearbyColliders(this.scene);
     this.scene.fogMode = Scene.FOGMODE_EXP2;
     this.fogBaseDensity = options.map?.environment.fogDensity ?? 0.008;
     this.scene.fogDensity = this.fogBaseDensity;
@@ -480,6 +486,7 @@ export class KitchenScene implements ManagedScene {
       options.map ? null : WEDDING_BANNER,
       () => this.environment.mechanisms.map((mechanism) => mechanism.footprint),
     );
+    this.wedding.nearbyColliders = this.nearbyColliders;
     this.inputs = Array.from({ length: MAX_PLAYERS }, (_, index) =>
       new InputManager(window, KEYBOARD_BINDINGS[index] ?? NO_KEYBOARD_BINDINGS));
     // Two cooks until the menu says otherwise: the keyboard's two halves, and what the
@@ -903,6 +910,7 @@ export class KitchenScene implements ManagedScene {
     this.mechanisms?.update(this.kitchenClockMs / 1_000, this.mechanismRiders, this.shiftClock);
     this.announceLayoutPhases();
     for (const slot of this.players) {
+      this.nearbyColliders.assign(slot.player.root);
       slot.player.update(delta, slot.input, this.environment.bounds);
       this.updateTarget(slot);
       this.handleGameplayInput(slot, delta);
@@ -959,6 +967,7 @@ export class KitchenScene implements ManagedScene {
     this.disasterOverlay.dispose();
     this.sfx.dispose();
     this.wedding.dispose();
+    this.nearbyColliders.dispose();
     for (const input of this.inputs) input.dispose();
     for (const slot of this.allCooks) {
       slot.held = null;
@@ -1079,6 +1088,7 @@ export class KitchenScene implements ManagedScene {
     let best: KitchenTarget | null = null;
     let bestDistance = Number.POSITIVE_INFINITY;
     for (const [station, view] of this.stationViews) {
+      if (Math.abs((station.spec.y ?? 0) - position.y) > STOREY_REACH) continue;
       const dx = station.spec.x - this.probe.x;
       const dz = station.spec.z - this.probe.z;
       const distance = Math.sqrt(dx * dx + dz * dz);
@@ -1674,7 +1684,7 @@ export class KitchenScene implements ManagedScene {
         id: item.uid,
         x: station.spec.x,
         z: station.spec.z,
-        y: COUNTER_HEIGHT,
+        y: (station.spec.y ?? 0) + COUNTER_HEIGHT,
         label: label(item.ingredientId),
         take: () => {
           if (station.item !== item) return null;
@@ -1996,7 +2006,7 @@ export class KitchenScene implements ManagedScene {
     const yaw = slot.player.facingYaw;
     const anchor = slot.player.carryAnchor.getAbsolutePosition();
     const nozzle = new Vector3(anchor.x + Math.sin(yaw) * 0.22, anchor.y + 0.56, anchor.z + Math.cos(yaw) * 0.22);
-    jet.aim(nozzle, new Vector3(station.spec.x, COUNTER_HEIGHT + 0.25, station.spec.z));
+    jet.aim(nozzle, new Vector3(station.spec.x, (station.spec.y ?? 0) + COUNTER_HEIGHT + 0.25, station.spec.z));
   }
 
   private stationViewState(station: Workstation): WorkstationViewState {
@@ -2232,7 +2242,7 @@ export class KitchenScene implements ManagedScene {
     const transform = this.scene.getTransformMatrix();
     const frame = this.beaconFrame;
     for (const station of this.beaconStations) {
-      this.beaconWorld.set(station.spec.x, COUNTER_HEIGHT + 0.9, station.spec.z);
+      this.beaconWorld.set(station.spec.x, (station.spec.y ?? 0) + COUNTER_HEIGHT + 0.9, station.spec.z);
       Vector3.ProjectToRef(this.beaconWorld, Matrix.IdentityReadOnly, transform, this.beaconViewport, this.beaconScreen);
       const screen = this.beaconScreen;
       targets.push({
@@ -2832,6 +2842,7 @@ const toStationSpec = (placement: KitchenStationPlacement, index: number): Stati
   id: `${placement.kind}:${index}`,
   kind: placement.kind,
   x: placement.x,
+  y: placement.y ?? 0,
   z: placement.z,
   rotationY: placement.rotationY,
   ingredientId: placement.ingredientId,

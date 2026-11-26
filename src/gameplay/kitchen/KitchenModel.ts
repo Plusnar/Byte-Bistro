@@ -33,6 +33,8 @@ export interface StationSpec {
   readonly id: string;
   readonly kind: KitchenStationKind;
   readonly x: number;
+  /** Floor height the station stands on; 0 when omitted. */
+  readonly y?: number;
   readonly z: number;
   readonly rotationY: number;
   /** Crates only: the raw ingredient they hand out. */

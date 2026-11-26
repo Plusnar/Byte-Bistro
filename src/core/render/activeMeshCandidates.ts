@@ -28,10 +28,10 @@ export const installActiveMeshCandidates = (scene: Scene): (() => void) => {
   const markDirty = (): void => { dirty = true; };
   const added = scene.onNewMeshAddedObservable.add(markDirty);
   const removed = scene.onMeshRemovedObservable.add(markDirty);
-  const original = scene.getActiveMeshCandidates;
+  let original = scene.getActiveMeshCandidates;
   let frames = 0;
 
-  scene.getActiveMeshCandidates = (): ISmartArrayLike<AbstractMesh> => {
+  const filtered = (): ISmartArrayLike<AbstractMesh> => {
     // Visibility can change without an event; a cheap periodic refresh catches it.
     if (dirty || ++frames % 120 === 0) {
       candidates.length = 0;
@@ -42,7 +42,19 @@ export const installActiveMeshCandidates = (scene: Scene): (() => void) => {
     return list;
   };
 
+  // Babylon's octree component assigns its own `getActiveMeshCandidates` the first time any
+  // mesh builds a sub-mesh octree (a partitioned collider does, for a level's biggest
+  // piece), which silently dropped this filter: on a large level every collider came back
+  // into the per-frame pass. Its assignment is kept aside instead (the game uses no
+  // selection octree), and restored on uninstall.
+  Object.defineProperty(scene, "getActiveMeshCandidates", {
+    configurable: true,
+    get: () => filtered,
+    set: (replacement: typeof original) => { original = replacement; },
+  });
+
   return () => {
+    delete (scene as { getActiveMeshCandidates?: unknown }).getActiveMeshCandidates;
     scene.getActiveMeshCandidates = original;
     scene.onNewMeshAddedObservable.remove(added);
     scene.onMeshRemovedObservable.remove(removed);

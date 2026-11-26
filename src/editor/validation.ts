@@ -51,18 +51,8 @@ export function mapRequirements(
       satisfied: placed >= (ingredient.count ?? 1),
     });
   }
-  // The kitchen builds its tiles on the ground whatever their height, so a station placed
-  // on an upper storey would play somewhere else than where it was built. Only listed when
-  // it applies, so ordinary maps keep their checklist.
-  const raised = map.objects.filter(
-    o => (o.role === "station" || o.role === "dispenser") && o.position.y > 0.05,
-  ).length;
-  if (raised > 0) {
-    requirements.push({
-      label: t("editor.requirementGrounded", { count: raised }),
-      satisfied: false,
-    });
-  }
+  // Stations and crates may stand on any floor: the kitchen builds each tile at the height
+  // it was placed (kitchenLayout's `y`), so a counter up a staircase plays up there.
   // A platform that crosses a station would park on top of it and make it unreachable for
   // part of every cycle. Checked against the whole travel, not where it was dropped, which
   // is the only way to catch it in the editor rather than mid-shift.
