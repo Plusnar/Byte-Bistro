@@ -1598,10 +1598,21 @@
     color: var(--ui-red);
   }
 
+  .full-overlay[data-focus-covered] { visibility: hidden; }
+
   .cookbook-overlay,
   .pause-overlay,
   .results-overlay {
+    align-items: safe center;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: clamp(18px, 3.5vw, 52px);
+  }
+
+  @media (max-height: 560px) {
+    .cookbook-overlay .cookbook-window { min-height: 0; }
+    .pause-overlay .pause-card { min-height: 0; padding-block: 14px; }
+    .pause-overlay .pause-emblem { margin-bottom: 8px; }
   }
 
   .cookbook-window {

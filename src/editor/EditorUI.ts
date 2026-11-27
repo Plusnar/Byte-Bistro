@@ -57,12 +57,13 @@ export interface EditorUIHandlers {
   /** The map as it stands, for exporting to a file. */
   getCurrentMap(): MapData | null;
   /** Replaces the working map with an imported one. */
-  onImportMap(map: MapData): void;
+  onImportMap(map: MapData, previous: MapData): void;
 }
 
 /** Everything the chrome shows, read from the scene whenever its state version changes. */
 export interface EditorViewState {
   readonly map: MapData;
+  readonly slotId: string;
   readonly selection: readonly MapPlacedObject[];
   readonly tool: EditorTool;
   readonly asset: EditorAssetEntry | null;
@@ -106,8 +107,9 @@ const ICONS: Readonly<Record<string, string>> = {
   wall: "M3 6h18v12H3zM3 12h18M9 6v6M15 12v6",
   floor: "M3 9l9-5 9 5-9 5zM3 14l9 5 9-5",
   wallsUp: "M4 20V8h16v12M4 14h16",
-  wallsCut: "M4 20v-6h7V8h9v12M4 17h16",
-  wallsDown: "M4 20v-3h16v3",
+  wallsCut: "M4 20V8h16v12M5 14h3m3 0h3m3 0h3",
+  wallsDown: "M4 20v-3m0-6V8h3m10 0h3v3m0 6v3",
+  position: "M4 5h16M4 12h16M4 19h16M8 2v6M15 9v6M11 16v6",
   top: "M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
   grid: "M4 4h16v16H4zM4 10h16M4 15h16M10 4v16M15 4v16",
   settings: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2",
@@ -213,6 +215,7 @@ export class EditorUI {
   private readonly thumbnails = new CatalogThumbnails();
   private readonly thumbnailEntries = new WeakMap<HTMLImageElement, EditorAssetEntry>();
   private readonly thumbnailObserver: IntersectionObserver;
+  private readonly topbarObserver: ResizeObserver;
   private readonly shell: HTMLElement;
   private readonly strip: HTMLElement;
   private readonly inspector: HTMLElement;
@@ -281,6 +284,11 @@ export class EditorUI {
       }
     }, { root: this.strip, rootMargin: "0px 240px" });
 
+    const topbar = this.require<HTMLElement>(".bm-topbar");
+    this.topbarObserver = new ResizeObserver(() => {
+      this.shell.style.setProperty("--bm-top-clearance", (topbar.offsetTop + topbar.offsetHeight + 8) + "px");
+    });
+    this.topbarObserver.observe(topbar);
     this.populatePacks();
     this.bindTopbar();
     this.bindDock();
@@ -298,6 +306,7 @@ export class EditorUI {
     if (this.destroyed) return;
     const previous = this.state;
     this.state = state;
+    if (this.currentSlotId !== state.slotId) this.setMap(state.map, state.slotId);
     for (const button of this.shell.querySelectorAll<HTMLElement>("[data-tool]")) {
       button.dataset.active = String(button.dataset.tool === state.tool);
     }
@@ -378,6 +387,7 @@ export class EditorUI {
     window.clearTimeout(this.toastTimer);
     this.events.abort();
     this.thumbnailObserver.disconnect();
+    this.topbarObserver.disconnect();
     this.thumbnails.dispose();
     this.shell.remove();
   }
@@ -403,6 +413,14 @@ export class EditorUI {
     on("[data-action='top']", () => this.handlers.onToggleTopView());
     on("[data-action='requirements']", () => this.togglePanel("requirements"));
     on("[data-action='settings']", () => this.togglePanel("settings"));
+    on("[data-action='placement']", () => this.togglePanel("placement"));
+    on("[data-action='close-placement']", () => this.togglePanel(null));
+    on("[data-action='toggle-dock']", () => {
+      const button = this.require<HTMLButtonElement>("[data-action='toggle-dock']");
+      const collapsed = this.shell.toggleAttribute("data-dock-collapsed");
+      button.setAttribute("aria-expanded", String(!collapsed));
+      button.textContent = t(collapsed ? "editor.expandCatalog" : "editor.collapseCatalog");
+    });
     on("[data-action='help']", () => this.togglePanel("help"));
     on("[data-action='close-help']", () => this.togglePanel(null));
     on("[data-action='close-settings']", () => this.togglePanel(null));
@@ -445,19 +463,20 @@ export class EditorUI {
   private syncRequirements(map: MapData): void {
     this.lastRequirementsMap = map;
     const requirements = mapRequirements(map);
-    const met = requirements.filter(r => r.satisfied).length;
-    const ready = met === requirements.length;
+    const mandatory = requirements.filter(r => r.blocking !== false);
+    const met = mandatory.filter(r => r.satisfied).length;
+    const ready = met === mandatory.length;
     this.requirementsButton.dataset.ready = String(ready);
-    this.require("[data-requirements-count]").textContent = `${met}/${requirements.length}`;
+    this.require("[data-requirements-count]").textContent = `${met}/${mandatory.length}`;
     this.requirementsList.replaceChildren(...requirements.map((requirement) => {
       const item = createElement("li", undefined, requirement.label);
-      item.dataset.ok = String(requirement.satisfied);
+      item.dataset.ok = requirement.blocking === false ? "warning" : String(requirement.satisfied);
       return item;
     }));
     this.playButton.setAttribute("aria-disabled", String(!ready));
     this.playButton.title = ready
       ? t("editor.playTitle")
-      : t("editor.missing", { items: requirements.filter(r => !r.satisfied).map(r => r.label).join(", ") });
+      : t("editor.missing", { items: mandatory.filter(r => !r.satisfied).map(r => r.label).join(", ") });
   }
 
   // ---------------------------------------------------------------------------------------
@@ -987,10 +1006,23 @@ export class EditorUI {
     const duration = Number(this.require<HTMLInputElement>("[data-meta='duration']").value);
     const difficulty = this.require<HTMLSelectElement>("[data-meta='difficulty']").value;
     return {
+      ...this.handlers.getCurrentMap()?.meta,
       description: description.trim(),
       shiftDurationSeconds: Number.isFinite(duration) ? duration : 195,
       difficultyId: isDifficultyId(difficulty) ? difficulty : "standard",
     };
+  }
+
+  draft(map: MapData): MapData {
+    return { ...map, name: this.nameInput.value.trim() || map.name, meta: this.readMeta() };
+  }
+
+  hasChangedMetadata(map: MapData): boolean {
+    const draft = this.draft(map);
+    return draft.name !== map.name ||
+      draft.meta?.description !== (map.meta?.description ?? "") ||
+      draft.meta?.shiftDurationSeconds !== (map.meta?.shiftDurationSeconds ?? 195) ||
+      draft.meta?.difficultyId !== (map.meta?.difficultyId ?? "standard");
   }
 
   private saveCurrent(): boolean {
@@ -1060,6 +1092,7 @@ export class EditorUI {
       const file = input.files?.[0];
       if (!file) return;
       void file.text().then((text) => {
+        if (this.destroyed) return;
         let parsed: unknown;
         try {
           parsed = JSON.parse(text);
@@ -1071,13 +1104,17 @@ export class EditorUI {
         // anything unexpected into the editor.
         const map = sanitizeMapData(parsed);
         if (!map) { this.notify(t("editor.invalidMap"), "error"); return; }
-        this.handlers.onImportMap(map);
+        const current = this.handlers.getCurrentMap();
+        this.handlers.onImportMap(map, current ? this.draft(current) : map);
         this.nameInput.value = map.name;
         this.setMeta(map);
         this.currentSlotId = "";
         this.renderSlots();
-        this.notify(t("editor.imported", { name: map.name }), "success");
-      });
+        const skipped = Array.isArray((parsed as MapData).objects) && (parsed as MapData).objects.length > map.objects.length;
+        this.notify(t(skipped ? "editor.importedWithOmissions" : "editor.imported", { name: map.name }), skipped ? "warning" : "success");
+        this.syncRequirements(map);
+        if (mapRequirements(map).some(requirement => !requirement.satisfied)) this.togglePanel("requirements");
+      }).catch(() => { if (!this.destroyed) this.notify(t("editor.invalidFile"), "error"); });
     }, { once: true });
     input.click();
   }
@@ -1203,6 +1240,7 @@ export class EditorUI {
               <ul class="bm-requirements-list" data-requirements></ul>
             </div>
           </div>
+          <button type="button" class="bm-icon-button" data-action="placement" data-panel-toggle="placement" aria-expanded="false" title="${t("editor.placement")}" aria-label="${t("editor.placement")}">${icon("position")}</button>
           <button type="button" class="bm-icon-button" data-action="settings" data-panel-toggle="settings" title="${t("editor.settings")}" aria-label="${t("editor.settings")}">${icon("settings")}</button>
           <button type="button" class="bm-button" data-action="test" title="${t("editor.testHint")}">${icon("play")}<span>${t("editor.test")}</span></button>
           <button type="button" class="bm-button bm-primary" data-action="play" title="${t("editor.playHint")}">${icon("play")}<span>${t("editor.play")}</span></button>
@@ -1225,6 +1263,13 @@ export class EditorUI {
         <p class="bm-muted">${t("editor.settingsNote")}</p>
       </aside>
 
+      <aside class="bm-panel bm-drawer bm-placement" data-panel="placement" data-editor-chrome hidden>
+        <header class="bm-drawer-head"><strong>${t("editor.placement")}</strong>
+          <button type="button" class="bm-icon-button" data-action="close-placement" aria-label="${t("common.close")}">${icon("close")}</button></header>
+        <label class="bm-check bm-switch" title="${t("editor.freeTitle")}"><input type="checkbox" role="switch" data-option="free"> ${t("editor.free")} <kbd>L</kbd></label>
+        <label class="bm-check">${t("editor.height")} <input type="number" class="bm-number" data-option="height" step="0.25" min="0" value="0" aria-label="${t("editor.heightAria")}"></label>
+      </aside>
+
       <section class="bm-panel bm-help" data-panel="help" data-editor-chrome hidden>
         <header class="bm-drawer-head"><strong>${t("editor.helpTitle")}</strong>
           <button type="button" class="bm-icon-button" data-action="close-help" aria-label="${t("common.close")}">${icon("close")}</button></header>
@@ -1236,7 +1281,8 @@ export class EditorUI {
         <span class="bm-progress" data-progress hidden><i></i></span>
       </div>
 
-      <footer class="bm-dock" data-editor-chrome>
+      <button type="button" class="bm-button bm-dock-toggle" data-editor-chrome data-action="toggle-dock" aria-controls="bm-catalog-dock" aria-expanded="true">${t("editor.collapseCatalog")}</button>
+      <footer class="bm-dock" id="bm-catalog-dock" data-editor-chrome>
         <nav class="bm-tools" aria-label="${t("editor.tools")}">${toolButtons}</nav>
         <div class="bm-catalog">
           <div class="bm-catalog-bar">
@@ -1249,10 +1295,6 @@ export class EditorUI {
           </div>
           <div class="bm-catalog-sub">
             <div class="bm-chips" data-structure-filters hidden></div>
-            <div class="bm-options">
-              <label class="bm-check bm-switch" title="${t("editor.freeTitle")}"><input type="checkbox" role="switch" data-option="free"> ${t("editor.free")} <kbd>L</kbd></label>
-              <label class="bm-check">${t("editor.height")} <input type="number" class="bm-number" data-option="height" step="0.25" min="0" value="0" aria-label="${t("editor.heightAria")}"></label>
-            </div>
           </div>
           <div class="bm-strip" data-catalog-strip></div>
         </div>

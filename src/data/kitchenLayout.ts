@@ -154,7 +154,7 @@ export const stationsFromMap = (map: MapData): KitchenStationPlacement[] => {
     const y = object.position.y > 0.05 ? object.position.y : 0;
     const base = { x: object.position.x, y, z: object.position.z, rotationY: object.rotation.y };
     if (object.role === "dispenser" && object.ingredientId) {
-      stations.push({ ...base, kind: "crate", ingredientId: object.ingredientId });
+      stations.push({ ...base, y: object.position.y, kind: "crate", ingredientId: object.ingredientId });
       continue;
     }
     if (object.role !== "station" || !object.stationId) continue;

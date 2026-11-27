@@ -20,6 +20,7 @@
  * counts and bytes are hardware-independent and are the real regression gates.
  *
  * Flags: --mbps --rtt (network), --gpu (use the real GPU instead of SwiftShader),
+ * --matrix (three levels, one/two/four cooks, alternating transitions),
  * --cycles=N (memory phase), --skip=phase,phase, --json=path, --chrome=path.
  */
 import { spawn } from "node:child_process";
@@ -38,9 +39,10 @@ const RTT = Number(flag("rtt", 40));
 const CYCLES = Number(flag("cycles", 3));
 const SKIP = new Set(flag("skip", "").split(",").filter(Boolean));
 const GPU = args.includes("--gpu");
+const MATRIX = args.includes("--matrix");
 const CHROME = flag("chrome", process.env.CHROME ?? "C:/Program Files/Google/Chrome/Application/chrome.exe");
 const budget = JSON.parse(readFileSync(new URL("../../performance-budget.json", import.meta.url), "utf8"));
-const PORT = 9334;
+const PORT = Number(flag("debug-port", 9334));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const profile = mkdtempSync(join(tmpdir(), "bb-perf-"));
@@ -243,6 +245,52 @@ try {
         },
       };
     }
+  }
+
+  if (MATRIX) {
+    if (SKIP.has("match")) {
+      await send("Page.navigate", { url: pageUrl("perf&cache=off") });
+      const ready = await waitFor("performance.getEntriesByName('bb:gameplay-ready').length > 0", 240_000, 500);
+      if (ready === null) throw new Error("The kitchen did not load for the match matrix");
+    }
+    const cases = [];
+    for (const players of [1, 2, 4]) {
+      for (const scenario of ["wedding", "schlachtfest", "pauli"]) {
+        const selected = await evaluate(`(async () => {
+          const g = window.__bbGame;
+          const entry = g.ui.levels.find(level => level.key === 'scenario:' + ${JSON.stringify(scenario)});
+          if (!entry) return false;
+          g.quitToMenu();
+          g.ui.setPlayerCount(${players});
+          g.pendingLevel = entry;
+          return true;
+        })()`);
+        if (!selected) throw new Error("Missing scenario: " + scenario);
+        const startShiftMs = await startShift();
+        const sample = await evaluate(`(async () => {
+          const k = window.__bbGame.kitchenScene;
+          if (${players} === 2) {
+            const bounds = k.environment.bounds;
+            const [first, second] = k.players;
+            first.player.root.position.x = bounds.minX + 0.25;
+            first.player.root.position.z = bounds.minZ + 0.25;
+            second.player.root.position.x = bounds.maxX - 0.25;
+            second.player.root.position.z = bounds.maxZ - 0.25;
+            for (let i = 0; i < 30; i++) k.update(1 / 60);
+          }
+          const bench = (${BENCH})(30);
+          window.gc?.();
+          const snapshot = window.__bbPerf.snapshot();
+          return { bench, split: k.scene.activeCameras?.length === 2,
+            heapMb: snapshot.jsHeapMb, textureMb: snapshot.engines.map(engine => +engine.estimatedMb.toFixed(1)) };
+        })()`);
+        cases.push({ scenario, players, startShiftMs, ...sample });
+        const values = [sample.bench.drawCalls, sample.bench.activeMeshes, sample.bench.sceneMeshes,
+          sample.bench.cpuGpu.p95, sample.heapMb, ...sample.textureMb];
+        if (values.some(value => value !== null && !Number.isFinite(value))) failures.push("matrix: invalid sample for " + scenario);
+      }
+    }
+    results.phases.matrix = cases;
   }
 
   // --- warm reload: persistent store ------------------------------------------------------

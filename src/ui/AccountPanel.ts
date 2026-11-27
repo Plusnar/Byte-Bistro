@@ -234,6 +234,10 @@ export class AccountPanel {
     this.onAvatar(null);
   }
 
+  close(): void { this.dialog?.close(); }
+
+  expireSession(): void { if (this.user) this.signedOut(); }
+
   get signedInUser(): AccountUser | null { return this.user; }
 
   /** Restores a signed-in session (the cookie survives reloads). Quiet when there is none. */

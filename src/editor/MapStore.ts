@@ -1,7 +1,7 @@
 import { t } from "../i18n";
 import type { MapData, MapMeta, MapSlotSummary } from "./MapData";
 import { MIN_OBJECT_SCALE, sanitizeColorOverrides } from "./MapData";
-import { generateObjectId, summarizeStations } from "./catalog";
+import { generateObjectId, summarizeStations } from "./MapData";
 import { STATION_KIND_LABEL } from "../data/kitchen";
 import { getIngredient } from "../data/ingredients";
 import { DEFAULT_SCENARIO_ID, isScenarioId } from "../data/scenarios";
@@ -217,6 +217,8 @@ export class MapStore {
   ) {
     this.storage = storage ?? this.memory;
   }
+
+  get isPersistent(): boolean { return this.storage !== this.memory; }
 
   list(): MapSlotSummary[] {
     const slotIds = this.knownSlotIds();

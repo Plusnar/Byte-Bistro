@@ -30,6 +30,7 @@
 !/performance-budget.json
 !/scripts/
 /scripts/*
+!/scripts/prepare-asset-library.mjs
 !/scripts/assets/
 !/scripts/build/
 !/scripts/perf/
@@ -94,7 +95,14 @@ dist/
 /workers/mp/.wrangler/
 /workers/mp/test/
 /workers/accounts/.wrangler/
-/workers/accounts/test/
+/workers/accounts/test/*
 
 # Python bytecode from the Blender build scripts.
 __pycache__/
+!/src/audit-regressions.test.ts
+!/src/core/AccountMaps.test.ts
+!/src/editor/__tests__/
+/src/editor/__tests__/*
+!/src/editor/__tests__/validation.test.ts
+!/src/editor/__tests__/mapGeometry.test.ts
+!/workers/accounts/test/accounts.test.ts

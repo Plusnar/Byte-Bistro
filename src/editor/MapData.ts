@@ -139,3 +139,21 @@ export interface MapSlotSummary {
   readonly difficultyId: DifficultyId;
   readonly shiftDurationSeconds: number;
 }
+
+const createUid = (() => {
+  let sequence = 0;
+  return (prefix: string): string =>
+    `${prefix}-${Date.now().toString(36)}-${(sequence++).toString(36)}`;
+})();
+
+export const generateObjectId = (): string => createUid("obj");
+
+export const summarizeStations = (objects: readonly MapPlacedObject[]): { stations: number; dispensers: number } => {
+  let stations = 0;
+  let dispensers = 0;
+  for (const object of objects) {
+    if (object.role === "station") stations += 1;
+    else if (object.role === "dispenser") dispensers += 1;
+  }
+  return { stations, dispensers };
+};

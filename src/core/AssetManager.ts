@@ -59,6 +59,8 @@ export class AssetManager {
    */
   private readonly liveInstances = new Map<string, number>();
 
+  private disposed = false;
+
   constructor(
     private readonly scene: Scene,
     definitions: readonly ModelAssetDefinition[] = [],
@@ -122,7 +124,7 @@ export class AssetManager {
     options: ModelInstantiationOptions = {},
   ): Promise<ModelInstance | null> {
     const container = await this.loadContainer(id);
-    if (!container) {
+    if (!container || this.disposed || this.scene.isDisposed) {
       return null;
     }
     return this.instantiateFrom(container, id, options);
@@ -229,9 +231,9 @@ export class AssetManager {
   }
 
   dispose(): void {
-    for (const containerPromise of this.containers.values()) {
-      void containerPromise.then((container) => container?.dispose());
-    }
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const container of this.loaded.values()) container.dispose();
     this.containers.clear();
     this.loaded.clear();
     this.liveInstances.clear();
@@ -239,6 +241,7 @@ export class AssetManager {
   }
 
   private loadContainer(id: string): Promise<AssetContainer | null> {
+    if (this.disposed || this.scene.isDisposed) return Promise.resolve(null);
     const cached = this.containers.get(id);
     if (cached) {
       return cached;
@@ -253,20 +256,27 @@ export class AssetManager {
     const url = absoluteUrl(definition.url);
     const priority = definition.priority ?? "gameplay";
     const isGltf = /\.gltf(?:[?#]|$)/i.test(url);
-    const pending = (async (): Promise<AssetContainer> => {
+    const pending = (async (): Promise<AssetContainer | null> => {
       const bytes = await assetCache.fetch(url, priority);
+      if (this.disposed || this.scene.isDisposed) return null;
       // Fetch what a .gltf points at before parsing, so the parse never waits on the network
       // while it holds the main-thread queue.
       if (isGltf) await prefetchGltfDependencies(bytes, url, priority);
       // Babylon only parses binary glTF from memory, so a .gltf is wrapped as a GLB first.
       const source = isGltf ? gltfJsonToGlb(bytes) : new Uint8Array(bytes);
-      return mainThreadQueue.run(() => LoadAssetContainerAsync(source, this.scene, {
+      return mainThreadQueue.run(() => this.disposed || this.scene.isDisposed
+        ? Promise.resolve(null)
+        : LoadAssetContainerAsync(source, this.scene, {
         rootUrl: url.slice(0, url.lastIndexOf("/") + 1),
         pluginExtension: ".glb",
         name: url.slice(url.lastIndexOf("/") + 1),
       }), priority);
     })()
       .then((container) => {
+        if (!container || this.disposed || this.scene.isDisposed) {
+          container?.dispose();
+          return null;
+        }
         // The glTF loader starts each file's first clip on load. In a container that clip
         // animates the template, which is never on screen — instances get their own
         // groups — yet it was evaluated every frame: ~320 bone animations in the kitchen
@@ -277,6 +287,7 @@ export class AssetManager {
       })
       .catch((error: unknown) => {
         this.containers.delete(id);
+        if (this.disposed || this.scene.isDisposed) return null;
         if (definition.required) {
           throw error;
         }

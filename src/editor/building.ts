@@ -1,8 +1,11 @@
 import { Color3, MeshBuilder, StandardMaterial, type Scene, type TransformNode, type Mesh } from "@babylonjs/core";
 
+export const isBuildingAsset = (id: string): boolean =>
+  id === "build-floor" || id === "build-wall" || id === "build-block" || /^build-player-spawn-[1-4]$/.test(id);
+
 /** Shared geometry: the editor and the playable map use identical dimensions. */
 export function createBuildingMesh(assetId: string, scene: Scene, parent: TransformNode, color?: string): Mesh | null {
-  if (!assetId.startsWith("build-")) return null;
+  if (!isBuildingAsset(assetId)) return null;
   const spawn = assetId.startsWith("build-player-spawn-");
   const floor = assetId === "build-floor";
   const wall = assetId === "build-wall";

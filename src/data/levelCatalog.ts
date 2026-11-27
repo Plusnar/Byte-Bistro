@@ -1,7 +1,7 @@
 import { t } from "../i18n";
 import type { MapData, MapPlacedObject, MapSlotSummary } from "../editor/MapData";
 import type { OfficialLevel } from "./levelLoader";
-import { summarizeStations } from "../editor/catalog";
+import { summarizeStations } from "../editor/MapData";
 import { getDifficulty } from "./difficulty";
 import { getScenario, type ScenarioDefinition } from "./scenarios";
 

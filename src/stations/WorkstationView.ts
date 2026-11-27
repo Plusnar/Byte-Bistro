@@ -32,6 +32,7 @@ import { MIXER_ASSET_ID, MIXER_WHISK_NODE, OVEN_ASSET_ID, OVEN_DOOR_NODE } from 
 import type { KitchenStationKind } from "../types/game";
 import { ingredientIllustration } from "../ui/illustrations";
 import { publicUrl } from "../utils/assetUrl";
+import { excludeFromGroundProbe } from "../physics/groundProbe";
 
 export type ProgressTone = "work" | "cook" | "burn";
 
@@ -289,6 +290,7 @@ export class WorkstationView {
     collider.isVisible = false;
     collider.isPickable = false;
     collider.checkCollisions = true;
+    excludeFromGroundProbe(collider);
     this.ownedMeshes.push(collider);
 
     this.itemAnchor = new TransformNode(`${this.root.name}-anchor`, scene);
@@ -601,7 +603,8 @@ export class WorkstationView {
   private track(instance: ModelInstance, holder: TransformNode): ModelInstance {
     for (const rootNode of instance.rootNodes) {
       for (const node of [rootNode, ...rootNode.getDescendants()]) {
-        if (node instanceof AbstractMesh) node.isPickable = false;
+        if (!(node instanceof AbstractMesh)) continue;
+        node.isPickable = false;
       }
     }
     return {

@@ -49,6 +49,21 @@ export class NearbyColliders {
     this.dirtySince = performance.now() - REBUILD_DELAY_MS;
   }
 
+  collect(minX: number, maxX: number, minZ: number, maxZ: number, out: AbstractMesh[]): readonly AbstractMesh[] {
+    out.length = 0;
+    if (!this.ready) {
+      if (performance.now() - this.dirtySince < REBUILD_DELAY_MS) return this.scene.meshes;
+      this.rebuild();
+    }
+    this.box.minX = minX;
+    this.box.maxX = maxX;
+    this.box.minZ = minZ;
+    this.box.maxZ = maxZ;
+    this.grid.collect(this.box, out);
+    for (const mesh of this.dynamic) out.push(mesh);
+    return out;
+  }
+
   /** Sets `body.surroundingMeshes` to the colliders within reach of where it stands. */
   assign(body: AbstractMesh): void {
     if (!this.ready) {

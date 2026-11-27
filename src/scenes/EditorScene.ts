@@ -2,9 +2,10 @@ import { formatNumber, t } from "../i18n";
 import { moveCameraTarget } from "./editorCamera";
 import { INGREDIENT_ASSETS } from "../data/ingredientAssets";
 import { MIXER_ASSET_ID, OVEN_ASSET_ID, STATION_ASSETS } from "../data/stationAssets";
+import { isSeeThroughStructure, STRUCTURE_OPACITY, StructureMaterials } from "../core/render/structureVisibility";
 import { ASSET_LIBRARY } from "../data/assetLibrary";
 import { createBuildingMesh } from "../editor/building";
-import { mapRequirements } from "../editor/validation";
+import { isMapPlayable } from "../editor/validation";
 import {
   ArcRotateCamera,
   Color3,
@@ -24,6 +25,7 @@ import {
   UtilityLayerRenderer,
   Vector3,
   type AbstractEngine,
+  type AbstractMesh,
   type LinesMesh,
 } from "@babylonjs/core";
 import type { ModelInstance } from "../core/AssetManager";
@@ -39,7 +41,6 @@ import { sanitizeMechanismConfig, type MechanismConfig } from "../data/mechanism
 import { hasColorChange, hasTransformChange, isVisualPreservingChange } from "../editor/objectDiff";
 import {
   createPlacedObject,
-  generateObjectId,
   objectLabel,
   roundPlacement,
   type EditorAssetEntry,
@@ -49,11 +50,11 @@ import { DEFAULT_SCENARIO_ID } from "../data/scenarios";
 import type { MapMeta } from "../editor/MapData";
 import type { MapData, MapPlacedObject, MapSlotSummary } from "../editor/MapData";
 import { MIN_OBJECT_SCALE, wrapAngle } from "../editor/MapData";
+import { generateObjectId } from "../editor/MapData";
 import { MapStore } from "../editor/MapStore";
 import {
   BUILD_LOT_HALF,
   GRID_STEP,
-  isWallCutAway,
   layoutFloorRect,
   alignToWall,
   depthNudge,
@@ -70,7 +71,7 @@ import {
 } from "../editor/buildTools";
 import { buildExtinguisher, showsExtinguisher, stationDressing } from "../stations/stationDressing";
 import { COUNTER_HEIGHT, kitchenAssetId } from "../data/kitchen";
-import { isFloorAsset, isWallAsset } from "../physics/collisionPolicy";
+import { isFloorAsset, isFootingAsset, isWallAsset } from "../physics/collisionPolicy";
 import { OutdoorBackdrop } from "./OutdoorBackdrop";
 import {
   applyColorOverrides,
@@ -88,7 +89,7 @@ import {
  * - `erase` (sledgehammer): click to delete, drag a box to delete everything in it.
  */
 export type EditorTool = "select" | "place" | "erase" | "eyedropper" | "design" | "wall" | "floor";
-/** The Sims' walls views: all up, cut where they face the camera, all lowered. */
+/** The three transparency levels for walls and upper floors. */
 export type WallMode = "up" | "cutaway" | "down";
 /** Nothing refuses a placement; off the lot it is only scenery, and the hint says so. */
 export type PlacementIssue = "outside" | null;
@@ -112,7 +113,7 @@ export interface SelectionColors {
 interface EditorObjectVisual {
   data: MapPlacedObject;
   readonly root: TransformNode;
-  /** Display-only node under the root: walls are lowered here, never in the saved transform. */
+  /** Display-only node under the saved transform, used to separate overlapping faces. */
   readonly body: TransformNode;
   /** What sits on a station (plates, board, extinguisher), unscaled by the counter's own scale. */
   readonly dressing: TransformNode | null;
@@ -122,9 +123,6 @@ interface EditorObjectVisual {
   readonly proxy: Mesh | null;
   readonly isWall: boolean;
   readonly isFloor: boolean;
-  lowered: boolean;
-  /** Cutaway for the room shell: its camera-side wall is clipped, as in the game. */
-  clip: Plane | null;
   /** Ground footprint, cached until the transform changes. */
   footprint: Footprint | null;
   /** Half a wall's length along its run, cached until the transform changes. */
@@ -151,8 +149,7 @@ interface GhostSource {
 
 const SNAP_ROTATION = Math.PI / 12;
 const MIN_SCALE = MIN_OBJECT_SCALE;
-/** How far walls are lowered in the cutaway / walls-down views: a stub, as in the Sims. */
-const LOWERED_WALL_SCALE = 0.12;
+const WALL_OPACITY: Readonly<Record<WallMode, number>> = { up: 0.36, cutaway: STRUCTURE_OPACITY, down: 0.10 };
 /** Beyond this many selected objects the outline is too costly; they get a tint instead. */
 const OUTLINE_LIMIT = 60;
 const SELECTION_COLOR = Color3.FromHexString("#5DE4FF");
@@ -177,12 +174,17 @@ const isTypingTarget = (target: EventTarget | null): boolean =>
   target instanceof HTMLElement &&
   (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
 
+interface EditorHistoryEntry {
+  readonly map: MapData;
+  readonly slotId: string;
+  readonly savedSnapshot: string;
+}
+
 export class EditorScene implements ManagedScene {
   readonly scene: Scene;
 
   private readonly assets: AssetManager;
   private readonly canvas: HTMLCanvasElement;
-  private readonly store = new MapStore();
   private readonly visuals = new Map<string, EditorObjectVisual>();
   private readonly selectionIds = new Set<string>();
   private readonly utilityLayer: UtilityLayerRenderer;
@@ -195,6 +197,7 @@ export class EditorScene implements ManagedScene {
   private readonly contextMenuObserver: (event: Event) => void;
   private readonly backdrop: OutdoorBackdrop;
   private readonly colorCache = new MaterialOverrideCache();
+  private readonly structureMaterials = new StructureMaterials();
   private readonly highlight: HighlightLayer;
   private currentTool: EditorTool = "select";
   private currentAsset: EditorAssetEntry | null = null;
@@ -249,10 +252,10 @@ export class EditorScene implements ManagedScene {
   private edgePointer: { clientX: number; clientY: number } | null = null;
   private altHeld = false;
   private hoverId: string | null = null;
-  private history: MapData[] = [];
-  private future: MapData[] = [];
+  private history: EditorHistoryEntry[] = [];
+  private future: EditorHistoryEntry[] = [];
   /** The redo stack as it was before the latest checkpoint cleared it. */
-  private futureAtCheckpoint: MapData[] = [];
+  private futureAtCheckpoint: EditorHistoryEntry[] = [];
   /** The map's contents as last saved or loaded, to tell whether leaving it loses work. */
   private savedSnapshot = "";
   private clipboard: MapPlacedObject[] = [];
@@ -268,7 +271,6 @@ export class EditorScene implements ManagedScene {
   private readonly cameraKeys = new Set<string>();
   private wallMode: WallMode = "cutaway";
   private wallsDirty = true;
-  private wallCameraKey = "";
   private loadingProgress = 1;
   private stateVersion = 0;
   private readonly releaseInput = (): void => {
@@ -299,13 +301,15 @@ export class EditorScene implements ManagedScene {
     private readonly callbacks: EditorSceneCallbacks,
     initialMap: MapData | null = null,
     initialSlotId: string | null = null,
+    private readonly store = new MapStore(),
+    initialDirty = false,
   ) {
     this.canvas = engine.getRenderingCanvas()!;
     this.currentMap = initialMap ?? createDefaultMap();
     this.currentSlotId = initialSlotId ?? "";
     // A draft reopened on its slot counts as changed only if it differs from what is stored.
     const stored = this.currentSlotId ? this.store.load(this.currentSlotId) : null;
-    this.savedSnapshot = EditorScene.snapshot(stored ?? this.currentMap);
+    this.savedSnapshot = stored ? EditorScene.snapshot(stored) : initialDirty ? "" : EditorScene.snapshot(this.currentMap);
 
     this.scene = new Scene(engine);
     this.scene.ambientColor = Color3.FromHexString("#27354A");
@@ -397,6 +401,12 @@ export class EditorScene implements ManagedScene {
   canUndo(): boolean { return this.history.length > 0; }
   canRedo(): boolean { return this.future.length > 0; }
   getCurrentMap(): MapData { return this.currentMap; }
+  replaceSlot(original: string, replacement: string): boolean {
+    if (this.currentSlotId !== original) return false;
+    this.currentSlotId = replacement;
+    return true;
+  }
+
   getCurrentSlotId(): string { return this.currentSlotId; }
   listSlots(): MapSlotSummary[] { return this.store.list(); }
   get isCopying(): boolean { return this.copyTemplate !== null; }
@@ -410,6 +420,8 @@ export class EditorScene implements ManagedScene {
   }
 
   /** True when loading another map or starting a new one would throw work away. */
+  get isSavePersistent(): boolean { return this.store.isPersistent; }
+
   hasUnsavedChanges(): boolean {
     return EditorScene.snapshot(this.currentMap) !== this.savedSnapshot;
   }
@@ -653,7 +665,7 @@ export class EditorScene implements ManagedScene {
       if (!visual?.instance) continue;
       const colors = { ...(visual.data.colors ?? {}) };
       if (hex) colors[material] = hex; else delete colors[material];
-      applyColorOverrides(visual.instance.rootNodes, colors, this.colorCache);
+      this.paintVisual(visual, colors);
     }
   }
 
@@ -682,16 +694,23 @@ export class EditorScene implements ManagedScene {
     const source = redo ? this.future : this.history;
     const previous = source.pop();
     if (!previous) return;
-    (redo ? this.history : this.future).push(this.currentMap);
-    this.currentMap = previous;
+    (redo ? this.history : this.future).push(this.historyEntry());
+    if (this.currentSlotId !== previous.slotId) {
+      this.currentSlotId = previous.slotId;
+      this.savedSnapshot = previous.savedSnapshot;
+      this.selectionIds.clear();
+    }
+    this.currentMap = previous.map;
     void this.refresh();
   }
 
   /** Replaces the working map with an imported file, as a single undoable step. */
-  loadImportedMap(map: MapData): void {
+  loadImportedMap(map: MapData, previous = this.currentMap): void {
+    this.currentMap = previous;
     this.checkpoint();
     this.currentMap = { ...map, updatedAt: Date.now() };
     this.currentSlotId = "";
+    this.savedSnapshot = "";
     this.selectionIds.clear();
     void this.refresh();
   }
@@ -728,7 +747,7 @@ export class EditorScene implements ManagedScene {
     const data: MapData = {
       ...this.currentMap,
       name: trimmed,
-      updatedAt: Date.now(),
+      updatedAt: Math.max(Date.now(), this.currentMap.updatedAt + 1),
       scenarioId: this.currentMap.scenarioId ?? DEFAULT_SCENARIO_ID,
       meta,
     };
@@ -794,8 +813,8 @@ export class EditorScene implements ManagedScene {
     this.refreshSelectionHighlights();
   }
 
-  playCurrentMap(): void {
-    if (mapRequirements(this.currentMap).every(r => r.satisfied)) this.callbacks.onPlay(this.currentMap);
+  playCurrentMap(map = this.currentMap): void {
+    if (isMapPlayable(map)) this.callbacks.onPlay(map);
   }
 
   exit(): void {
@@ -844,6 +863,7 @@ export class EditorScene implements ManagedScene {
     this.highlight.dispose();
     for (const visual of this.visuals.values()) this.disposeVisual(visual);
     this.visuals.clear();
+    this.structureMaterials.dispose();
     this.colorCache.dispose();
     this.backdrop.dispose();
     this.assets.dispose();
@@ -967,8 +987,12 @@ export class EditorScene implements ManagedScene {
     this.stateVersion += 1;
   }
 
+  private historyEntry(): EditorHistoryEntry {
+    return { map: this.currentMap, slotId: this.currentSlotId, savedSnapshot: this.savedSnapshot };
+  }
+
   private checkpoint(): void {
-    this.history.push(this.currentMap);
+    this.history.push(this.historyEntry());
     if (this.history.length > 80) this.history.shift();
     this.futureAtCheckpoint = this.future;
     this.future = [];
@@ -981,7 +1005,7 @@ export class EditorScene implements ManagedScene {
   private dropCheckpointIfUnchanged(): void {
     const last = this.history[this.history.length - 1];
     if (!last) return;
-    if (last !== this.currentMap && JSON.stringify(last.objects) !== JSON.stringify(this.currentMap.objects)) return;
+    if (last.map !== this.currentMap && JSON.stringify(last.map.objects) !== JSON.stringify(this.currentMap.objects)) return;
     this.history.pop();
     this.future = this.futureAtCheckpoint;
     this.bump();
@@ -1087,7 +1111,7 @@ export class EditorScene implements ManagedScene {
         this.nudgeBody(visual);
       }
       if (hasColorChange(visual.data, data) && visual.instance) {
-        applyColorOverrides(visual.instance.rootNodes, data.colors, this.colorCache);
+        this.paintVisual(visual, data.colors);
       }
       visual.data = data;
     }
@@ -1104,10 +1128,11 @@ export class EditorScene implements ManagedScene {
       const batch = missing.slice(index, index + BATCH);
       const spawned = await Promise.all(batch.map(object => this.spawnObject(object)));
       if (this.disposed || version !== this.refreshVersion) {
-        for (const visual of spawned) this.disposeVisual(visual);
+        for (const visual of spawned) if (visual) this.disposeVisual(visual);
         return;
       }
       for (const visual of spawned) {
+        if (!visual) continue;
         // An undo mid-load may already have spawned it, or removed it again.
         if (this.visuals.has(visual.data.id) || !byId.has(visual.data.id)) this.disposeVisual(visual);
         else this.visuals.set(visual.data.id, visual);
@@ -1127,7 +1152,7 @@ export class EditorScene implements ManagedScene {
     root.scaling.copyFromFloats(object.scale.x, object.scale.y, object.scale.z);
   }
 
-  private async spawnObject(object: MapPlacedObject): Promise<EditorObjectVisual> {
+  private async spawnObject(object: MapPlacedObject): Promise<EditorObjectVisual | null> {
     const root = new TransformNode(`editor-obj-${object.id}`, this.scene);
     if (object.id.startsWith("preview-")) root.setEnabled(false);
     this.applyTransform(root, object);
@@ -1155,6 +1180,11 @@ export class EditorScene implements ManagedScene {
     } catch (error) {
       console.warn(`Editor could not instantiate ${object.assetId}`, error);
     }
+    if (this.disposed) {
+      instance?.dispose();
+      root.dispose(false, false);
+      return null;
+    }
     if (!instance && !proxy) {
       proxy = MeshBuilder.CreateBox(`editor-proxy-${object.id}`, { size: 0.9 }, this.scene);
       proxy.parent = body;
@@ -1167,6 +1197,11 @@ export class EditorScene implements ManagedScene {
     }
     if (instance && object.colors) applyColorOverrides(instance.rootNodes, object.colors, this.colorCache);
     const dressing = await this.dressStation(object, root);
+    if (this.disposed) {
+      instance?.dispose();
+      root.dispose(false, false);
+      return null;
+    }
     const extras = object.role === "mechanism" && object.mechanism?.kind === "march"
       ? await this.dressParade(object, body)
       : object.role === "mechanism" && object.mechanism && isCrewKind(object.mechanism.kind)
@@ -1186,27 +1221,10 @@ export class EditorScene implements ManagedScene {
       proxy,
       isWall: isWallAsset(object.assetId, object.category),
       isFloor: isFloorAsset(object.assetId),
-      lowered: false,
-      clip: null,
       footprint: null,
       span: null,
     };
     this.nudgeBody(visual);
-    if (object.assetId === "scenario-room-wide") {
-      // Scene clip planes are global, so one is set only while the shell itself draws.
-      for (const mesh of root.getChildMeshes()) {
-        if (!(mesh instanceof Mesh)) continue;
-        let previous: Plane | null = null;
-        mesh.onBeforeRenderObservable.add(() => {
-          if (!visual.clip) return;
-          previous = this.scene.clipPlane;
-          this.scene.clipPlane = visual.clip;
-        });
-        mesh.onAfterRenderObservable.add(() => {
-          if (visual.clip) this.scene.clipPlane = previous;
-        });
-      }
-    }
     return visual;
   }
 
@@ -1289,7 +1307,12 @@ export class EditorScene implements ManagedScene {
   }
 
   private pickObjectId(x: number, y: number): string | null {
-    const pick = this.scene.pick(x, y, mesh => Boolean(mesh.metadata?.objectId) && mesh.isPickable && mesh.isEnabled());
+    const selectable = (mesh: AbstractMesh): boolean =>
+      Boolean(mesh.metadata?.objectId) && mesh.isPickable && mesh.isEnabled();
+    // Click through a translucent wall to the visible object. Pick the wall itself
+    // where there is no object behind it.
+    const object = this.scene.pick(x, y, mesh => !this.structureMaterials.has(mesh) && selectable(mesh));
+    const pick = object?.hit ? object : this.scene.pick(x, y, selectable);
     return (pick?.pickedMesh?.metadata?.objectId as string | undefined) ?? null;
   }
 
@@ -1297,40 +1320,25 @@ export class EditorScene implements ManagedScene {
   // Walls views
 
   private updateWalls(): void {
-    const target = this.camera.target;
-    const position = this.camera.position;
-    const cameraKey = this.wallMode === "cutaway"
-      ? `${target.x.toFixed(1)},${target.z.toFixed(1)},${this.camera.alpha.toFixed(2)},${this.camera.beta.toFixed(2)}`
-      : this.wallMode;
-    if (!this.wallsDirty && cameraKey === this.wallCameraKey) return;
+    if (!this.wallsDirty) return;
     this.wallsDirty = false;
-    this.wallCameraKey = cameraKey;
-    const targetPoint = { x: target.x, z: target.z };
-    const cameraPoint = { x: position.x, z: position.z };
-    for (const visual of this.visuals.values()) {
-      if (!visual.isWall) continue;
-      const shell = visual.data.assetId === "scenario-room-wide";
-      if (shell) {
-        // The game cuts the shell's front wall (see placementsFromMap in KitchenEnvironment);
-        // the cutaway view shows the room the way it will be played.
-        const { position, rotation, scale } = visual.data;
-        visual.clip = this.wallMode === "cutaway" && Math.abs(wrapAngle(rotation.y)) < 0.01
-          ? new Plane(0, 0, -1, position.z - 6 * scale.z + 2.2)
-          : null;
-      }
-      const lowered = this.wallMode === "down" ||
-        (this.wallMode === "cutaway" && !shell && !this.selectionIds.has(visual.data.id) &&
-          isWallCutAway(
-            { x: visual.root.position.x, z: visual.root.position.z },
-            targetPoint,
-            cameraPoint,
-            undefined,
-            isPostAsset(visual.data.assetId) ? undefined : visual.data.rotation.y,
-          ));
-      if (lowered === visual.lowered) continue;
-      visual.lowered = lowered;
-      visual.body.scaling.y = lowered ? LOWERED_WALL_SCALE : 1;
+    for (const visual of this.visuals.values()) this.applyStructureOpacity(visual);
+  }
+
+  private applyStructureOpacity(visual: EditorObjectVisual): void {
+    const { assetId, category } = visual.data;
+    const translucent = isSeeThroughStructure(assetId, visual.root.position.y, category);
+    for (const mesh of visual.root.getChildMeshes()) {
+      if (translucent) this.structureMaterials.fade(mesh, WALL_OPACITY[this.wallMode]);
+      else this.structureMaterials.restore(mesh);
     }
+  }
+
+  private paintVisual(visual: EditorObjectVisual, colors: MapPlacedObject["colors"]): void {
+    if (!visual.instance) return;
+    for (const mesh of visual.root.getChildMeshes()) this.structureMaterials.restore(mesh);
+    applyColorOverrides(visual.instance.rootNodes, colors, this.colorCache);
+    this.applyStructureOpacity(visual);
   }
 
   // ---------------------------------------------------------------------------------------
@@ -1614,11 +1622,14 @@ export class EditorScene implements ManagedScene {
     if (!this.selectionIds.has(id)) return;
     if (this.gizmoMode === "position") {
       this.checkpoint();
-      this.dragPoint = this.pickGround(x, y, false);
       // The lead is the first selected object, as in `dragSelection`.
       const lead = this.visuals.get([...this.selectionIds][0] ?? "");
+      const crate = lead?.data.role === "dispenser";
+      const support = lead && !lead.isFloor && lead.data.category !== "room"
+        ? this.pickSurface(x, y, this.selectionIds, crate) : null;
+      this.dragPoint = (crate ? support : null) ?? this.pickGround(x, y, false);
       this.dragLift = lead && !lead.isFloor && lead.data.category !== "room"
-        ? lead.root.position.y - (this.pickSurface(x, y, this.selectionIds)?.y ?? 0)
+        ? lead.root.position.y - (support?.y ?? 0)
         : null;
     } else if (this.gizmoMode === "rotation") {
       this.beginRotate(x, y);
@@ -1744,9 +1755,14 @@ export class EditorScene implements ManagedScene {
   }
 
   private dragSelection(x: number, y: number): void {
-    const point = this.pickGround(x, y, false);
+    const leadVisual = this.visuals.get([...this.selectionIds][0] ?? "");
+    const lead = leadVisual?.root;
+    const crate = leadVisual?.data.role === "dispenser";
+    const support = this.dragLift !== null && lead ? this.pickSurface(x, y, this.selectionIds, crate) : null;
+    const point = (crate ? support : null) ?? this.pickGround(x, y, false);
     if (!point || !this.dragPoint) return;
     const delta = point.subtract(this.dragPoint);
+    delta.y = 0;
     const snap = this.snap && !this.altHeld;
     for (const id of this.selectionIds) {
       const root = this.visuals.get(id)?.root;
@@ -1756,10 +1772,8 @@ export class EditorScene implements ManagedScene {
     this.dragPoint = point;
     // Onto a table, off it again: the lead object keeps its height above whatever is under
     // the pointer, and the rest of the group moves with it.
-    const lead = this.visuals.get([...this.selectionIds][0] ?? "")?.root;
     if (this.dragLift !== null && lead) {
-      const support = this.pickSurface(x, y, this.selectionIds)?.y ?? 0;
-      const rise = Math.max(0, support + this.dragLift) - lead.position.y;
+      const rise = Math.max(0, (support?.y ?? 0) + this.dragLift) - lead.position.y;
       if (Math.abs(rise) > 1e-4) {
         for (const id of this.selectionIds) {
           const root = this.visuals.get(id)?.root;
@@ -2111,6 +2125,7 @@ export class EditorScene implements ManagedScene {
         console.warn(`Editor could not dress ${object.assetId} with the mixer`, error);
       }
     }
+    if (this.disposed) return null;
     if (showsExtinguisher(kind)) {
       const stand = new TransformNode(`${node.name}-extinguisher`, this.scene);
       stand.parent = node;
@@ -2198,17 +2213,18 @@ export class EditorScene implements ManagedScene {
 
   /**
    * The top of the placed object under the pointer, when the pointer is on an upward face of
-   * one: where something set down there rests. Floors and the room shell are the ground, and
-   * the ghost and `exclude` (what is being dragged) are looked through.
+   * one: where something set down there rests. Supply crates can land on the floor or
+   * platform itself. The ghost and objects being dragged are looked through.
    */
-  private pickSurface(x: number, y: number, exclude: ReadonlySet<string> = new Set()): Vector3 | null {
+  private pickSurface(x: number, y: number, exclude?: ReadonlySet<string>, allowFooting = false): Vector3 | null {
     const ghost = this.preview?.root;
     const hit = this.scene.pick(x, y, (mesh) => {
       const id = mesh.metadata?.objectId as string | undefined;
-      if (!id || exclude.has(id) || !mesh.isPickable || !mesh.isEnabled()) return false;
+      if (!id || exclude?.has(id) || !mesh.isPickable || !mesh.isEnabled()) return false;
       if (ghost && mesh.isDescendantOf(ghost)) return false;
       const visual = this.visuals.get(id);
-      return Boolean(visual) && !visual!.isFloor && visual!.data.category !== "room";
+      return Boolean(visual && ((!visual.isFloor && visual.data.category !== "room") ||
+        (allowFooting && visual.data.assetId !== "scenario-room-wide" && isFootingAsset(visual.data.assetId))));
     });
     if (!hit?.hit || !hit.pickedPoint) return null;
     const height = restingHeight({ y: hit.pickedPoint.y, normalY: hit.getNormal(true, true)?.y ?? 0 });
@@ -2216,7 +2232,8 @@ export class EditorScene implements ManagedScene {
   }
 
   private pickPlacement(x: number, y: number): Vector3 | null {
-    const surface = this.pickSurface(x, y);
+    const crate = (this.copyTemplate ?? this.currentAsset)?.role === "dispenser";
+    const surface = this.pickSurface(x, y, undefined, crate);
     const point = surface ?? this.pickGround(x, y);
     if (!point) return null;
     if (this.snap && !this.altHeld) { point.x = snapTo(point.x, GRID_STEP); point.z = snapTo(point.z, GRID_STEP); }
@@ -2236,6 +2253,7 @@ export class EditorScene implements ManagedScene {
       ? { ...structuredClone(this.copyTemplate), position: { x: 0, y: 0, z: 0 } }
       : createPlacedObject(this.currentAsset, Vector3.Zero());
     const visual = await this.spawnObject({ ...data, id: `preview-${version}` });
+    if (!visual) return;
     if (this.disposed || version !== this.previewVersion) { this.disposeVisual(visual); return; }
     for (const mesh of visual.root.getChildMeshes()) {
       mesh.isPickable = false;

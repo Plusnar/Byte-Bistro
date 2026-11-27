@@ -1,5 +1,38 @@
 import { BALANCE } from "../data/balance";
 
+interface Point { readonly x: number; readonly y: number; readonly z: number }
+
+/** First time in [0, 1] that the flight segment reaches the cook's impact sphere. */
+export function throwSphereContact(from: Point, to: Point, x: number, y: number, z: number, radius: number): number {
+  const ox = from.x - x, oy = from.y - y, oz = from.z - z;
+  const outer = ox * ox + oy * oy + oz * oz - radius * radius;
+  if (outer <= 0) return 0;
+  const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
+  const length = dx * dx + dy * dy + dz * dz;
+  const approach = ox * dx + oy * dy + oz * dz;
+  const discriminant = approach * approach - length * outer;
+  if (approach >= 0 || discriminant < 0) return Infinity;
+  const time = outer / (-approach + Math.sqrt(discriminant));
+  return time <= 1 ? time : Infinity;
+}
+
+/** Entry into a solid station box. Station vertical extent is relative to its own floor. */
+export function throwStationContact(from: Point, to: Point, x: number, z: number, half: number, base: number, top: number): number {
+  const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
+  if ((dx === 0 && Math.abs(from.x - x) > half) ||
+      (dz === 0 && Math.abs(from.z - z) > half) ||
+      (dy === 0 && (from.y < base || from.y > top))) return Infinity;
+  const enterX = dx === 0 ? -Infinity : (x - Math.sign(dx) * half - from.x) / dx;
+  const exitX = dx === 0 ? Infinity : (x + Math.sign(dx) * half - from.x) / dx;
+  const enterZ = dz === 0 ? -Infinity : (z - Math.sign(dz) * half - from.z) / dz;
+  const exitZ = dz === 0 ? Infinity : (z + Math.sign(dz) * half - from.z) / dz;
+  const enterY = dy === 0 ? -Infinity : ((dy > 0 ? base : top) - from.y) / dy;
+  const exitY = dy === 0 ? Infinity : ((dy > 0 ? top : base) - from.y) / dy;
+  const enter = Math.max(0, enterX, enterY, enterZ);
+  const exit = Math.min(1, exitX, exitY, exitZ);
+  return exit > 0 && enter <= exit ? enter : Infinity;
+}
+
 /**
  * Where a thrown ingredient will land, kept out of the scene so the aiming marker and the
  * flight itself can never be drawn from different numbers.

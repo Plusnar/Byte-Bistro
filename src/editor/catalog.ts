@@ -11,7 +11,7 @@ import {
   STATION_ASSET_PLACEMENTS_REF,
 } from "../scenes/KitchenEnvironment";
 import { INGREDIENT_SCENARIO_VISUALS } from "../data/scenarioAssets";
-import type { MapData, MapPlacedObject, PlacedObjectCategory } from "./MapData";
+import { generateObjectId, type MapData, type MapPlacedObject, type PlacedObjectCategory } from "./MapData";
 import {
   CRATE_MODEL_BY_INGREDIENT,
   STATION_KIND_LABEL,
@@ -29,12 +29,6 @@ import { ROBOT_ASSET_ID, ROBOT_PRESETS, type RobotConfig } from "../data/robotCo
 import { robotAssetId } from "../data/robotVariants";
 import { OVEN_ASSET_ID } from "../data/stationAssets";
 import { getIngredient } from "../data/ingredients";
-
-const createUid = (() => {
-  let sequence = 0;
-  return (prefix: string): string =>
-    `${prefix}-${Date.now().toString(36)}-${(sequence++).toString(36)}`;
-})();
 
 const toFixedVector = (
   value: { x: number; y: number; z: number },
@@ -408,8 +402,6 @@ export const EDITOR_ASSET_CATALOG: readonly EditorAssetEntry[] = (() => {
   return entries;
 })();
 
-export const generateObjectId = (): string => createUid("obj");
-
 /**
  * What to call a placed object, in the current language: its catalogue entry's name when it
  * has one (a map saved in another language still reads in this one), else the stored label.
@@ -463,13 +455,3 @@ export const roundPlacement = (entry: MapPlacedObject): MapPlacedObject => ({
   rotation: toFixedVector(entry.rotation),
   scale: toFixedVector(entry.scale),
 });
-
-export const summarizeStations = (objects: readonly MapPlacedObject[]): { stations: number; dispensers: number } => {
-  let stations = 0;
-  let dispensers = 0;
-  for (const object of objects) {
-    if (object.role === "station") stations += 1;
-    else if (object.role === "dispenser") dispensers += 1;
-  }
-  return { stations, dispensers };
-};

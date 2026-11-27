@@ -1,20 +1,18 @@
 import { t } from "../i18n";
-import { createBuildingMesh } from "../editor/building";
+import { isSeeThroughStructure, StructureMaterials } from "../core/render/structureVisibility";
+import { createBuildingMesh, isBuildingAsset } from "../editor/building";
 import { WEDDING_HALL_PLACEMENTS } from "./weddingHall";
 import {
   AbstractMesh,
   Color3,
   DirectionalLight,
   HemisphericLight,
-  Mesh,
-  Plane,
   PointLight,
   Scene,
   TransformNode,
   Vector3,
   type Light,
   type Node as BabylonNode,
-  type Nullable,
 } from "@babylonjs/core";
 import type { AssetManager, ModelInstance } from "../core/AssetManager";
 import type { MovementBounds } from "../entities/Player";
@@ -24,7 +22,6 @@ import type { MechanismConfig } from "../data/mechanismConfig";
 import { footprintOf, isCrewKind, marchInWorld, type MechanismFootprint } from "../gameplay/mechanisms/MechanismSystem";
 import { MarchLine } from "./MarchLine";
 import { RobotCrew } from "./RobotCrew";
-import { wrapAngle } from "../editor/MapData";
 import {
   DEFAULT_KITCHEN_LAYOUT,
   stationsFromMap,
@@ -38,16 +35,17 @@ import {
   GROUND_FLOOR_COLLISION_GROUP,
   STEP_OVER_HEIGHT,
   isFloorAsset,
+  isFootingAsset,
   isWallAsset,
   isSolidByDefault,
   measuredHeight,
   shouldCollide,
 } from "../physics/collisionPolicy";
 import { createPartitionedCollider, needsPartitioning } from "../physics/partitionedCollider";
+import { excludeFromGroundProbe } from "../physics/groundProbe";
 import { batchStaticMeshes } from "../core/render/staticBatching";
 import { OutdoorBackdrop } from "./OutdoorBackdrop";
-import { BUILD_LOT_HALF, depthNudge, isPostAsset, isWallCutAway } from "../editor/buildTools";
-import { GAME_CONFIG } from "../config";
+import { BUILD_LOT_HALF, depthNudge, isPostAsset } from "../editor/buildTools";
 import { applyColorOverrides, MaterialOverrideCache } from "./materialOverrides";
 import { MAX_PAULI_EMITTERS, PauliLighting, isPauliFixture } from "./PauliLighting";
 
@@ -73,15 +71,11 @@ export interface ScenarioPlacement {
   readonly position: Vector3;
   readonly rotation?: Vector3;
   readonly scale?: Vector3;
+  readonly category?: MapPlacedObject["category"];
   readonly collides?: boolean;
   readonly color?: string;
   /** Design-tool colours from the map: material name → hex. */
   readonly colors?: Readonly<Record<string, string>>;
-  /**
-   * Cutaway: geometry south of this world z is not drawn, so the wall between
-   * the camera and the kitchen never hides the front counters.
-   */
-  readonly clipBelowZ?: number;
   /**
    * Set only on a moving part. Its presence is what takes this placement out of the static
    * batch and gives it a node of its own to travel in. See AGENTS.md.
@@ -289,7 +283,6 @@ const DECOR_PLACEMENTS: readonly ScenarioPlacement[] = [
     position: Vector3.Zero(),
     scale: new Vector3(1.08, 1.08, 1.22),
     collides: true,
-    clipBelowZ: -5.1,
   },
   {
     name: "maintenance-robot-arm",
@@ -368,12 +361,14 @@ export const applyPlacementCollision = (
   assetId: string,
   authoredSolid: boolean,
   height: number,
+  canSupport = isFootingAsset(assetId),
 ): void => {
   const floor = isFloorAsset(assetId);
   const solid = shouldCollide(authoredSolid || floor, height, floor);
   const groundFloor = floor && height <= STEP_OVER_HEIGHT;
   for (const mesh of meshes) {
     mesh.checkCollisions = solid && mesh.getTotalVertices() > 0;
+    if (mesh.checkCollisions && !canSupport) excludeFromGroundProbe(mesh);
     if (groundFloor) mesh.collisionGroup = GROUND_FLOOR_COLLISION_GROUP;
   }
 };
@@ -383,33 +378,6 @@ export const DECOR_PLACEMENTS_REF: readonly ScenarioPlacement[] = DECOR_PLACEMEN
 
 const toVector3 = (value: { x: number; y: number; z: number }): Vector3 =>
   new Vector3(value.x, value.y, value.z);
-
-/**
- * The game camera's cutaway, as in the editor: walls standing between the fixed camera and
- * the middle of the play area are built as low stubs, so they never hide the cooks.
- */
-export interface MapCutaway {
-  readonly target: { readonly x: number; readonly z: number };
-  readonly camera: { readonly x: number; readonly z: number };
-}
-
-/** Walls lowered by the cutaway keep this much of their height (see the editor's views). */
-export const CUTAWAY_WALL_SCALE = 0.12;
-
-const cutScale = (object: MapPlacedObject, cutaway?: MapCutaway): Vector3 => {
-  const scale = toVector3(object.scale);
-  const cut = cutaway && object.assetId !== "scenario-room-wide" &&
-    isWallAsset(object.assetId, object.category) &&
-    isWallCutAway(
-      { x: object.position.x, z: object.position.z },
-      cutaway.target,
-      cutaway.camera,
-      undefined,
-      isPostAsset(object.assetId) ? undefined : object.rotation.y,
-    );
-  if (cut) scale.y *= CUTAWAY_WALL_SCALE;
-  return scale;
-};
 
 /** Where a piece is drawn: walls and floor tiles a hair apart from their neighbours (see depthNudge). */
 const nudged = (object: MapPlacedObject): Vector3 => {
@@ -425,26 +393,24 @@ const nudged = (object: MapPlacedObject): Vector3 => {
 };
 
 /** Stations and dispensers are drawn by WorkstationView, so only decor is placed here. */
-export const placementsFromMap = (map: MapData, cutaway?: MapCutaway): readonly ScenarioPlacement[] =>
-  map.objects.filter(object => object.role === "decor" || object.role === "mechanism").map((object, index) => ({
-    mechanism: object.mechanism,
-    objectId: object.id,
-    name: `custom-${object.role}-${index}`,
-    assetId: object.assetId,
-    position: nudged(object),
-    rotation: toVector3(object.rotation),
-    scale: cutScale(object, cutaway),
-    // Maps saved before scenery was solid stored `false` everywhere, so the
-    // category decides unless the object is one the policy never makes solid.
-    collides: object.collides || isSolidByDefault(object),
-    color: object.color,
-    colors: object.colors,
-    // The room shell's front wall (6 units from its centre) would hide the kitchen.
-    // Wrapped first: a shell turned a full circle faces the camera just the same.
-    clipBelowZ: object.assetId === "scenario-room-wide" && Math.abs(wrapAngle(object.rotation.y)) < 0.01
-      ? object.position.z - 6 * object.scale.z + 2.2
-      : undefined,
-  }));
+export const placementsFromMap = (map: MapData): readonly ScenarioPlacement[] =>
+  map.objects.filter(object => object.role === "decor" || object.role === "mechanism").map((object, index) => {
+    return {
+      mechanism: object.mechanism,
+      objectId: object.id,
+      name: `custom-${object.role}-${index}`,
+      assetId: object.assetId,
+      category: object.category,
+      position: nudged(object),
+      rotation: toVector3(object.rotation),
+      scale: toVector3(object.scale),
+      // Maps saved before scenery was solid stored `false` everywhere, so the
+      // category decides unless the object is one the policy never makes solid.
+      collides: object.collides || isSolidByDefault(object),
+      color: object.color,
+      colors: object.colors,
+    };
+  });
 
 
 export interface CustomMapAnchors {
@@ -620,8 +586,7 @@ export class KitchenEnvironment {
   private readonly placementRoots: TransformNode[] = [];
   /** Recoloured material clones, shared by every object painted the same. */
   private readonly colorCache = new MaterialOverrideCache();
-  /** Meshes drawn with their own clip plane; batching would lose the per-mesh switch. */
-  private readonly clippedMeshes = new Set<Mesh>();
+  private readonly structureMaterials = new StructureMaterials();
   /**
    * The level's moving parts. They are deliberately outside `placementRoots`, which is
    * what keeps them out of the static batch and out of `freezeWorldMatrix` — see the
@@ -673,18 +638,11 @@ export class KitchenEnvironment {
 
     // The main level is the wedding hall; DECOR_PLACEMENTS (the old server room) now only
     // feeds the editor's catalogue.
-    // Custom maps get the cutaway; the built-in hall is authored open on the camera side.
-    const centre = { x: (this.bounds.minX + this.bounds.maxX) / 2, z: (this.bounds.minZ + this.bounds.maxZ) / 2 };
-    const placements = options.map
-      ? placementsFromMap(options.map, {
-        target: centre,
-        camera: { x: centre.x + GAME_CONFIG.camera.offsetX, z: centre.z + GAME_CONFIG.camera.offsetZ },
-      })
-      : WEDDING_HALL_PLACEMENTS;
+    const placements = options.map ? placementsFromMap(options.map) : WEDDING_HALL_PLACEMENTS;
     this.pauliLighting = placements.some(({ assetId }) => isPauliFixture(assetId)) ? new PauliLighting(scene, this.root) : null;
     // Every level is batched, the editor's maps included: the official wedding is one, and
     // skipping them left its ~1,550 decor meshes as separate draw calls.
-    this.ready = this.loadScenario(placements).then(() => this.batchStaticDecor());
+    this.ready = this.loadScenario(placements).then(() => { if (!this.disposed) this.batchStaticDecor(); });
   }
 
   dispose(): void {
@@ -701,6 +659,7 @@ export class KitchenEnvironment {
     this.pauliLighting?.dispose();
     for (const light of this.lights) light.dispose();
     this.backdrop.dispose();
+    this.structureMaterials.dispose();
     this.colorCache.dispose();
     this.root.dispose(false, false);
   }
@@ -723,14 +682,12 @@ export class KitchenEnvironment {
     // still travels as one or two draw calls rather than one per plank. See AGENTS.md.
     for (const mechanism of this.mechanismPlacements) {
       await batchStaticMeshes(mechanism.node.getChildMeshes(false), mechanism.node, {
-        skip: (mesh) => this.clippedMeshes.has(mesh),
         shouldStop: () => this.disposed,
       });
       if (this.disposed) return;
     }
     const decor = this.placementRoots.flatMap((placementRoot) => placementRoot.getChildMeshes(false));
     await batchStaticMeshes(decor, this.root, {
-      skip: (mesh) => this.clippedMeshes.has(mesh),
       shouldStop: () => this.disposed,
     });
     if (this.disposed) return;
@@ -757,6 +714,10 @@ export class KitchenEnvironment {
     let remainingEmitters = MAX_PAULI_EMITTERS;
     await Promise.all(placements.map((placement, index) => {
       const fixture = this.pauliLighting && isPauliFixture(placement.assetId);
+      // Newer maps can be opened in older clients. Their optional unknown decorations
+      // remain in the JSON and the editor, but are omitted during the match.
+      if (placement.name.startsWith("custom-decor-") &&
+          !isBuildingAsset(placement.assetId) && !this.assets.has(placement.assetId)) return;
       return this.placeAsset(placement, index, fixture ? remainingEmitters-- > 0 : false);
     }));
   }
@@ -814,15 +775,17 @@ export class KitchenEnvironment {
     }
 
     const authoredSolid = placement.collides !== false;
-
+    const translucent = isSeeThroughStructure(placement.assetId, placement.position.y, placement.category);
     const building = createBuildingMesh(placement.assetId, this.scene, placementRoot, placement.color);
     if (building) {
       building.isPickable = false;
+      if (translucent) this.structureMaterials.fade(building);
       building.receiveShadows = true;
       building.computeWorldMatrix(true);
       const box = building.getBoundingInfo().boundingBox;
       const height = measuredHeight(box.minimumWorld.y, box.maximumWorld.y);
-      applyPlacementCollision([building], placement.assetId, authoredSolid, height);
+      applyPlacementCollision([building], placement.assetId, authoredSolid, height,
+        Boolean(mechanism) || isFootingAsset(placement.assetId));
       // The editor's own floor tile is the natural vanishing floor, and it is built here
       // rather than loaded, so its top has to be measured here too.
       if (placement.mechanism) this.setMechanismTop(placementRoot, height);
@@ -833,19 +796,13 @@ export class KitchenEnvironment {
       parent: placementRoot,
       cloneMaterials: false,
     });
-    if (!instance) {
-      throw new Error(`Scenario model could not be instantiated: ${placement.assetId}`);
-    }
     if (this.disposed) {
-      instance.dispose();
+      instance?.dispose();
       return;
     }
+    if (!instance) throw new Error("Scenario model could not be instantiated: " + placement.assetId);
     this.instances.push(instance);
     if (placement.colors) applyColorOverrides(instance.rootNodes, placement.colors, this.colorCache);
-    const clip = placement.clipBelowZ === undefined
-      ? null
-      : new Plane(0, 0, -1, placement.clipBelowZ);
-
     // Collision follows the art exactly: Babylon sweeps the cook's ellipsoid
     // against these triangles, so every mesh that draws is a mesh that blocks.
     const meshes = instance.rootNodes
@@ -854,14 +811,15 @@ export class KitchenEnvironment {
     const fixture = isPauliFixture(placement.assetId);
     if (fixture) this.pauliLighting?.attach(placement.assetId, placementRoot, meshes, poweredFixture);
     const modelHeight = this.measureModelHeight(instance.rootNodes);
-    applyPlacementCollision(meshes, placement.assetId, authoredSolid && !fixture, modelHeight);
+    applyPlacementCollision(meshes, placement.assetId, authoredSolid && !fixture, modelHeight,
+      Boolean(mechanism) || isFootingAsset(placement.assetId));
     if (placement.mechanism) this.setMechanismTop(placementRoot, modelHeight);
     for (const rootNode of instance.rootNodes) {
       for (const node of [rootNode, ...rootNode.getDescendants()]) {
         if (!(node instanceof AbstractMesh)) continue;
         node.isPickable = false;
+        if (translucent) this.structureMaterials.fade(node);
         node.receiveShadows = true;
-        if (clip && node instanceof Mesh) this.clipMesh(node, clip);
         // A collider as wide as the room would be swept in full on every step
         // anywhere in it; its triangles are regrouped by location, once, here.
         if (node.checkCollisions && needsPartitioning(node)) createPartitionedCollider(node);
@@ -930,19 +888,6 @@ export class KitchenEnvironment {
       }
     }
     return measuredHeight(minimumY, maximumY);
-  }
-
-  /** Scene clip planes are global, so enable one only while this mesh renders. */
-  private clipMesh(mesh: Mesh, plane: Plane): void {
-    this.clippedMeshes.add(mesh);
-    let previous: Nullable<Plane> = null;
-    mesh.onBeforeRenderObservable.add(() => {
-      previous = this.scene.clipPlane;
-      this.scene.clipPlane = plane;
-    });
-    mesh.onAfterRenderObservable.add(() => {
-      this.scene.clipPlane = previous;
-    });
   }
 
   /**

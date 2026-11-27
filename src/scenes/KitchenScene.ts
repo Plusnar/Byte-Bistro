@@ -1,3 +1,4 @@
+import type { AbstractMesh } from "@babylonjs/core";
 import { t } from "../i18n";
 import { INGREDIENT_ASSETS } from "../data/ingredientAssets";
 import { libraryModelsFor } from "../data/assetLibrary";
@@ -18,6 +19,7 @@ import {
   type Mesh,
 } from "@babylonjs/core";
 import { DeliveryBeacon, type BeaconTarget } from "../ui/DeliveryBeacon";
+import { flightGroundContact } from "../physics/groundProbe";
 import { NearbyColliders } from "../physics/nearbyColliders";
 import { GAME_CONFIG, isDevelopmentMode } from "../config";
 import type { AssetManager } from "../core/AssetManager";
@@ -102,7 +104,7 @@ import {
   type WorkstationViewState,
 } from "../stations/WorkstationView";
 import { WaypointMarker } from "../stations/WaypointMarker";
-import { CHARGE_SECONDS, chargeFraction, landingPoint, throwLaunch } from "../gameplay/throwArc";
+import { CHARGE_SECONDS, chargeFraction, heightAt, landingPoint, throwLaunch, throwSphereContact, throwStationContact } from "../gameplay/throwArc";
 import { starThresholdsFor } from "../data/levelGoals";
 import { KitchenMechanisms, type MechanismRider } from "./KitchenMechanisms";
 import { phasesReached } from "../gameplay/mechanisms/MechanismSystem";
@@ -398,6 +400,11 @@ export class KitchenScene implements ManagedScene {
   private readonly portalExit = new Vector3();
   /** Scratch vector for the aiming markers; reused so aiming allocates nothing per frame. */
   private readonly aimPosition = new Vector3();
+  private readonly aimOrigin = new Vector3();
+  private readonly aimPrevious = new Vector3();
+  private readonly projectileColliders: AbstractMesh[] = [];
+  private readonly reducedMotion = typeof matchMedia === "function"
+    ? matchMedia("(prefers-reduced-motion: reduce)") : null;
   private hudAccumulator = HUD_REFRESH_SECONDS;
   private lastQueueGuide: QueueGuideResult | null = null;
   private driftAccumulator = 0;
@@ -1087,18 +1094,22 @@ export class KitchenScene implements ManagedScene {
 
     let best: KitchenTarget | null = null;
     let bestDistance = Number.POSITIVE_INFINITY;
+    let bestHeightGap = Number.POSITIVE_INFINITY;
     for (const [station, view] of this.stationViews) {
-      if (Math.abs((station.spec.y ?? 0) - position.y) > STOREY_REACH) continue;
+      const heightGap = Math.abs((station.spec.y ?? 0) - position.y);
+      if (heightGap > STOREY_REACH) continue;
       const dx = station.spec.x - this.probe.x;
       const dz = station.spec.z - this.probe.z;
       const distance = Math.sqrt(dx * dx + dz * dz);
-      if (distance < STATION_REACH && distance < bestDistance) {
+      if (distance < STATION_REACH &&
+          (distance < bestDistance || (distance === bestDistance && heightGap < bestHeightGap))) {
         best = { kind: "station", station, view };
         bestDistance = distance;
+        bestHeightGap = heightGap;
       }
     }
     for (const entry of this.floorItems) {
-      if (entry.airborne) continue;
+      if (entry.airborne || Math.abs(entry.position.y - position.y) > 0.7) continue;
       const dx = entry.position.x - this.probe.x;
       const dz = entry.position.z - this.probe.z;
       // Items on the floor win ties so dropped food is easy to recover.
@@ -1375,8 +1386,29 @@ export class KitchenScene implements ManagedScene {
     slot.aimMarker = marker;
     const yaw = slot.player.facingYaw;
     const anchor = slot.player.carryAnchor.getAbsolutePosition();
-    const landing = landingPoint(anchor, Math.sin(yaw), Math.cos(yaw), throwLaunch(charge));
-    this.aimPosition.set(landing.x, 0.02, landing.z);
+    const dx = Math.sin(yaw), dz = Math.cos(yaw);
+    const launch = throwLaunch(charge);
+    const origin = this.aimOrigin.set(anchor.x + dx * 0.3, anchor.y, anchor.z + dz * 0.3);
+    const landing = landingPoint(origin, dx, dz, launch);
+    const bounds = this.environment.bounds;
+    const previous = this.aimPrevious.copyFrom(origin);
+    for (let time = Math.min(1 / 30, landing.seconds); ; time = Math.min(time + 1 / 30, landing.seconds)) {
+      const next = this.aimPosition.set(
+        Math.max(bounds.minX - 1.4, Math.min(bounds.maxX + 1.4, origin.x + dx * launch.speed * time)),
+        heightAt(origin.y, launch, time),
+        Math.max(bounds.minZ - 1.4, Math.min(bounds.maxZ + 1.4, origin.z + dz * launch.speed * time)),
+      );
+      const floor = this.groundContact(previous, next);
+      const station = this.stationContact(previous, next, floor);
+      const touch = station ? this.stationContactTime : floor;
+      if (Number.isFinite(touch)) {
+        Vector3.LerpToRef(previous, next, touch, next);
+        next.y += 0.02;
+        break;
+      }
+      if (time >= landing.seconds) { next.y = 0.02; break; }
+      previous.copyFrom(next);
+    }
     marker.setPosition(this.aimPosition);
     marker.setVisible(true);
   }
@@ -1439,11 +1471,13 @@ export class KitchenScene implements ManagedScene {
       }
       const { position, velocity } = entry;
       entry.previous.copyFrom(position);
-      velocity.y -= THROW_GRAVITY * deltaSeconds;
       position.x += velocity.x * deltaSeconds;
-      position.y += velocity.y * deltaSeconds;
+      position.y += (velocity.y - THROW_GRAVITY * deltaSeconds * 0.5) * deltaSeconds;
       position.z += velocity.z * deltaSeconds;
-      entry.rotation.addInPlace(entry.angularVelocity.scale(deltaSeconds));
+      velocity.y -= THROW_GRAVITY * deltaSeconds;
+      entry.rotation.x += entry.angularVelocity.x * deltaSeconds;
+      entry.rotation.y += entry.angularVelocity.y * deltaSeconds;
+      entry.rotation.z += entry.angularVelocity.z * deltaSeconds;
       entry.angularVelocity.scaleInPlace(THROW_ANGULAR_DAMPING);
 
       if (position.x < minX || position.x > maxX) {
@@ -1457,40 +1491,51 @@ export class KitchenScene implements ManagedScene {
         entry.bounces += 1;
       }
 
-      const station = this.stationAt(position.x, position.z);
-      if (station) {
-        const top = this.stationViews.get(station)?.topHeight ?? 0.9;
-        if (position.y <= top + 0.05) {
-          if (entry.previous.y >= top - 0.05 && this.kitchen.land(station, entry.item)) {
-            this.floorItems.splice(index, 1);
-            this.sfx.play(station.spec.kind === "trash" ? "trash" : "place");
-            continue;
-          }
-          // Hit the side of the station: bounce back the way it came.
-          position.x = entry.previous.x;
-          position.z = entry.previous.z;
-          velocity.x *= -0.35;
-          velocity.z *= -0.35;
-          entry.bounces += 1;
-          if (position.y < top) {
-            position.y = Math.max(position.y, 0);
-          }
-        }
+      const floor = this.groundContact(entry.previous, position);
+      const station = this.stationContact(entry.previous, position, floor);
+      const obstacle = station ? this.stationContactTime : floor;
+      const target = entry.item.kind === "food"
+        ? this.findPlayerImpactTarget(entry, obstacle)
+        : null;
+      if (target) {
+        Vector3.LerpToRef(entry.previous, position, this.playerContactTime, position);
+        if (!target.held && !target.player.isDowned()) this.catchItem(entry, target);
+        else this.applyPlayerHit(entry, target);
+        continue;
       }
 
-      if (entry.item.kind === "food") {
-        const target = this.findPlayerImpactTarget(position, entry.thrownBy, velocity.length());
-        if (target) {
-          // Empty-handed, the other cook catches it: an aimed throw across the kitchen is
-          // how a pair passes ingredients, and only a cook who cannot catch gets knocked over.
-          if (!target.held && !target.player.isDowned()) this.catchItem(entry, target);
-          else this.applyPlayerHit(entry, target);
+      if (station) {
+        const top = this.stationTop(station);
+        Vector3.LerpToRef(entry.previous, position, this.stationContactTime, position);
+        if (velocity.y < 0 && entry.previous.y >= top && position.y >= top - 0.002 &&
+            this.kitchen.land(station, entry.item)) {
+          this.floorItems.splice(index, 1);
+          this.sfx.play(station.spec.kind === "trash" ? "trash" : "place");
           continue;
         }
+        // Back off from the side so the next step starts outside the box.
+        if (position.y < top - 0.002) {
+          position.x = entry.previous.x;
+          position.z = entry.previous.z;
+        } else {
+          position.y = top + 0.003;
+          velocity.y = Math.max(0.7, -velocity.y * THROW_RESTITUTION);
+          if (entry.bounces >= 2) {
+            // A full station cannot trap an item bouncing vertically above it.
+            position.y = station.spec.y ?? 0;
+            this.keepOutOfStations(entry);
+            velocity.y = 0;
+          }
+        }
+        velocity.x *= -0.35;
+        velocity.z *= -0.35;
+        entry.bounces += 1;
+        continue;
       }
 
-      if (position.y <= 0) {
-        position.y = 0;
+      if (Number.isFinite(floor)) {
+        Vector3.LerpToRef(entry.previous, position, floor, position);
+        if (position.y < 0 && entry.previous.y < 0) position.y = 0;
         if (Math.abs(velocity.y) < 1.4 || entry.bounces > 2) {
           velocity.setAll(0);
           entry.angularVelocity.setAll(0);
@@ -1509,10 +1554,49 @@ export class KitchenScene implements ManagedScene {
     }
   }
 
-  private stationAt(x: number, z: number): Workstation | null {
+  private groundContact(from: Vector3, to: Vector3): number {
+    if (to.y >= from.y) return Infinity;
+    const candidates = this.nearbyColliders.collect(
+      Math.min(from.x, to.x), Math.max(from.x, to.x),
+      Math.min(from.z, to.z), Math.max(from.z, to.z), this.projectileColliders,
+    );
+    return flightGroundContact(from, to, candidates);
+  }
+
+  private stationTop(station: Workstation): number {
+    return (station.spec.y ?? 0) + (this.stationViews.get(station)?.topHeight ?? 0.9);
+  }
+
+  private readonly supportFrom = new Vector3();
+  private readonly supportTo = new Vector3();
+
+  private supportNear(x: number, y: number, z: number): number | null {
+    const from = this.supportFrom.set(x, y + 0.3, z);
+    const to = this.supportTo.set(x, y - 0.3, z);
+    const time = this.groundContact(from, to);
+    return Number.isFinite(time) ? from.y + (to.y - from.y) * time : null;
+  }
+
+  private stationContactTime = Infinity;
+  private stationContact(from: Vector3, to: Vector3, before: number): Workstation | null {
+    this.stationContactTime = before;
+    let hit: Workstation | null = null;
+    for (const station of this.kitchen.stations) {
+      const { x, y = 0, z } = station.spec;
+      const time = throwStationContact(from, to, x, z, KITCHEN_TILE * 0.5, y, this.stationTop(station));
+      if (time < this.stationContactTime) {
+        this.stationContactTime = time;
+        hit = station;
+      }
+    }
+    return hit;
+  }
+
+  private stationAt(x: number, y: number, z: number): Workstation | null {
     const half = KITCHEN_TILE * 0.5;
     for (const station of this.kitchen.stations) {
-      if (Math.abs(station.spec.x - x) < half && Math.abs(station.spec.z - z) < half) return station;
+      if (Math.abs((station.spec.y ?? 0) - y) < 0.45 &&
+          Math.abs(station.spec.x - x) < half && Math.abs(station.spec.z - z) < half) return station;
     }
     return null;
   }
@@ -1533,46 +1617,41 @@ export class KitchenScene implements ManagedScene {
 
     const push = KITCHEN_TILE * 0.5 + 0.2;
     for (let attempt = 0; attempt < 4; attempt += 1) {
-      const station = this.stationAt(position.x, position.z);
+      const station = this.stationAt(position.x, position.y, position.z);
       if (!station) return;
       const candidates = [
         { x: station.spec.x + push, z: position.z },
         { x: station.spec.x - push, z: position.z },
         { x: position.x, z: station.spec.z + push },
         { x: position.x, z: station.spec.z - push },
-      ].filter((candidate) => inBounds(candidate.x, candidate.z));
+      ].flatMap(candidate => {
+        if (!inBounds(candidate.x, candidate.z)) return [];
+        const y = this.supportNear(candidate.x, position.y, candidate.z);
+        return y === null ? [] : [{ ...candidate, y }];
+      });
       if (candidates.length === 0) return;
       const distance = (candidate: { x: number; z: number }): number =>
         (candidate.x - position.x) ** 2 + (candidate.z - position.z) ** 2;
       // A free spot wins; failing that, step to the nearest side and try again from there.
-      const free = candidates.filter((candidate) => !this.stationAt(candidate.x, candidate.z));
+      const free = candidates.filter((candidate) => !this.stationAt(candidate.x, candidate.y, candidate.z));
       const pool = free.length > 0 ? free : candidates;
       const best = pool.reduce((a, b) => (distance(b) < distance(a) ? b : a));
-      position.x = best.x;
-      position.z = best.z;
+      position.set(best.x, best.y, best.z);
       if (free.length > 0) return;
     }
   }
 
-  // TODO(swept-impact): this tests only the projectile's current position, so a fast item
-  // can tunnel past a player between frames. Fix is a segment-vs-capsule test using
-  // `entry.previous`. Low priority now that a hit is a short slide, not a launch.
-  private findPlayerImpactTarget(
-    position: Vector3,
-    thrownBy: PlayerIndex | null,
-    projectileSpeed: number,
-  ): CoopPlayerState | null {
-    if (projectileSpeed <= 1.2) return null;
+  private playerContactTime = Infinity;
+  private findPlayerImpactTarget(entry: FloorItem, before: number): CoopPlayerState | null {
+    if (entry.velocity.lengthSquared() <= 1.2 ** 2) return null;
     let best: CoopPlayerState | null = null;
-    let bestDistance: number = THROW_IMPACT_RADIUS;
+    this.playerContactTime = before;
     for (const slot of this.players) {
-      if (slot.index === thrownBy || slot.player.isDowned()) continue;
-      const dx = slot.player.position.x - position.x;
-      const dy = slot.player.position.y + 0.9 - position.y;
-      const dz = slot.player.position.z - position.z;
-      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      if (distance <= bestDistance) {
-        bestDistance = distance;
+      if (slot.index === entry.thrownBy || slot.player.isDowned()) continue;
+      const { x, y, z } = slot.player.position;
+      const time = throwSphereContact(entry.previous, entry.position, x, y + 0.9, z, THROW_IMPACT_RADIUS);
+      if (time < this.playerContactTime) {
+        this.playerContactTime = time;
         best = slot;
       }
     }
@@ -2551,7 +2630,7 @@ export class KitchenScene implements ManagedScene {
         points.push(ground);
       }
     }
-    this.camera.shake = this.shakeAmount;
+    this.camera.shake = this.reducedMotion?.matches ? 0 : this.shakeAmount;
     const snapshot = this.camera.updateGroup(deltaSeconds, points, this.cameraFocusTarget, focus);
     this.cameraDistance = snapshot.distance;
     this.cameraSplitAmount = snapshot.splitAmount;

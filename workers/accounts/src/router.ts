@@ -284,6 +284,8 @@ export const handleAccounts = async (request: Request, env: AccountsEnv, now = D
   if (route === "maps" || route.startsWith("maps/")) {
     const user = await currentUser(db, request, now);
     if (!user) return fail("unauthorized");
+    const expectedUser = request.headers.get("X-Byte-Bistro-Account");
+    if (expectedUser && expectedUser !== user.id) return fail("unauthorized");
     const slotId = route === "maps" ? null : decodeURIComponent(route.slice("maps/".length));
     if (slotId !== null && !SLOT_ID_PATTERN.test(slotId)) return fail("bad-request");
     if (slotId === null && request.method === "GET") {
@@ -293,9 +295,9 @@ export const handleAccounts = async (request: Request, env: AccountsEnv, now = D
       return json({ maps: rows.results.map((row) => ({ slotId: row.slot_id, name: row.name, updatedAt: row.updated_at })) });
     }
     if (slotId !== null && request.method === "GET") {
-      const row = await db.prepare("SELECT map FROM maps WHERE user_id = ? AND slot_id = ?")
-        .bind(user.id, slotId).first<{ map: string }>();
-      return row ? json({ map: JSON.parse(row.map) as unknown }) : fail("not-found");
+      const row = await db.prepare("SELECT map, updated_at FROM maps WHERE user_id = ? AND slot_id = ?")
+        .bind(user.id, slotId).first<{ map: string; updated_at: number }>();
+      return row ? json({ map: JSON.parse(row.map) as unknown, updatedAt: row.updated_at }) : fail("not-found");
     }
     if (slotId !== null && request.method === "PUT") {
       const body = await readBody(request, MAX_MAP_BYTES + 1_024);
@@ -307,19 +309,49 @@ export const handleAccounts = async (request: Request, env: AccountsEnv, now = D
       const text = JSON.stringify(map);
       if (new TextEncoder().encode(text).length > MAX_MAP_BYTES) return fail("too-large");
       const name = (typeof map.name === "string" ? map.name : "").trim().slice(0, 80) || slotId;
+      const expected = body.expected;
+      if (expected !== undefined && expected !== null && (typeof expected !== "number" || !Number.isSafeInteger(expected) || expected < 0)) {
+        return fail("bad-request");
+      }
+      if (typeof expected === "number") {
+        const updatedAt = Math.max(now, expected + 1);
+        const result = await db.prepare(
+          "UPDATE maps SET name = ?, map = ?, updated_at = ? WHERE user_id = ? AND slot_id = ? AND updated_at = ?",
+        ).bind(name, text, updatedAt, user.id, slotId, expected).run();
+        return result.meta.changes === 1 ? json({ slotId, updatedAt }) : fail("conflict");
+      }
+      if (expected === null) {
+        const result = await db.prepare(
+          `INSERT INTO maps (user_id, slot_id, name, map, updated_at)
+           SELECT ?, ?, ?, ?, ? WHERE (SELECT count(*) FROM maps WHERE user_id = ?) < ?
+           ON CONFLICT(user_id, slot_id) DO NOTHING`,
+        ).bind(user.id, slotId, name, text, now, user.id, MAX_MAPS_PER_USER).run();
+        if (result.meta.changes === 1) return json({ slotId, updatedAt: now });
+        const present = await db.prepare("SELECT 1 FROM maps WHERE user_id = ? AND slot_id = ?")
+          .bind(user.id, slotId).first();
+        return fail(present ? "conflict" : "too-many");
+      }
       const existing = await db.prepare("SELECT 1 AS found FROM maps WHERE user_id = ? AND slot_id = ?")
         .bind(user.id, slotId).first();
       if (!existing) {
         const count = await db.prepare("SELECT count(*) AS n FROM maps WHERE user_id = ?").bind(user.id).first<{ n: number }>();
         if ((count?.n ?? 0) >= MAX_MAPS_PER_USER) return fail("too-many");
       }
-      await db.prepare(
+      const result = await db.prepare(
         `INSERT INTO maps (user_id, slot_id, name, map, updated_at) VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT(user_id, slot_id) DO UPDATE SET name = excluded.name, map = excluded.map, updated_at = excluded.updated_at`,
-      ).bind(user.id, slotId, name, text, now).run();
-      return json({ slotId, updatedAt: now });
+         ON CONFLICT(user_id, slot_id) DO UPDATE SET name = excluded.name, map = excluded.map,
+           updated_at = max(maps.updated_at + 1, excluded.updated_at) RETURNING updated_at`,
+      ).bind(user.id, slotId, name, text, now).first<{ updated_at: number }>();
+      return json({ slotId, updatedAt: result?.updated_at ?? now });
     }
     if (slotId !== null && request.method === "DELETE") {
+      const expected = new URL(request.url).searchParams.get("expected");
+      if (expected !== null) {
+        if (!/^\d+$/.test(expected) || !Number.isSafeInteger(Number(expected))) return fail("bad-request");
+        const result = await db.prepare("DELETE FROM maps WHERE user_id = ? AND slot_id = ? AND updated_at = ?")
+          .bind(user.id, slotId, Number(expected)).run();
+        return result.meta.changes === 1 ? json({ ok: true }) : fail("conflict");
+      }
       await db.prepare("DELETE FROM maps WHERE user_id = ? AND slot_id = ?").bind(user.id, slotId).run();
       return json({ ok: true });
     }

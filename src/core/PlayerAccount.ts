@@ -18,11 +18,14 @@ export class AccountApiError extends Error {
 
 export interface AccountUser { readonly id: string; readonly username: string }
 
-const call = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
+const call = async <T>(method: string, path: string, body?: unknown, accountId?: string): Promise<T> => {
+  const headers = new Headers();
+  if (body !== undefined) headers.set("Content-Type", "application/json");
+  if (accountId) headers.set("X-Byte-Bistro-Account", accountId);
   const response = await fetch(`/api/auth/${path}`, { // perf-allow: account API call (JSON), not an asset
     method,
     credentials: "same-origin",
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await response.json().catch(() => ({})) as T & { error?: string };
@@ -148,13 +151,13 @@ export async function syncAccount(local: AccountSnapshot): Promise<AccountSnapsh
 
 /** A map saved to the account (the editor's slots, see workers/accounts maps routes). */
 export interface AccountMapSummary { readonly slotId: string; readonly name: string; readonly updatedAt: number }
-export const listAccountMaps = async (): Promise<AccountMapSummary[]> =>
-  (await call<{ maps: AccountMapSummary[] }>("GET", "maps")).maps;
-export const readAccountMap = async (slotId: string): Promise<unknown> =>
-  (await call<{ map: unknown }>("GET", `maps/${encodeURIComponent(slotId)}`)).map;
+export const listAccountMaps = async (accountId: string): Promise<AccountMapSummary[]> =>
+  (await call<{ maps: AccountMapSummary[] }>("GET", "maps", undefined, accountId)).maps;
+export const readAccountMap = (accountId: string, slotId: string): Promise<{ map: unknown; updatedAt: number }> =>
+  call("GET", `maps/${encodeURIComponent(slotId)}`, undefined, accountId);
 /** Saves a map; answers the server's time for it (what `listAccountMaps` reports). */
-export const writeAccountMap = async (slotId: string, map: unknown): Promise<number> =>
-  (await call<{ updatedAt: number }>("PUT", `maps/${encodeURIComponent(slotId)}`, { map })).updatedAt;
-export const deleteAccountMap = async (slotId: string): Promise<void> => {
-  await call("DELETE", `maps/${encodeURIComponent(slotId)}`);
+export const writeAccountMap = async (accountId: string, slotId: string, map: unknown, expected: number | null): Promise<number> =>
+  (await call<{ updatedAt: number }>("PUT", `maps/${encodeURIComponent(slotId)}`, { map, expected }, accountId)).updatedAt;
+export const deleteAccountMap = async (accountId: string, slotId: string, expected: number): Promise<void> => {
+  await call("DELETE", `maps/${encodeURIComponent(slotId)}?expected=${expected}`, undefined, accountId);
 };

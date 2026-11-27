@@ -87,6 +87,10 @@ const ABDUCT_RISE_SECONDS = 1.3;
 /** How high above the floor a cook dropped by the saucer starts falling. */
 const SKY_DROP_HEIGHT = 9;
 const SKY_FALL_ACCELERATION = 22;
+/** Rounding and tiny floor seams may need a correction without an explicit step. */
+const FLOOR_CONTACT_RISE = 0.035;
+/** Use the same front probe for acquiring and keeping a step under the capsule. */
+const STEP_PROBE_MARGIN = 0.05;
 
 let playerSequence = 0;
 
@@ -519,17 +523,17 @@ export class Player {
       this.displacement.z = trimmed.z;
     }
     this.root.moveWithCollisions(this.displacement);
-    if (grounded) this.resolveGroundedMove(startX, startY, startZ);
+    const steppedUp = grounded && this.resolveGroundedMove(startX, startY, startZ);
 
     // Stand on whatever solid surface is under the feet — a stair tread, a
     // platform, or the floor. Stepping onto a higher tread, or off onto a lower
     // one, moves the collider now and lets the body follow.
     const position = this.root.position;
-    const floor = this.floorBelow();
-    // Half on a tread and half off it, the front foot holds the cook up. It can
-    // only hold them where they were, never lift them: that takes a step up.
+    const floor = this.floorBelow(FLOOR_CONTACT_RISE + (grounded ? 0 : Math.max(0, startY - position.y)));
+    // An explicit step lands on the front of the tread before the capsule's centre
+    // crosses the edge. Keep that support, or small frame steps undo the climb.
     const footing = position.y > floor
-      ? Math.max(floor, Math.min(startY, this.floorAhead()))
+      ? Math.max(floor, Math.min(steppedUp ? position.y : startY, this.floorAhead()))
       : floor;
     const settled = settleOnFloor(position.y, footing, grounded, STEP_HEIGHT);
     this.onFloor = settled.onFloor;
@@ -592,11 +596,12 @@ export class Player {
       this.displacement.z = trimmed.z;
     }
     // moveWithCollisions, unlike the old ragdoll's direct position writes, respects counters.
+    const startY = this.root.position.y;
     this.root.moveWithCollisions(this.displacement);
 
     // The line that makes levitation impossible: a downed chef is always on the
     // surface under them — the floor, or the stair they were knocked down on.
-    this.root.position.y = this.floorBelow();
+    this.root.position.y = this.floorBelow(FLOOR_CONTACT_RISE + Math.max(0, startY - this.root.position.y));
     this.onFloor = true;
     if (bounds) {
       this.root.position.x = Math.min(bounds.maxX, Math.max(bounds.minX, this.root.position.x));
@@ -677,39 +682,43 @@ export class Player {
    * stopped short, is therefore redone: as a step up when the surface ahead is
    * low enough, and otherwise as a slide along the obstacle at the same height.
    */
-  private resolveGroundedMove(startX: number, startY: number, startZ: number): void {
+  private resolveGroundedMove(startX: number, startY: number, startZ: number): boolean {
     const wantX = this.displacement.x;
     const wantZ = this.displacement.z;
     const wanted = wantX * wantX + wantZ * wantZ;
-    if (wanted < 1e-8) return;
     const position = this.root.position;
     const movedX = position.x - startX;
     const movedZ = position.z - startZ;
     const rose = position.y > startY + 1e-3;
+    if (wanted < 1e-8) {
+      if (rose) this.placeCollider(startX, startY, startZ);
+      return false;
+    }
     // Progress along the intended direction, scaled by its length.
     const progress = rose ? 0 : movedX * wantX + movedZ * wantZ;
-    if (!rose && progress >= wanted * 0.9) return;
+    if (!rose && progress >= wanted * 0.9) return false;
 
     // Where to fall back to if climbing does not work out.
     const keptX = rose ? startX : position.x;
     const keptY = rose ? startY : position.y;
     const keptZ = rose ? startZ : position.z;
-    if (this.tryStepUp(startX, startY, startZ, wantX, wantZ, progress)) return;
+    if (this.tryStepUp(startX, startY, startZ, wantX, wantZ, progress)) return true;
     this.placeCollider(keptX, keptY, keptZ);
-    if (!rose) return;
+    if (!rose) return false;
 
     // The sweep turned the part of the move that pushed into the obstacle
     // upward; take that part out and slide along its side instead.
     let intoX = wantX - movedX;
     let intoZ = wantZ - movedZ;
     const intoLength = Math.hypot(intoX, intoZ);
-    if (intoLength < 1e-6) return;
+    if (intoLength < 1e-6) return false;
     intoX /= intoLength;
     intoZ /= intoLength;
     const pushing = wantX * intoX + wantZ * intoZ;
     this.displacement.set(wantX - pushing * intoX, -GROUNDED_SWEEP_DROP, wantZ - pushing * intoZ);
     this.root.moveWithCollisions(this.displacement);
     if (position.y > startY + 1e-3) this.placeCollider(startX, startY, startZ);
+    return false;
   }
 
   /**
@@ -734,11 +743,11 @@ export class Player {
 
     // The riser is under the front of the capsule, not under its centre.
     const length = Math.hypot(wantX, wantZ);
-    const reach = this.root.ellipsoid.x + 0.05;
+    const reach = this.root.ellipsoid.x + STEP_PROBE_MARGIN;
     const surface = probeGroundHeight(
       this.scene,
       position.x + (wantX / length) * reach,
-      position.y,
+      startY,
       position.z + (wantZ / length) * reach,
       this.root,
     );
@@ -777,7 +786,7 @@ export class Player {
     const speed = Math.sqrt(speedSquared);
     const directionX = speedSquared > 0.01 ? this.velocity.x / speed : Math.sin(yaw);
     const directionZ = speedSquared > 0.01 ? this.velocity.z / speed : Math.cos(yaw);
-    const reach = this.root.ellipsoid.x;
+    const reach = this.root.ellipsoid.x + STEP_PROBE_MARGIN;
     const surface = probeGroundHeight(
       this.scene,
       this.root.position.x + directionX * reach,
@@ -815,10 +824,11 @@ export class Player {
     if (abduction.phase === "gone") return;
 
     // Falling back from the sky, tumbling, until the floor catches them.
+    const startY = this.root.position.y;
     this.velocity.y -= SKY_FALL_ACCELERATION * delta;
     this.root.position.y += this.velocity.y * delta;
     this.stepNode.rotation.y += delta * 9;
-    const floor = this.floorBelow();
+    const floor = this.floorBelow(FLOOR_CONTACT_RISE + Math.max(0, startY - this.root.position.y));
     if (this.root.position.y > floor) return;
     this.root.position.y = floor;
     this.velocity.setAll(0);
@@ -829,13 +839,14 @@ export class Player {
     this.stun(Math.sin(angle), Math.cos(angle), 0.2);
   }
 
-  private floorBelow(): number {
+  private floorBelow(maxRise = FLOOR_CONTACT_RISE): number {
     const surface = probeGroundHeight(
       this.scene,
       this.root.position.x,
       this.root.position.y,
       this.root.position.z,
       this.root,
+      maxRise,
     );
     return Math.max(GROUND_Y, surface ?? GROUND_Y);
   }
@@ -999,7 +1010,8 @@ export class Player {
       knife.model = model;
       for (const root of model.rootNodes) {
         for (const node of [root, ...root.getDescendants()]) {
-          if (node instanceof AbstractMesh) node.isPickable = false;
+          if (!(node instanceof AbstractMesh)) continue;
+          node.isPickable = false;
         }
       }
     };

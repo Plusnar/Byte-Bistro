@@ -1,5 +1,6 @@
 import { t } from "../i18n";
 import type { AbstractEngine } from "@babylonjs/core";
+import type { MapStore } from "./MapStore";
 import type { MapData, MapMeta } from "./MapData";
 import { EditorScene } from "../scenes/EditorScene";
 import { EditorUI } from "./EditorUI";
@@ -9,6 +10,8 @@ export interface EditorControllerOptions {
   readonly engine: AbstractEngine;
   readonly host: HTMLElement;
   readonly initialMap: MapData;
+  readonly store?: MapStore;
+  readonly initialDirty?: boolean;
   readonly initialSlotId: string;
   readonly onPlay: (map: MapData) => void;
   readonly onExit: () => void;
@@ -44,6 +47,8 @@ export class EditorController implements ManagedScene {
       },
       options.initialMap,
       options.initialSlotId,
+      options.store,
+      options.initialDirty,
     );
     this.scene = this.editorScene.scene;
     const scene = this.editorScene;
@@ -66,7 +71,7 @@ export class EditorController implements ManagedScene {
         onSelectAll: () => scene.selectAll(),
         onClearSelection: () => scene.clearSelection(),
         onPlay: () => scene.playCurrentMap(),
-        onTest: () => scene.playCurrentMap(),
+        onTest: () => scene.playCurrentMap(this.getCurrentMap()),
         onPlacementOptions: (snap, height) => scene.setPlacementOptions(snap, height),
         onSetWallMode: (mode) => scene.setWallMode(mode),
         onToggleGrid: () => scene.setGridVisible(!scene.isGridVisible()),
@@ -78,18 +83,37 @@ export class EditorController implements ManagedScene {
         onColorPreview: (material, hex) => scene.previewSelectedColor(material, hex),
         onColorCommit: (material, hex) => scene.commitSelectedColor(material, hex),
         onResetColors: () => scene.resetSelectedColors(),
-        onUndo: (redo) => scene.undo(redo),
+        onUndo: (redo) => {
+          const previous = scene.getCurrentMap();
+          scene.undo(redo);
+          const current = scene.getCurrentMap();
+          if (previous.name !== current.name || previous.meta !== current.meta) {
+            this.ui.setMap(current, scene.getCurrentSlotId());
+          }
+        },
         onClose: () => this.options.onExit(),
         listSlots: () => scene.listSlots(),
-        hasUnsavedChanges: () => scene.hasUnsavedChanges(),
+        hasUnsavedChanges: () => this.hasUnsavedChanges(),
         getCurrentMap: () => scene.getCurrentMap(),
-        onImportMap: (map) => scene.loadImportedMap(map),
+        onImportMap: (map, previous) => scene.loadImportedMap(map, previous),
       },
     );
     this.ui.setMap(options.initialMap, options.initialSlotId);
   }
 
-  getCurrentMap(): MapData { return this.editorScene.getCurrentMap(); }
+  moveSavedSlot(original: string, replacement: string): void {
+    if (this.editorScene.replaceSlot(original, replacement)) this.ui.setCurrentSlot(replacement);
+  }
+
+  refreshSavedSlots(message: string, success: boolean): void {
+    this.ui.setSlots(this.editorScene.listSlots());
+    this.ui.notify(message, success ? "success" : "warning");
+  }
+
+  getCurrentMap(): MapData { return this.ui.draft(this.editorScene.getCurrentMap()); }
+  hasUnsavedChanges(): boolean {
+    return this.editorScene.hasUnsavedChanges() || this.ui.hasChangedMetadata(this.editorScene.getCurrentMap());
+  }
   getCurrentSlotId(): string { return this.editorScene.getCurrentSlotId(); }
 
   update(deltaSeconds: number): void {
@@ -100,6 +124,7 @@ export class EditorController implements ManagedScene {
       const scene = this.editorScene;
       this.ui.sync({
         map: scene.getCurrentMap(),
+        slotId: scene.getCurrentSlotId(),
         selection: scene.getSelectedObjects(),
         tool: scene.getCurrentTool(),
         asset: scene.getCurrentAsset(),
@@ -138,7 +163,8 @@ export class EditorController implements ManagedScene {
       this.ui.setSlots(this.editorScene.listSlots());
       this.ui.setMeta(this.editorScene.getCurrentMap());
       this.ui.setMapName(this.editorScene.getCurrentMap().name);
-      this.ui.notify(t("editor.saved"), "success");
+      const persistent = this.editorScene.isSavePersistent;
+      this.ui.notify(t(persistent ? "editor.savedLocal" : "editor.savedTemporary"), persistent ? "success" : "warning");
       this.options.onSlotSaved?.(result);
     } else {
       this.ui.notify(t("editor.saveFailed"), "error");

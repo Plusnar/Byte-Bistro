@@ -20,7 +20,7 @@ import { buildLevelCatalog, type LevelEntry } from "../data/levelCatalog";
 import { OFFICIAL_LEVELS } from "../data/officialLevels";
 import { MapStore } from "../editor/MapStore";
 import { publicUrl } from "../utils/assetUrl";
-import { AccountMaps } from "./AccountMaps";
+import { AccountMaps, type MapSyncStatus } from "./AccountMaps";
 import { getDifficulty } from "../data/difficulty";
 import { INGREDIENT_ASSETS } from "../data/ingredientAssets";
 import { KITCHEN_ASSETS } from "../data/kitchen";
@@ -123,13 +123,16 @@ export class Game {
   private accountPanel?: Promise<import("../ui/AccountPanel").AccountPanel>;
   private disposed = false;
   private activeMap: MapData | null = null;
+  private resumeEditorAfterSignIn = false;
+  private editorOwner: string | null = null;
   private editorDraft: MapData | null = null;
+  private editorDraftDirty = false;
   private editorSlotId = "";
   /** The shift running was started from the editor (Testar or Jogar). */
   private playingFromEditor = false;
   private selectedCharacters: readonly string[] = DEFAULT_COOP_CHARACTERS;
   private loadingMap = false;
-  /** Lists saved slots for the level picker; the editor keeps its own store. */
+  /** Shared local workspace for the editor and the level picker. */
   private readonly mapStore = new MapStore();
   /** Mirrors the player's map slots to their account; creating maps needs one. */
   private readonly accountMaps = new AccountMaps(this.mapStore);
@@ -199,6 +202,7 @@ export class Game {
     this.loading = LoadingScreen.attach();
     this.loading?.show("boot", t("boot.preparingKitchen"));
     this.ui = new GameUI(uiRoot, {
+      gameplaySurface: this.engine.getRenderingCanvas(),
       startVisible: true,
       characters: CHARACTERS,
       recipes: RECIPES,
@@ -259,6 +263,11 @@ export class Game {
     if (bootLoader) applyTranslations(bootLoader);
 
     window.addEventListener("resize", this.handleResize);
+    window.addEventListener("online", this.retryMapSync);
+    this.accountMaps.onConflict = (original, recovery) => {
+      this.editor?.moveSavedSlot(original, recovery);
+      if (this.editorSlotId === original) this.editorSlotId = recovery;
+    };
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.engine.runRenderLoop(this.frame);
 
@@ -280,6 +289,7 @@ export class Game {
     void this.accountPanel?.then((panel) => panel.dispose());
     window.clearTimeout(this.cookPreloadTimer);
     window.removeEventListener("resize", this.handleResize);
+    window.removeEventListener("online", this.retryMapSync);
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
     this.engine.stopRenderLoop(this.frame);
     this.engine.stopRenderLoop(this.editorFrame);
@@ -482,7 +492,11 @@ export class Game {
   private onLevelChosen(entry: LevelEntry): void {
     this.pendingLevel = entry;
     if (!this.menuReady || entry.key === this.activeLevelKey) return;
-    void this.applyLevel(entry).then(() => this.preloadGameplay());
+    void this.applyLevel(entry).then(() => this.preloadGameplay()).catch((error: unknown) => {
+      if (this.disposed || this.pendingLevel !== entry) return;
+      console.warn("Could not prepare the selected level.", error);
+      this.ui.notify(error instanceof Error ? error.message : t("game.levelFailed"), "warning");
+    });
   }
 
   private ensureKitchen(): KitchenScene {
@@ -495,6 +509,7 @@ export class Game {
     this.engine.stopRenderLoop(this.frame);
     // Dispose before creating the next scene; SceneManager owns this lifetime.
     this.sceneManager.dispose();
+    this.kitchenScene = null;
     this.activeMap = levelMap;
     const kitchen = this.createKitchen(this.persistentState, levelMap, entry?.scenarioId);
     kitchen.setCookCount(this.ui.players);
@@ -567,8 +582,14 @@ export class Game {
   private async applyLevel(entry: LevelEntry | null): Promise<void> {
     if (!entry || (this.kitchenScene && entry.key === this.activeLevelKey)) return;
     const map = this.levelMap(entry);
-    if (entry.kind === "saved" && !map) {
-      this.ui.notify(t("game.mapGone"), "warning");
+    if (entry.kind === "saved") {
+      if (!map) this.ui.notify(t("game.mapGone"), "warning");
+      else {
+        const { mapRequirements } = await import("../editor/validation");
+        if (this.disposed || this.pendingLevel !== entry) return;
+        const invalid = mapRequirements(map).filter(requirement => !requirement.satisfied && requirement.blocking !== false);
+        if (invalid.length) throw new Error(t("editor.missing", { items: invalid.map(requirement => requirement.label).join(", ") }));
+      }
     }
     this.installKitchen(entry, map);
   }
@@ -815,7 +836,10 @@ export class Game {
     if (!this.accountMaps.signedIn && hadAccountSession()) {
       try {
         await (await this.getAccountPanel()).resume();
-      } catch { /* offline: treated as signed out below */ }
+      } catch {
+        this.ui.notify(t("account.mapsConnection"), "warning");
+        return;
+      }
     }
     if (this.disposed) return;
     if (this.accountMaps.signedIn) await this.openEditor();
@@ -824,6 +848,7 @@ export class Game {
 
   /** Creating and keeping maps lives in the account: without one, the menu asks to sign in. */
   private askToSignInForMaps(): void {
+    this.resumeEditorAfterSignIn = true;
     // Said inside the dialog: a modal dialog covers the game's notifications.
     void this.openAccount(t("account.mapsNeedLogin"));
   }
@@ -832,14 +857,30 @@ export class Game {
     this.ui.setMapsLocked(!user);
     if (!user) {
       this.accountMaps.signOut();
+      if (this.editor) {
+        this.exitEditor();
+        this.resumeEditorAfterSignIn = true;
+      }
       this.refreshLevels();
       return;
     }
+    if (this.editorOwner && this.editorOwner !== user.id) {
+      if (this.editor) this.exitEditor();
+      this.editorDraft = null;
+      this.editorDraftDirty = false;
+      this.editorSlotId = "";
+    }
+    this.editorOwner = user.id;
     try {
-      const localOnly = await this.accountMaps.signIn(user.id);
+      const localOnly = await this.accountMaps.signIn(user.id, this.reportMapSync);
       if (this.disposed) return;
       this.refreshLevels();
       this.offerMapUpload(user.id, localOnly);
+      if (this.resumeEditorAfterSignIn) {
+        this.resumeEditorAfterSignIn = false;
+        this.account?.close();
+        await this.openEditor();
+      }
     } catch {
       if (!this.disposed) this.ui.notify(t("account.mapsSyncFailed"), "warning");
     }
@@ -854,22 +895,39 @@ export class Game {
       localStorage.setItem(asked, "1");
     } catch { /* asked again next time */ }
     if (!window.confirm(t("account.uploadMaps", { count: slotIds.length }))) return;
-    void Promise.all(slotIds.map((slotId) => this.accountMaps.upload(slotId)))
-      .then(() => { if (!this.disposed) this.ui.notify(t("account.mapsUploaded"), "success"); })
-      .catch(() => { if (!this.disposed) this.ui.notify(t("account.mapsSyncFailed"), "warning"); });
+    for (const slotId of slotIds) this.mirrorMapSave(slotId);
   }
 
   private mirrorMapSave(slotId: string): void {
-    void this.accountMaps.upload(slotId).catch(() => {
-      if (!this.disposed) this.ui.notify(t("account.mapsSyncFailed"), "warning");
-    });
+    void this.accountMaps.upload(slotId).then(this.reportMapSync);
   }
 
   private mirrorMapDelete(slotId: string): void {
-    void this.accountMaps.remove(slotId).catch(() => {
-      if (!this.disposed) this.ui.notify(t("account.mapsSyncFailed"), "warning");
-    });
+    void this.accountMaps.remove(slotId).then(this.reportMapSync);
   }
+
+  private readonly retryMapSync = (): void => {
+    const user = this.account?.signedInUser;
+    if (user) void this.accountChanged(user);
+  };
+
+  private readonly reportMapSync = (status: MapSyncStatus): void => {
+    if (this.disposed || status === "superseded") return;
+    const messages = {
+      synced: "account.mapsUploaded",
+      conflict: "account.mapsConflict",
+      local: "account.mapsSyncFailed",
+      temporary: "editor.savedTemporary",
+      session: "account.mapsSessionExpired",
+    } as const;
+    if (status === "session") {
+      this.account?.expireSession();
+      if (this.resumeEditorAfterSignIn) void this.openAccount(t(messages[status]));
+    }
+    this.ui.notify(t(messages[status]), status === "synced" ? "success" : "warning");
+    this.editor?.refreshSavedSlots(t(messages[status]), status === "synced");
+    this.refreshLevels();
+  };
 
   private saveProgress(): boolean {
     return this.account?.update(this.persistentState) || this.saveSystem.save(this.persistentState);
@@ -931,7 +989,7 @@ export class Game {
   // ---------------------------------------------------------------------------------------
   // Editor — loaded only when opened
 
-  private async openEditor(): Promise<void> {
+  private async openEditor(notice?: string): Promise<void> {
     if (this.editor || this.loadingMap || this.openingEditor) return;
     this.openingEditor = true;
     performance.mark("bb:editor-requested");
@@ -953,16 +1011,25 @@ export class Game {
         host: this.ui.root(),
         initialMap: this.editorDraft ?? this.activeMap ?? createDefaultMap(),
         initialSlotId: this.editorSlotId,
+        initialDirty: this.editorDraftDirty,
+        store: this.mapStore,
         onPlay: (map) => this.playMap(map),
         onExit: () => this.exitEditor(),
         onSlotSaved: (slotId) => this.mirrorMapSave(slotId),
         onSlotDeleted: (slotId) => this.mirrorMapDelete(slotId),
       });
       this.engine.runRenderLoop(this.editorFrame);
+      if (notice) this.editor.refreshSavedSlots(notice, false);
       performance.mark("bb:editor-open");
     } catch (error: unknown) {
       console.error("O editor não pôde ser carregado.", error);
       this.ui.notify(t("game.editorFailed"), "error");
+      this.ui.setEditorVisible(false);
+      if (this.kitchenScene) {
+        this.attachScene(this.kitchenScene.scene);
+        this.kitchenScene.setEditorInputSuspended(false);
+      }
+      this.engine.runRenderLoop(this.frame);
     } finally {
       this.openingEditor = false;
     }
@@ -972,6 +1039,7 @@ export class Game {
     if (!this.editor) return;
     const editor = this.editor;
     this.editorDraft = editor.getCurrentMap();
+    this.editorDraftDirty = editor.hasUnsavedChanges();
     this.editorSlotId = editor.getCurrentSlotId();
     // Any slot may have been saved in the editor, so a kitchen built from a saved slot may be
     // stale; forgetting its key makes the next Start rebuild it from what is stored now.
@@ -1018,6 +1086,7 @@ export class Game {
     const played = structuredClone(map);
     this.editorDraft = played;
     if (this.editor) {
+      this.editorDraftDirty = this.editor.hasUnsavedChanges();
       this.editorSlotId = this.editor.getCurrentSlotId();
       this.engine.stopRenderLoop(this.editorFrame);
       this.editor.dispose();
@@ -1041,8 +1110,12 @@ export class Game {
     } catch (error) {
       console.error("Custom map shift initialization failed.", error);
       if (!this.disposed) {
-        this.ui.showSplash(true);
-        this.ui.notify(t("game.levelFailed"), "error");
+        this.setPlayingFromEditor(false);
+        this.loadingMap = false;
+        this.ui.setMapLoading(false);
+        await this.openEditor(t("editor.testFailed", {
+          detail: error instanceof Error ? error.message : t("game.levelFailed"),
+        }));
       }
     } finally {
       this.loadingMap = false;

@@ -48,6 +48,11 @@ export const FLOOR_ASSET_PATTERN = /\/(?:floor|piso|basemodule)[^/]*\.(?:glb|glt
 export const isFloorAsset = (assetId: string): boolean =>
   assetId === "build-floor" || (assetId.startsWith("library:") && FLOOR_ASSET_PATTERN.test(assetId));
 
+/** Scenery a cook may stand on. Other solid scenery still blocks horizontal motion. */
+export const isFootingAsset = (assetId: string): boolean =>
+  isFloorAsset(assetId) || assetId === "scenario-room-wide" || assetId === "build-block"
+  || /\/[^/]*(?:escada|stairs?|platform|plataforma|stage_deck|stage_module|stage_steps|bloco_terraco|igreja_matriz_completa)[^/]*\.(?:glb|gltf)$/i.test(assetId);
+
 /** Wall-like pieces by file name: walls, pillars, fences, railings, doors and windows. */
 export const WALL_ASSET_PATTERN =
   /\/[^/]*(?:parede|wall|pilar|pillar|coluna|column|cerca|fence|grade|railing|muro|mureta|janela|window|porta|door)[^/]*\.(?:glb|gltf)$/i;

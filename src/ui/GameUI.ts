@@ -66,8 +66,8 @@ export interface GameUIDebugSnapshot {
   characterAnimation?: string;
   nearbyStation?: string | null;
   orders?: string | null;
-  aiState?: Readonly<AIState>;
   shiftTimeRemaining?: number;
+  aiState?: Readonly<AIState>;
   score?: number;
   cameraDistance?: number;
   splitAmount?: number;
@@ -204,6 +204,7 @@ export interface LevelMapPort {
 }
 
 export interface GameUIOptions extends GameUICallbacks {
+  readonly gameplaySurface?: HTMLCanvasElement | null;
   characters?: readonly CharacterDefinition[];
   selectedCharacterIds?: readonly string[];
   /** @deprecated Use selectedCharacterIds. */
@@ -276,6 +277,8 @@ export class GameUI {
   private cookbookVisible = false;
   private dialogueTimeoutId: number | null = null;
   private notificationSequence = 0;
+  private readonly gameplaySurface: HTMLCanvasElement | null;
+  private activeOverlay: HTMLElement | null = null;
   private lastFocusedElement: HTMLElement | null = null;
   private destroyed = false;
   /** The shown results, kept so a language change can write them out again. */
@@ -329,6 +332,7 @@ export class GameUI {
   private readonly pickHints: readonly HTMLElement[];
 
   constructor(root: HTMLElement, options: GameUIOptions = {}) {
+    this.gameplaySurface = options.gameplaySurface ?? null;
     this.host = root;
     this.callbacks = options;
     this.shell = createElement("div", "game-ui");
@@ -391,7 +395,6 @@ export class GameUI {
     const time = formatClock(state.shiftTimeRemaining);
     if (this.shiftTimer.textContent !== time) this.shiftTimer.textContent = time;
     this.shiftTimer.closest(".round-clock")?.classList.toggle("is-urgent", state.shiftTimeRemaining <= 30);
-    this.updateMiraState(state.aiState);
     // The order queue is pushed imperatively from KitchenScene, which owns the countdowns.
     this.shell.dataset.shiftEnded = state.shiftEnded ? "true" : "false";
   }
@@ -545,28 +548,15 @@ export class GameUI {
 
     this.cookbookVisible = visible;
     this.cookbookOverlay.hidden = !visible;
-    this.shell.dataset.modalOpen = visible ? "true" : "false";
     this.callbacks.onCookbookVisibilityChange?.(visible);
-
-    if (visible) {
-      this.captureFocus();
-      this.focusOverlay(this.cookbookOverlay);
-    } else {
-      this.restoreFocus();
-    }
+    this.syncOverlayFocus();
     return visible;
   }
 
   setPausedVisible(visible: boolean): void {
     if (this.destroyed) return;
     this.pauseOverlay.hidden = !visible;
-    this.shell.dataset.modalOpen = visible ? "true" : this.cookbookVisible ? "true" : "false";
-    if (visible) {
-      this.captureFocus();
-      this.focusOverlay(this.pauseOverlay);
-    } else if (!this.cookbookVisible) {
-      this.restoreFocus();
-    }
+    this.syncOverlayFocus();
   }
 
   showResults(result: Readonly<ShiftResult>): void {
@@ -574,9 +564,7 @@ export class GameUI {
     this.lastResult = result;
     this.writeResults(result);
     this.resultsOverlay.hidden = false;
-    this.shell.dataset.modalOpen = "true";
-    this.captureFocus();
-    this.focusOverlay(this.resultsOverlay);
+    this.syncOverlayFocus();
   }
 
   private writeResults(result: Readonly<ShiftResult>): void {
@@ -619,8 +607,7 @@ export class GameUI {
   hideResults(): void {
     if (this.destroyed) return;
     this.resultsOverlay.hidden = true;
-    this.shell.dataset.modalOpen = this.cookbookVisible || !this.pauseOverlay.hidden ? "true" : "false";
-    this.restoreFocus();
+    this.syncOverlayFocus();
   }
 
   updateDebug(snapshot: Readonly<GameUIDebugSnapshot> | null): void {
@@ -665,7 +652,7 @@ export class GameUI {
 
   setMapLoading(loading: boolean): void {
     this.setStartLoading(loading);
-    this.splash.inert = loading;
+    this.splash.inert = loading || Boolean(this.activeOverlay && this.activeOverlay !== this.splash);
     this.splash.setAttribute("aria-busy", String(loading));
   }
 
@@ -703,7 +690,7 @@ export class GameUI {
     if (!visible && document.activeElement instanceof HTMLElement &&
       this.splash.contains(document.activeElement)) document.activeElement.blur();
     this.setGameVisible(!visible);
-    this.shell.dataset.modalOpen = visible ? "true" : "false";
+    this.syncOverlayFocus();
     // Back from a shift, everyone confirms their cook again before the next one.
     if (visible && this.readySlots.some(Boolean)) {
       this.readySlots.fill(false);
@@ -797,11 +784,6 @@ export class GameUI {
     this.callbacks.onCharacterPreview?.(this.activePicks());
   }
 
-
-  private updateMiraState(_aiState: Readonly<AIState>): void {
-    // The CORE panel was removed from the HUD; its metrics are no longer surfaced.
-    void _aiState;
-  }
 
   /**
    * Renders the order queue as a list of tickets.
@@ -1058,12 +1040,12 @@ export class GameUI {
     };
     // One-shot entry animation: the class is dropped once it finishes, so moving the card
     // later (when the queue reorders) cannot replay it.
-    root.classList.add("is-entering");
-    root.addEventListener(
-      "animationend",
-      () => root.classList.remove("is-entering"),
-      { once: true },
-    );
+    if (!this.menuReducedMotion.matches) {
+      root.classList.add("is-entering");
+      const finishEntry = (): void => { root.classList.remove("is-entering"); };
+      root.addEventListener("animationend", finishEntry, { once: true });
+      root.addEventListener("animationcancel", finishEntry, { once: true });
+    }
     this.ticketNodes.set(orderId, node);
     // A recipe with no art of its own shows no icon rather than a broken one.
     node.dish.addEventListener("error", () => { node.dish.hidden = true; }, { once: true });
@@ -1445,6 +1427,7 @@ export class GameUI {
 
   private bindActions(): void {
     const signal = this.listenerController.signal;
+    this.shell.addEventListener("keydown", this.handleOverlayKey, { signal, capture: true });
     // Play → pick the level on the map (it zooms in) → pick the cooks → the match.
     this.requireElement<HTMLButtonElement>("[data-action='home-play']").addEventListener("click", () => {
       this.setSplashStep("level");
@@ -1502,6 +1485,9 @@ export class GameUI {
 
     this.requireElement<HTMLButtonElement>("[data-action='pause-shift']").addEventListener(
       "click", () => this.callbacks.onPause?.(), { signal },
+    );
+    this.requireElement<HTMLButtonElement>("[data-action='pause-recipes']").addEventListener(
+      "click", () => this.toggleCookbook(true), { signal },
     );
     this.requireElement<HTMLButtonElement>("[data-action='resume']").addEventListener("click", () => {
       this.callbacks.onResume?.();
@@ -1830,17 +1816,62 @@ export class GameUI {
   private restoreFocus(): void {
     const previous = this.lastFocusedElement;
     this.lastFocusedElement = null;
-    // Back to gameplay nothing should hold focus: a focused (possibly hidden) button would
-    // swallow player two's Enter, which is also the key that clicks it.
-    const usable = previous?.isConnected && previous.offsetParent !== null &&
-      !previous.closest("button, summary");
+    // Returning to the canvas keeps player two's Enter available for gameplay.
+    const usable = previous?.isConnected && previous.getClientRects().length &&
+      (this.activeOverlay === this.splash ? this.splash.contains(previous) : !previous.closest("button, summary"));
     if (usable) {
       previous.focus({ preventScroll: true });
+      return;
+    }
+    if (!this.activeOverlay && this.gameplaySurface) {
+      this.gameplaySurface.focus({ preventScroll: true });
       return;
     }
     const active = document.activeElement;
     if (active instanceof HTMLElement && this.shell.contains(active)) active.blur();
   }
+
+  private syncOverlayFocus(): void {
+    const overlays = [this.resultsOverlay, this.cookbookOverlay, this.pauseOverlay, this.splash];
+    const next = overlays.find((overlay) => !overlay.hidden) ?? null;
+    const previous = this.activeOverlay;
+    if (next === previous) return;
+    if (next && next !== this.splash && (!previous || previous === this.splash)) this.captureFocus();
+    this.activeOverlay = next;
+    this.shell.dataset.modalOpen = String(Boolean(next));
+    this.hud.inert = next !== null;
+    for (const overlay of overlays) {
+      const covered = Boolean(next && overlay !== next);
+      overlay.inert = covered || overlay.getAttribute("aria-busy") === "true";
+      overlay.toggleAttribute("data-focus-covered", covered);
+    }
+    if (next && next !== this.splash) this.focusOverlay(next);
+    else if (previous && previous !== this.splash) this.restoreFocus();
+  }
+
+  private readonly handleOverlayKey = (event: KeyboardEvent): void => {
+    const overlay = this.activeOverlay;
+    if (!overlay || overlay.inert) return;
+    if (event.key === "Escape" && overlay === this.cookbookOverlay) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.toggleCookbook(false);
+    }
+    if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
+    // During play Tab opens the cookbook. Inside a dialog it navigates its controls.
+    event.stopPropagation();
+    event.preventDefault();
+    const controls = [...overlay.querySelectorAll<HTMLElement>(
+      'button, a[href], input, select, textarea, summary, [tabindex]',
+    )].filter(control => control.tabIndex >= 0 && !control.matches(":disabled") &&
+      !control.closest("[hidden], [inert]") && control.getClientRects().length > 0);
+    if (controls.length === 0) { overlay.focus({ preventScroll: true }); return; }
+    const current = controls.findIndex(control => control === document.activeElement);
+    const step = event.shiftKey ? -1 : 1;
+    const next = current < 0 ? (event.shiftKey ? controls.length - 1 : 0) :
+      (current + step + controls.length) % controls.length;
+    controls[next]?.focus();
+  };
 
   /**
    * Focuses an in-game overlay itself rather than its first button. Players are still on
@@ -1851,7 +1882,9 @@ export class GameUI {
   private focusOverlay(container: HTMLElement): void {
     if (!container.hasAttribute("tabindex")) container.tabIndex = -1;
     container.style.outline = "none";
-    window.requestAnimationFrame(() => container.focus({ preventScroll: true }));
+    window.requestAnimationFrame(() => {
+      if (this.activeOverlay === container && !container.inert) container.focus({ preventScroll: true });
+    });
   }
 
   private focusFirst(container: HTMLElement): void {
@@ -2016,7 +2049,7 @@ export class GameUI {
             <nav class="cookbook-nav" data-ui="cookbook-nav" data-i18n-attr="aria-label:cookbook.listAria"></nav>
             <article class="cookbook-detail" data-ui="cookbook-detail" aria-live="polite"></article>
           </div>
-          <footer class="modal-footer"><span data-i18n="cookbook.chooseHint"></span><button type="button" class="secondary-action" data-action="close-cookbook"><span data-i18n="cookbook.backToKitchen"></span> <kbd>TAB</kbd></button></footer>
+          <footer class="modal-footer"><span data-i18n="cookbook.chooseHint"></span><button type="button" class="secondary-action" data-action="close-cookbook"><span data-i18n="cookbook.backToKitchen"></span> <kbd>ESC</kbd></button></footer>
         </div>
       </section>
 
@@ -2026,11 +2059,12 @@ export class GameUI {
           <h2 id="pause-title" data-i18n="pause.title"></h2>
           <p data-i18n="pause.text"></p>
           <button class="primary-action" type="button" data-action="resume"><span data-i18n="pause.resume"></span><i aria-hidden="true">→</i></button>
+          <button class="secondary-action overlay-menu-action" type="button" data-action="pause-recipes"><span data-i18n="pause.hintRecipes"></span></button>
           <button class="secondary-action overlay-menu-action" type="button" data-action="back-to-editor" hidden><span data-i18n="pause.toEditor"></span></button>
           <button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span data-i18n="pause.toMenu"></span></button>
           ${GameUI.languageSwitch()}
           ${GameUI.qualitySwitch()}
-          <div class="pause-hint"><kbd>ESC</kbd><span data-i18n="pause.hintResume"></span><kbd>TAB</kbd><span data-i18n="pause.hintRecipes"></span></div>
+          <div class="pause-hint"><kbd>ESC</kbd><span data-i18n="pause.hintResume"></span></div>
         </div>
       </section>
 

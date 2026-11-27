@@ -9,6 +9,7 @@ import {
 import { partitionTriangles } from "./spatialPartition";
 import { COLLISION_PROXY_SOURCE } from "../core/render/staticBatching";
 import { markRenderless } from "../core/render/activeMeshCandidates";
+import { excludeFromGroundProbe, isGroundProbeObstacle } from "./groundProbe";
 
 /** Cell edge in metres: a little over a cook's reach, so a step touches a few cells. */
 const CELL_SIZE = 2;
@@ -80,6 +81,7 @@ export const createPartitionedCollider = (source: AbstractMesh): Mesh | null => 
   collider.checkCollisions = true;
   // Stands in for the source, so it is filtered the same way (robots skip ground floors).
   collider.collisionGroup = source.collisionGroup;
+  if (isGroundProbeObstacle(source)) excludeFromGroundProbe(collider);
   collider.freezeWorldMatrix();
   collider.metadata = { ...(collider.metadata ?? {}), collisionProxyFor: source.name };
 
