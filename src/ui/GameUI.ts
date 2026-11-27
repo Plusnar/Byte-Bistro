@@ -1946,11 +1946,15 @@ export class GameUI {
               </div>`).join("");
   }
 
-  private static qualitySwitch(): string {
+  private static qualitySwitch(context: "home" | "pause"): string {
+    const labelId = `graphics-${context}-label`;
     const buttons = QUALITY_MODES.map((mode) =>
       `<button type="button" data-quality="${mode}" data-i18n="graphics.${mode}" data-i18n-attr="title:graphics.${mode}Hint"></button>`,
     ).join("");
-    return `<div class="language-switch quality-switch" role="group" data-i18n-attr="aria-label:graphics.label">${buttons}</div>`;
+    return `<div class="graphics-settings" role="group" aria-labelledby="${labelId}">
+      <span id="${labelId}" class="graphics-settings-label" data-i18n="graphics.label"></span>
+      <div class="language-switch quality-switch">${buttons}</div>
+    </div>`;
   }
 
   private static musicToggle(): string {
@@ -2000,7 +2004,7 @@ export class GameUI {
               <details class="bistro-home-settings">
                 <summary class="secondary-action bistro-home-icon" data-i18n-attr="aria-label:menu.settings;title:menu.settings"></summary>
                 <div class="home-settings-panel">
-                  ${GameUI.qualitySwitch()}
+                  ${GameUI.qualitySwitch("home")}
                   ${GameUI.musicToggle()}
                 </div>
               </details>
@@ -2090,7 +2094,7 @@ export class GameUI {
           <button class="secondary-action overlay-menu-action" type="button" data-action="back-to-editor" hidden><span data-i18n="pause.toEditor"></span></button>
           <button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span data-i18n="pause.toMenu"></span></button>
           ${GameUI.languageSwitch()}
-          ${GameUI.qualitySwitch()}
+          ${GameUI.qualitySwitch("pause")}
           ${GameUI.musicToggle()}
           <div class="pause-hint"><kbd>ESC</kbd><span data-i18n="pause.hintResume"></span></div>
         </div>

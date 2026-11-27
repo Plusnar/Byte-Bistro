@@ -873,14 +873,26 @@
   max-inline-size: calc(100vw - var(--home-edge) * 2);
   display: grid;
   justify-items: center;
-  gap: .35rem;
+  gap: .55rem;
   z-index: 2;
   padding: .45rem;
   border: 1px solid #bffaff;
   border-radius: .8rem;
   background: #062c60;
 }
-.game-ui .home-settings-panel .quality-switch { flex-wrap: wrap; justify-content: center; }
+.game-ui .graphics-settings {
+  display: grid;
+  justify-items: center;
+  gap: .3rem;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.game-ui .graphics-settings-label {
+  color: #f3fbff;
+  font-size: .85rem;
+  font-weight: 700;
+}
+.game-ui .graphics-settings .quality-switch { flex-wrap: wrap; justify-content: center; }
 .game-ui .music-toggle[aria-pressed="true"] {
   outline: 2px solid #91edff;
   outline-offset: -3px;
