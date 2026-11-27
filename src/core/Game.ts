@@ -1157,6 +1157,7 @@ export class Game {
       scenario,
       persistentState,
       map: map ?? undefined,
+      officialWedding: map !== null && map === OFFICIAL_LEVELS.find((level) => level.id === "casamento")?.map,
       onShiftComplete: (result) => this.saveShiftResult(result),
     });
     kitchen.events.on("ingredient:picked", ({ item }) => {

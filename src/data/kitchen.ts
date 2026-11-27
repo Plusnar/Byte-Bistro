@@ -159,8 +159,8 @@ export const FOOD_DEFINITIONS: Readonly<Record<string, FoodDefinition>> = {
 };
 
 /**
- * The vessels an ingredient may go into: those some recipe wants it out of. A pan refuses
- * sugar because no dish asks for fried sugar, which keeps a fumble from looking like a bug.
+ * The vessels an ingredient may go into across the full cookbook. Each level narrows
+ * that list to its own menu when a cook puts together a batch.
  */
 const VESSELS_BY_INGREDIENT: ReadonlyMap<string, ReadonlySet<CookwareKind>> = (() => {
   const map = new Map<string, Set<CookwareKind>>();

@@ -380,6 +380,7 @@
 }
 .game-ui .bistro-hud-top .order-card[data-outcome] { position: absolute; z-index: 1; }
 .game-ui .bistro-hud-top .order-card-dish {
+  position: relative;
   height: clamp(2.65rem, 6.4vw, 5rem);
   border: 3px solid #367abb;
   border-radius: .55rem;
@@ -392,6 +393,19 @@
   height: 100%;
   min-height: 0;
 }
+.game-ui .order-card-plated {
+  position: absolute;
+  inset-inline-end: 2px;
+  inset-block-end: 2px;
+  padding: 1px 4px;
+  border-radius: .3rem;
+  background: #102e4c;
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.game-ui .order-card[data-ready="1"] .order-card-plated { background: #17623a; }
 /* The dish's name stays on the card as its accessible label and tooltip, not as text. */
 .game-ui .bistro-hud-top .order-card-name { display: none; }
 /*
@@ -504,13 +518,17 @@
   object-fit: contain;
 }
 /* The station being worked right now: amber ring and a gentle pulse. */
+.game-ui .bistro-hud-top .order-chip-step[data-step="next"] { border-color: #ffdc80; }
 .game-ui .bistro-hud-top .order-chip-step[data-step="active"] {
   border-color: #ffb020;
   background: #5a3a06;
   animation: order-chip-working 900ms ease-in-out infinite;
 }
-/* Already passed through: faded, with a small tick so colour is not the only signal. */
-.game-ui .bistro-hud-top .order-chip-step[data-step="done"] { opacity: .45; }
+/* A completed step keeps a clearly visible tick. */
+.game-ui .bistro-hud-top .order-chip-step[data-step="done"] {
+  border-color: #41d975;
+  background: #163f34;
+}
 .game-ui .bistro-hud-top .order-chip-step[data-step="done"]::after {
   content: "✓";
   position: absolute;

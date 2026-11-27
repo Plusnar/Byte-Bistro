@@ -7,6 +7,8 @@ export interface BeaconTarget {
   readonly y: number;
   /** False when the point is behind the camera: its direction is flipped, never shown in place. */
   readonly inFront: boolean;
+  readonly left: number;
+  readonly right: number;
 }
 
 /** How far from the HUD's edges an off-screen arrow sits, in pixels. */
@@ -35,8 +37,8 @@ export class DeliveryBeacon {
 
   constructor(private readonly host: HTMLElement) {}
 
-  update(targets: readonly BeaconTarget[], width: number, height: number): void {
-    targets.forEach((target, index) => this.place(this.marker(index), target, width, height));
+  update(targets: readonly BeaconTarget[], height: number): void {
+    targets.forEach((target, index) => this.place(this.marker(index), target, height));
     for (let index = targets.length; index < this.markers.length; index += 1) this.hide(this.markers[index]!);
   }
 
@@ -75,15 +77,16 @@ export class DeliveryBeacon {
     return marker;
   }
 
-  private place(marker: Marker, target: BeaconTarget, width: number, height: number): void {
+  private place(marker: Marker, target: BeaconTarget, height: number): void {
+    const { left, right } = target;
     const inside = target.inFront &&
-      target.x >= EDGE_MARGIN && target.x <= width - EDGE_MARGIN &&
+      target.x >= left + EDGE_MARGIN && target.x <= right - EDGE_MARGIN &&
       target.y >= EDGE_MARGIN && target.y <= height - EDGE_MARGIN;
     let x = target.x;
     let y = target.y;
     let angle = 90;
     if (!inside) {
-      const cx = width / 2;
+      const cx = (left + right) / 2;
       const cy = height / 2;
       let dx = target.x - cx;
       let dy = target.y - cy;
@@ -93,7 +96,7 @@ export class DeliveryBeacon {
       }
       if (dx === 0 && dy === 0) dy = 1;
       const scale = Math.min(
-        dx === 0 ? Infinity : (cx - EDGE_MARGIN) / Math.abs(dx),
+        dx === 0 ? Infinity : ((right - left) / 2 - EDGE_MARGIN) / Math.abs(dx),
         dy === 0 ? Infinity : (cy - EDGE_MARGIN) / Math.abs(dy),
       );
       x = cx + dx * scale;
@@ -109,7 +112,7 @@ export class DeliveryBeacon {
     }
     // A pin near the side keeps its label on screen; the arrow under it stays on the counter.
     const shift = inside
-      ? `${(Math.min(Math.max(x, marker.pinHalf + 6), width - marker.pinHalf - 6) - x).toFixed(0)}px`
+      ? `${(Math.min(Math.max(x, left + marker.pinHalf + 6), right - marker.pinHalf - 6) - x).toFixed(0)}px`
       : "0px";
     if (shift !== marker.lastShift) {
       marker.lastShift = shift;

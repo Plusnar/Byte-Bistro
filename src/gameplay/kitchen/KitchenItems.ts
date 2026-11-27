@@ -16,6 +16,7 @@ import {
   type CookwareKind,
 } from "../../data/kitchen";
 import { getIngredient } from "../../data/ingredients";
+import { RECIPES } from "../../data/recipes";
 import { CookingSystem } from "../../systems/CookingSystem";
 import type { FoodState, RecipeComponent, RecipeData } from "../../types/game";
 import { createUid } from "../../utils/math";
@@ -152,12 +153,19 @@ export const bowlHasUnmixed = (bowl: CookwareItem): boolean =>
  * ingredient some recipe wants out of this vessel. A bowl takes the same rule as a pan: it
  * beats each ingredient in it, and none of them turns into something else.
  */
-export const canAddToCookware = (cookware: CookwareItem, food: FoodItem): boolean => {
+export const canAddToCookware = (
+  cookware: CookwareItem,
+  food: FoodItem,
+  recipes: readonly RecipeData[] = RECIPES,
+): boolean => {
   const definition = getFoodDefinition(food.ingredientId);
-  if (!definition || !vesselsFor(food.ingredientId).has(cookware.kind)) return false;
-  if (food.state !== cookableState(definition)) return false;
+  if (!definition || food.state !== cookableState(definition)) return false;
+  if (!vesselsFor(food.ingredientId).has(cookware.kind)) return false;
   if (isCookwareBurnt(cookware)) return false;
-  return cookware.contents.length < cookwareCapacity(cookware);
+  if (cookware.contents.length >= cookwareCapacity(cookware)) return false;
+  const state = STATE_OF_VESSEL[cookware.kind];
+  const batch = [...cookware.contents, food].map(({ ingredientId }) => ({ ingredientId, state }));
+  return recipes.some(recipe => componentsFitRecipe(batch, recipe.components));
 };
 
 export const addToCookware = (cookware: CookwareItem, food: FoodItem): void => {
@@ -266,7 +274,7 @@ const countComponents = (components: readonly RecipeComponent[]): Map<string, nu
   return counts;
 };
 
-const isSubMultiset = (
+export const componentsFitRecipe = (
   candidate: readonly RecipeComponent[],
   target: readonly RecipeComponent[],
 ): boolean => {
@@ -284,24 +292,19 @@ export const findMatchingRecipe = (
   recipes.find(
     (recipe) =>
       recipe.components.length === contents.length &&
-      isSubMultiset(contents, recipe.components),
+      componentsFitRecipe(contents, recipe.components),
   ) ?? null;
 
-/**
- * Any correctly-processed ingredient may be plated, even one that completes no recipe.
- *
- * Overcooked plates are dumb: you can ruin one, and the only recovery is the bin. Refusing
- * the ingredient instead would remove a real failure mode from the game. Burnt food is
- * rejected by `isPlateableState`.
- */
-export const plateCanAccept = (plate: PlateItem, foods: readonly FoodItem[]): boolean => {
+/** Each addition must leave a valid partial or complete dish from the kitchen's menu. */
+export const plateCanAccept = (
+  plate: PlateItem,
+  foods: readonly FoodItem[],
+  recipes: readonly RecipeData[] = RECIPES,
+): boolean => {
   if (plate.dirty || foods.length === 0) return false;
   if (plate.contents.length + foods.length > PLATE_CAPACITY) return false;
-  for (const food of foods) {
-    const definition = getFoodDefinition(food.ingredientId);
-    if (!definition || !isPlateableState(definition, food.state)) return false;
-  }
-  return true;
+  const contents = [...plate.contents, ...foods];
+  return recipes.some(recipe => componentsFitRecipe(contents, recipe.components));
 };
 
 /**
@@ -340,30 +343,31 @@ export interface CombineResult {
 export const combineItems = (
   held: KitchenItem,
   target: KitchenItem,
+  recipes: readonly RecipeData[] = RECIPES,
 ): CombineResult | null => {
-  if (held.kind === "plate" && target.kind === "food" && plateCanAccept(held, [target])) {
+  if (held.kind === "plate" && target.kind === "food" && plateCanAccept(held, [target], recipes)) {
     held.contents.push(target);
     return { held, target: null };
   }
-  if (held.kind === "food" && target.kind === "plate" && plateCanAccept(target, [held])) {
+  if (held.kind === "food" && target.kind === "plate" && plateCanAccept(target, [held], recipes)) {
     target.contents.push(held);
     return { held: null, target };
   }
-  // Pouring a vessel onto a plate. `plateCanAccept` already insists every item is in a
-  // state it may be plated in: a pan of raw food fails, a beaten bowl or a fried pan pours.
-  if (held.kind === "plate" && isCookware(target) && plateCanAccept(held, target.contents)) {
+  // A vessel must finish its own process before it pours. A bowl of chopped cream
+  // still needs mixing even if another dish accepts that cream straight from a board.
+  if (held.kind === "plate" && isCookware(target) && isCookwareCooked(target) && plateCanAccept(held, target.contents, recipes)) {
     held.contents.push(...emptyCookware(target));
     return { held, target };
   }
-  if (isCookware(held) && target.kind === "plate" && plateCanAccept(target, held.contents)) {
+  if (isCookware(held) && target.kind === "plate" && isCookwareCooked(held) && plateCanAccept(target, held.contents, recipes)) {
     target.contents.push(...emptyCookware(held));
     return { held, target };
   }
-  if (held.kind === "food" && isCookware(target) && canAddToCookware(target, held)) {
+  if (held.kind === "food" && isCookware(target) && canAddToCookware(target, held, recipes)) {
     addToCookware(target, held);
     return { held: null, target };
   }
-  if (isCookware(held) && target.kind === "food" && canAddToCookware(held, target)) {
+  if (isCookware(held) && target.kind === "food" && canAddToCookware(held, target, recipes)) {
     addToCookware(held, target);
     return { held, target: null };
   }

@@ -11,6 +11,7 @@ import {
 import { COUNTER_HEIGHT } from "../../data/kitchen";
 import { trackParticleSystem } from "../../core/perf/effectBudget";
 import { t } from "../../i18n";
+import { STOREY_REACH } from "../../physics/collisionPolicy";
 import type { LoopHandle } from "../../core/SynthSfx";
 import type { Disaster, DisasterHost } from "./types";
 
@@ -64,10 +65,23 @@ export class SinkFlood implements Disaster {
     this.clock = 0;
     const views = this.host.stationViews();
     const sinks = views.filter((view) => view.kind === "sink");
-    const pool = sinks.length > 0 ? sinks : views;
+    const occupied = this.host.cooks.filter(cook => !cook.player.isAbducted);
+    const onOccupiedFloor = (view: typeof views[number]): boolean => occupied.some(
+      cook => Math.abs(view.root.position.y - cook.player.position.y) <= STOREY_REACH,
+    );
+    const nearbySinks = sinks.filter(onOccupiedFloor);
+    const nearbyViews = views.filter(onOccupiedFloor);
+    const pool = nearbySinks.length ? nearbySinks : occupied.length ? nearbyViews : sinks;
     const source = pool[Math.floor(this.random() * pool.length)];
-    if (source) this.centre.set(source.x, 0, source.z);
-    else this.centre.set((bounds.minX + bounds.maxX) / 2, 0, (bounds.minZ + bounds.maxZ) / 2);
+    if (source) {
+      const y = this.host.floorHeight(source.x, source.root.position.y, source.z);
+      this.centre.set(source.x, y, source.z);
+    } else if (occupied[0]) {
+      const { x, y, z } = occupied[0].player.position;
+      this.centre.set(x, this.host.floorHeight(x, y, z), z);
+    } else {
+      this.centre.set((bounds.minX + bounds.maxX) / 2, 0, (bounds.minZ + bounds.maxZ) / 2);
+    }
 
     this.texture = this.ripples();
     const material = new StandardMaterial("flood-water", scene);
@@ -86,14 +100,17 @@ export class SinkFlood implements Disaster {
 
     const puddle = MeshBuilder.CreateDisc("flood-puddle", { radius: 1, tessellation: 48 }, scene);
     puddle.rotation.x = Math.PI / 2;
-    puddle.position.set(this.centre.x, 0.025, this.centre.z);
+    puddle.position.copyFrom(this.centre);
+    puddle.position.y += 0.025;
     puddle.material = material;
     puddle.isPickable = false;
     this.puddle = puddle;
 
     const spray = new ParticleSystem("flood-spray", 220, scene);
     if (this.host.juiceTexture) spray.particleTexture = this.host.juiceTexture;
-    spray.emitter = new Vector3(this.centre.x, COUNTER_HEIGHT - 0.1, this.centre.z);
+    spray.emitter = new Vector3(this.centre.x,
+      (source?.root.position.y ?? this.centre.y) + (source?.topHeight ?? COUNTER_HEIGHT) - 0.1,
+      this.centre.z);
     spray.minEmitBox = new Vector3(-0.2, 0, -0.2);
     spray.maxEmitBox = new Vector3(0.2, 0.1, 0.2);
     spray.color1 = new Color4(0.55, 0.82, 1, 0.9);
@@ -190,7 +207,8 @@ export class SinkFlood implements Disaster {
       }
       const dx = player.position.x - this.centre.x;
       const dz = player.position.z - this.centre.z;
-      const wet = dx * dx + dz * dz < radius * radius * 0.92;
+      const wet = Math.abs(player.position.y - this.centre.y) <= STOREY_REACH &&
+        dx * dx + dz * dz < radius * radius * 0.92;
       const vx = player.velocity.x;
       const vz = player.velocity.z;
       const speed = Math.hypot(vx, vz);

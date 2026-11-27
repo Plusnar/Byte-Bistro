@@ -12,9 +12,11 @@ import {
   getFoodDefinition,
 } from "../../data/kitchen";
 import type { KitchenStationKind, RecipeData } from "../../types/game";
+import { STOREY_REACH } from "../../physics/collisionPolicy";
 import {
   bowlHasUnmixed,
   combineItems,
+  componentsFitRecipe,
   decayProgress,
   createFood,
   createPlate,
@@ -231,7 +233,15 @@ export class KitchenModel {
         if (!held || held.kind !== "plate") return { kind: "blocked", message: t("kitchen.deliverAssembled") };
         if (held.dirty) return { kind: "blocked", message: t("kitchen.plateDirty") };
         const recipe = findMatchingRecipe(held.contents, this.recipes);
-        if (!recipe) return { kind: "blocked", message: t("kitchen.plateIncomplete") };
+        if (!recipe) {
+          const compatible = held.contents.length > 0
+            ? this.recipes.find(candidate => componentsFitRecipe(held.contents, candidate.components))
+            : undefined;
+          const message = compatible
+            ? t("kitchen.plateNeedsComponents", { dish: compatible.displayName, missing: compatible.components.length - held.contents.length })
+            : t("kitchen.plateIncomplete");
+          return { kind: "blocked", message };
+        }
         this.pendingDirtyPlates.push(DIRTY_PLATE_RETURN_SECONDS);
         return { kind: "deliver", plate: held, recipe };
       }
@@ -309,7 +319,7 @@ export class KitchenModel {
     // returning, so a plate or pan landing here must bounce before it is ever called:
     // otherwise the food on the station is copied into it and still left behind.
     if (item.kind !== "food") return false;
-    const combined = combineItems(item, station.item);
+    const combined = combineItems(item, station.item, this.recipes);
     if (!combined || combined.held) return false;
     station.item = combined.target;
     return true;
@@ -380,10 +390,20 @@ export class KitchenModel {
       station.item = held;
       return { kind: "changed", held: null };
     }
-    const combined = combineItems(held, target);
-    if (!combined) return { kind: "blocked", message: t("kitchen.doesNotCombine") };
+    const cookware = isHeatedCookware(target) && held.kind === "food" ? target
+      : isHeatedCookware(held) && target.kind === "food" ? held : null;
+    const previousHeat = cookware?.heat ?? 0;
+    const combined = combineItems(held, target, this.recipes);
+    if (!combined) {
+      const plate = held.kind === "plate" ? held : target.kind === "plate" ? target : null;
+      return { kind: "blocked", message: plate?.dirty ? t("kitchen.plateDirty")
+        : plate ? t("kitchen.plateNeedsPreparation") : t("kitchen.doesNotCombine") };
+    }
     station.item = combined.target;
-    return { kind: "changed", held: combined.held };
+    return {
+      kind: "changed", held: combined.held,
+      message: cookware && previousHeat > 0 ? t("kitchen.batchRestarted", { count: cookware.contents.length }) : undefined,
+    };
   }
 
   private placementRejection(kind: KitchenStationKind, held: KitchenItem): string | null {
@@ -401,8 +421,9 @@ export class KitchenModel {
   /** Holding a plate or cookware at a crate drops a fresh ingredient straight in. */
   private combineWithNew(held: KitchenItem, station: Workstation, now: number): GrabOutcome {
     const fresh = createFood(station.spec.ingredientId ?? "", now);
-    const combined = combineItems(held, fresh);
-    if (!combined || combined.target) return { kind: "blocked", message: t("kitchen.handsFullDot") };
+    const combined = combineItems(held, fresh, this.recipes);
+    if (!combined || combined.target) return { kind: "blocked", message: held.kind === "plate" && !held.dirty
+      ? t("kitchen.plateNeedsPreparation") : t("kitchen.handsFullDot") };
     return { kind: "changed", held: combined.held };
   }
 
@@ -413,6 +434,7 @@ export class KitchenModel {
     let remaining = 0;
     for (const candidate of this.stations) {
       if (!candidate.onFire) continue;
+      if (Math.abs((candidate.spec.y ?? 0) - (station.spec.y ?? 0)) > STOREY_REACH) continue;
       const dx = candidate.spec.x - station.spec.x;
       const dz = candidate.spec.z - station.spec.z;
       if (dx * dx + dz * dz > reach * reach) continue;
@@ -443,6 +465,7 @@ export class KitchenModel {
     const reach = KITCHEN_TILE * 1.05;
     for (const station of this.stations) {
       if (station === origin || station.onFire) continue;
+      if (Math.abs((station.spec.y ?? 0) - (origin.spec.y ?? 0)) > STOREY_REACH) continue;
       // The extinguisher stand never burns: the fire must not be able to lock away its cure.
       if (station.spec.kind === "sink" || station.spec.kind === "delivery" ||
         station.spec.kind === "extinguisher_stand") continue;

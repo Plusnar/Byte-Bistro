@@ -174,6 +174,11 @@ export const SCHLACHTFEST_SCENARIO: ScenarioDefinition = {
 /** What the Salão Pauli serves: a burger and three drinks for the dance floor. */
 export const PAULI_MENU: readonly string[] = ["x_salada", "drink_404", "cyber_soda", "pixel_punch"];
 
+/** Menu for the upcoming Univille map. */
+export const UNIVILLE_MENU: readonly string[] = [
+  "artificial_barbecue", "quantum_pave", "holographic_gelatin", "firewall_fondue",
+];
+
 /**
  * The Salão Pauli dance hall: the third official level, intense. A show on stage, a brawl
  * on the floor and bottles in the air while the crew serves four dishes.
@@ -192,7 +197,28 @@ export const PAULI_SCENARIO: ScenarioDefinition = {
   levelId: "salao-pauli",
 };
 
-export const SCENARIOS: readonly ScenarioDefinition[] = [WEDDING_SCENARIO, SCHLACHTFEST_SCENARIO, PAULI_SCENARIO];
+export const UNIVILLE_SCENARIO: ScenarioDefinition = {
+  id: "univille",
+  get displayName() { return translate("scenarios.univille.name"); },
+  get description() { return translate("scenarios.univille.description"); },
+  thumbnailUrl: publicUrl("assets/ui/level-map/univille.webp"),
+  shiftDurationSeconds: 240,
+  difficultyId: "meltdown",
+  lighting: {
+    ambient: "#44534B",
+    hemispheric: { ...WEDDING_LIGHTING.hemispheric, colour: "#EEF9FF", groundColour: "#344A40" },
+    key: { ...WEDDING_LIGHTING.key, colour: "#FFF6DB" },
+    accents: [],
+  },
+  receptionArea: null,
+  recipeIds: UNIVILLE_MENU,
+  requirements: WEDDING_REQUIREMENTS,
+  levelId: "univille",
+};
+
+export const SCENARIOS: readonly ScenarioDefinition[] = [
+  WEDDING_SCENARIO, SCHLACHTFEST_SCENARIO, PAULI_SCENARIO, UNIVILLE_SCENARIO,
+];
 
 export const DEFAULT_SCENARIO_ID = WEDDING_SCENARIO.id;
 

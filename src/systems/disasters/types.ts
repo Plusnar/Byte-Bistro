@@ -29,6 +29,7 @@ export interface DisasterStationView {
   readonly root: TransformNode;
   readonly x: number;
   readonly z: number;
+  readonly topHeight: number;
   /** The station kind, such as "sink" or "stove". */
   readonly kind: string;
 }
@@ -44,6 +45,8 @@ export interface Stealable {
   readonly z: number;
   /** Height of the surface it lies on. */
   readonly y: number;
+  /** Height of the floor below the item, even if it is on a counter. */
+  readonly floorY: number;
   /** Its name, for the message. */
   readonly label: string;
   /** Takes it out of the kitchen; null if it has gone since. */
@@ -76,15 +79,15 @@ export interface DisasterHost {
   alarm?(kind: DisasterKind): void;
   stationViews(): readonly DisasterStationView[];
   /** Flings everything lying on the floor within `radius` of (x, z) away from it. */
-  scatterFloorItems(x: number, z: number, radius: number, power: number): void;
-  /** A clear spot on the kitchen floor, away from the counters. */
-  freeSpot(): Vector3;
+  scatterFloorItems(x: number, y: number, z: number, radius: number, power: number): void;
+  /** A surface near the supplied floor height; preserves the reference across gaps. */
+  floorHeight(x: number, referenceY: number, z: number): number;
   /** Where this cook starts the shift: always inside the kitchen, and clear of the counters. */
   spawnPoint(cook: DisasterCook): Vector3;
   /** Food a rat may steal right now. */
   stealables(): readonly Stealable[];
-  /** Puts a taken item back into the kitchen, lying on the floor at (x, z). */
-  dropLoose(item: LooseItem, x: number, z: number): void;
+  /** Puts a taken item back into the kitchen, above the given floor. */
+  dropLoose(item: LooseItem, x: number, y: number, z: number): void;
 }
 
 /**

@@ -5,7 +5,7 @@ import type { OrderTicketComponent } from "./GameUI";
 /** The stations a ticket can point at under an ingredient, each with a HUD icon. */
 export type PrepStation = "mixer" | "cutting_board" | "stove" | "oven";
 
-export type PrepStepStatus = "done" | "active" | "todo";
+export type PrepStepStatus = "done" | "active" | "next" | "todo";
 
 /**
  * Every station a recipe component passes through, in order, so the ticket can show the
@@ -22,13 +22,13 @@ export const preparationSteps = (ingredientId: string, state: FoodState): PrepSt
 };
 
 const STAGE_RANK: Readonly<Record<OrderTicketComponent["stage"], number>> = {
-  fetch: 0, mix: 1, chop: 2, cook: 3, cooking: 4, plate: 5, plated: 6,
+  fetch: 0, chop: 1, cutting: 2, cook: 3, cooking: 4, plate: 5, plated: 6,
 };
 
 /** The stage band in which each station is the one being worked: [first, last]. */
 const STEP_BAND: Readonly<Record<PrepStation, readonly [number, number]>> = {
   mixer: [STAGE_RANK.cook, STAGE_RANK.cooking],
-  cutting_board: [STAGE_RANK.chop, STAGE_RANK.chop],
+  cutting_board: [STAGE_RANK.chop, STAGE_RANK.cutting],
   stove: [STAGE_RANK.cook, STAGE_RANK.cooking],
   oven: [STAGE_RANK.cook, STAGE_RANK.cooking],
 };
@@ -40,5 +40,7 @@ export const stepStatus = (
 ): PrepStepStatus => {
   const rank = STAGE_RANK[stage];
   const [first, last] = STEP_BAND[step];
-  return rank > last ? "done" : rank >= first ? "active" : "todo";
+  if (rank > last) return "done";
+  if (rank < first) return "todo";
+  return rank === first ? "next" : "active";
 };

@@ -18,6 +18,7 @@ import { starsForRank, type LevelRanks } from "../data/levelRanks";
 import { nextStarTarget } from "../data/levelGoals";
 import { confirmDialog } from "./confirmDialog";
 import { FOOD_STATE_LABEL, STATION_KIND_LABEL } from "../data/kitchen";
+import type { ComponentStage } from "../gameplay/kitchen/KitchenGuide";
 import { preparationSteps, stepStatus, type PrepStation } from "./orderTicketSteps";
 import { getIngredient } from "../data/ingredients";
 import {
@@ -78,7 +79,7 @@ export interface OrderTicketComponent {
   ingredientId: string;
   /** The state the recipe wants it in. */
   state: FoodState;
-  stage: "fetch" | "mix" | "chop" | "cook" | "cooking" | "plate" | "plated";
+  stage: ComponentStage;
 }
 
 /** One row of the order queue. All values are pre-derived; GameUI stays Babylon-free. */
@@ -110,6 +111,7 @@ interface TicketNode {
   name: HTMLElement;
   dish: HTMLImageElement;
   chips: HTMLElement;
+  plated: HTMLElement;
   stamp: HTMLElement;
   /** Keyed by `index:ingredientId:state` so duplicate components keep separate nodes. */
   chipNodes: Map<string, ChipNode>;
@@ -141,9 +143,8 @@ export const chipState = (
   switch (stage) {
     case "fetch":
       return "pending";
-    // Mixing is preparing, not fetching: the ingredients for it are already in hand.
-    case "mix":
     case "chop":
+    case "cutting":
     case "cook":
     case "cooking":
       return "preparing";
@@ -939,6 +940,12 @@ export class GameUI {
     if (node.last.chipKey === key) return;
     node.last.chipKey = key;
 
+    const plated = ticket.components.filter(component => component.stage === "plated").length;
+    const total = ticket.components.length;
+    node.plated.hidden = total === 0;
+    node.plated.textContent = total > 0 ? `${plated}/${total}` : "";
+    node.plated.setAttribute("aria-label", t("hud.platedCount", { plated, total }));
+
     const seen = new Set<string>();
     ticket.components.forEach((component, index) => {
       const id = `${index}:${component.ingredientId}:${component.state}`;
@@ -959,9 +966,11 @@ export class GameUI {
       chip.tile.dataset.short = (ingredient?.shortName ?? component.ingredientId).slice(0, 3).toUpperCase();
       // Every station, in order: a cooked RAM module reads "board → stove", not just "stove".
       const route = chip.steps.length > 0
-        ? chip.steps.map((step) => STATION_KIND_LABEL[step.station]).join(" → ")
+        ? chip.steps.map((step) => step.station === "stove"
+          ? t(component.state === "boiled" ? "kitchen.pot" : "kitchen.pan")
+          : STATION_KIND_LABEL[step.station]).join(" → ")
         : FOOD_STATE_LABEL[component.state];
-      chip.root.title = `${ingredient?.displayName ?? component.ingredientId} · ${route}`;
+      chip.root.title = `${ingredient?.displayName ?? component.ingredientId} · ${route} · ${t(`hud.componentStage.${component.stage}`)}`;
       chip.root.setAttribute("aria-label", chip.root.title);
       node.chips.append(chip.root);
     });
@@ -1013,6 +1022,7 @@ export class GameUI {
     root.innerHTML = `
       <div class="order-card-dish">
         <img class="order-card-art" data-t="dish" hidden alt="" />
+        <span class="order-card-plated" data-t="plated" hidden></span>
       </div>
       <strong class="order-card-name" data-t="name"></strong>
       <span class="order-card-ready" data-i18n="hud.deliver"></span>
@@ -1033,6 +1043,7 @@ export class GameUI {
       name: pick("name"),
       dish: pick<HTMLImageElement>("dish"),
       chips: pick("chips"),
+      plated: pick("plated"),
       stamp: pick("stamp"),
       chipNodes: new Map(),
       last: { title: "", recipeId: null, chipKey: "", progress: -1 },

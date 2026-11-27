@@ -8,9 +8,14 @@ import type { MapData } from "./editor/MapData";
 import { Vector3, MeshBuilder, Scene, NullEngine, PBRMaterial } from "@babylonjs/core";
 import { flightGroundContact } from "./physics/groundProbe";
 import { heightAt, throwLaunch, throwSphereContact, throwStationContact } from "./gameplay/throwArc";
-import { WEDDING_SCENARIO } from "./data/scenarios";
+import { WEDDING_MENU, WEDDING_SCENARIO } from "./data/scenarios";
 import { stationsFromMap } from "./data/kitchenLayout";
-import { isSeeThroughStructure, StructureMaterials, STRUCTURE_OPACITY } from "./core/render/structureVisibility";
+import { CHOP_SECONDS, MIX_SECONDS, getFoodDefinition, vesselForState } from "./data/kitchen";
+import { RECIPES } from "./data/recipes";
+import { createCookware, createFood, createPlate, cookDuration, type KitchenItem } from "./gameplay/kitchen/KitchenItems";
+import { computeGuide } from "./gameplay/kitchen/KitchenGuide";
+import { KitchenModel, type Workstation } from "./gameplay/kitchen/KitchenModel";
+import { isConstruction, ConstructionMaterials } from "./core/render/structureVisibility";
 import { isMapPlayable, mapRequirements } from "./editor/validation";
 
 vi.mock("./core/PlayerAccount", async (original) => ({
@@ -39,6 +44,79 @@ const map = (name: string, updatedAt = 1): MapData => ({
 
 const SLOT = "slot-a";
 const USER = "user-a";
+
+describe("recipe preparation", () => {
+  it.each(RECIPES.map(recipe => [recipe.id, recipe] as const))("prepares and serves %s from its required states", (_id, recipe) => {
+    const model = new KitchenModel([
+      { id: "board", kind: "cutting_board", x: 0, z: 0, rotationY: 0 },
+      { id: "vessel", kind: "stove", x: 3, z: 0, rotationY: 0 },
+      { id: "delivery", kind: "delivery", x: 6, z: 0, rotationY: 0 },
+    ], [recipe]);
+    const [board, cooking, delivery] = model.stations as [Workstation, Workstation, Workstation];
+    const plate = createPlate();
+    const apply = (station: Workstation, held: KitchenItem | null): KitchenItem | null => {
+      const result = model.grab(station, held, 0);
+      if (result.kind !== "changed") throw new Error(JSON.stringify(result));
+      return result.held;
+    };
+    for (const component of recipe.components) {
+      const food = createFood(component.ingredientId, 0);
+      const vessel = vesselForState(component.state);
+      apply(board, food);
+      if (component.state !== "raw" && getFoodDefinition(food.ingredientId)?.chop) {
+        expect(model.grab(board, plate, 0).kind).toBe("blocked");
+        model.work(board, null, CHOP_SECONDS + 0.01);
+      }
+      if (vessel) {
+        expect(model.grab(board, plate, 0).kind).toBe("blocked");
+        const cookware = createCookware(vessel);
+        const station = { ...cooking, item: cookware, spec: {
+          ...cooking.spec, kind: vessel === "bowl" ? "mixer" : vessel === "tray" ? "oven" : "stove",
+        } } satisfies Workstation;
+        model.stations[1] = station;
+        apply(station, apply(board, null));
+        expect(model.grab(station, plate, 0).kind).toBe("blocked");
+        if (vessel === "bowl") model.work(station, null, MIX_SECONDS + 0.01);
+        else model.update(cookDuration(cookware) + 0.01);
+        apply(station, plate);
+      } else {
+        apply(board, plate);
+      }
+    }
+    expect(plate.contents.map(({ ingredientId, state }) => ({ ingredientId, state }))).toEqual(recipe.components);
+    expect(model.grab(delivery, plate, 0)).toMatchObject({ kind: "deliver", recipe });
+  });
+
+  it("keeps the wedding cookie counter accurate across partial batches and rejects the frying pan", () => {
+    const recipes = RECIPES.filter(recipe => WEDDING_MENU.includes(recipe.id));
+    const cookies = recipes.find(recipe => recipe.id === "cache_cookies")!;
+    const model = new KitchenModel([
+      { id: "pan", kind: "stove", x: 0, z: 0, rotationY: 0, initialItem: () => createCookware("pan") },
+      { id: "pot", kind: "stove", x: 3, z: 0, rotationY: 0, initialItem: () => createCookware("pot") },
+    ], recipes);
+    const [pan, stove] = model.stations as [Workstation, Workstation];
+    const pot = stove.item as ReturnType<typeof createCookware>;
+    const chopped = () => ({ ...createFood("cache_fragment", 0), state: "chopped" as const });
+    const plate = createPlate();
+    const stages = (processing = false) => computeGuide(cookies, [
+      { item: plate, holder: 0 }, { item: pot, holder: null, processing },
+    ]).componentStages.map(component => component.stage);
+    expect(model.grab(pan, chopped(), 0).kind).toBe("blocked");
+    expect(model.grab(stove, chopped(), 0).kind).toBe("changed");
+    model.update(cookDuration(pot) + 0.01);
+    expect(stages()).toEqual(["plate", "fetch", "fetch"]);
+    expect(model.grab(stove, chopped(), 0)).toMatchObject({ kind: "changed", message: expect.any(String) });
+    expect(stages(true)).toEqual(["cooking", "cooking", "fetch"]);
+    expect(model.grab(stove, plate, 0).kind).toBe("blocked");
+    model.update(cookDuration(pot) + 0.01);
+    expect(model.grab(stove, plate, 0).kind).toBe("changed");
+    expect(stages()).toEqual(["plated", "plated", "fetch"]);
+    expect(model.grab(stove, chopped(), 0).kind).toBe("changed");
+    model.update(cookDuration(pot) + 0.01);
+    expect(model.grab(stove, plate, 0).kind).toBe("changed");
+    expect(stages()).toEqual(["plated", "plated", "plated"]);
+  });
+});
 
 describe("editor map sync", () => {
   beforeEach(() => {
@@ -189,34 +267,35 @@ it("keeps the precise height of supply crates when building the kitchen", () => 
   expect(stationsFromMap({ ...map("Multiple floors"), objects }).map(crate => crate.y)).toEqual(heights);
 });
 
-it("fades upper structure using shared materials while ground and ordinary props stay opaque", () => {
-  expect(isSeeThroughStructure("build-wall", 0)).toBe(true);
-  expect(isSeeThroughStructure("build-floor", 0)).toBe(false);
-  expect(isSeeThroughStructure("build-floor", 2)).toBe(true);
-  expect(isSeeThroughStructure("library:Scenario/truss.glb", 0, "room")).toBe(true);
-  expect(isSeeThroughStructure("library:Scenario/wall_clock.glb", 2, "decor")).toBe(false);
+it("renders construction materials opaque without changing shared materials or collision", () => {
+  expect(isConstruction("build-wall")).toBe(true);
+  expect(isConstruction("build-floor")).toBe(true);
+  expect(isConstruction("library:Scenario/piso_madeira.glb")).toBe(true);
+  expect(isConstruction("library:Scenario/wall_clock.glb", "decor")).toBe(false);
 
   const engine = new NullEngine();
   const scene = new Scene(engine);
-  const materials = new StructureMaterials();
+  const materials = new ConstructionMaterials();
   try {
-    const original = new PBRMaterial("shared opaque atlas", scene);
-    original.transparencyMode = PBRMaterial.PBRMATERIAL_OPAQUE;
-    const wall = MeshBuilder.CreateBox("wall", {}, scene);
-    const otherWall = MeshBuilder.CreateBox("other wall", {}, scene);
+    const original = new PBRMaterial("shared translucent atlas", scene);
+    original.alpha = 0.4;
+    original.transparencyMode = PBRMaterial.PBRMATERIAL_ALPHABLEND;
+    const floor = MeshBuilder.CreateBox("upper floor", {}, scene);
+    const window = MeshBuilder.CreateBox("window", {}, scene);
     const prop = MeshBuilder.CreateBox("prop", {}, scene);
-    wall.material = otherWall.material = prop.material = original;
-    wall.checkCollisions = true;
+    floor.material = window.material = prop.material = original;
+    floor.position.y = 2.5;
+    floor.checkCollisions = true;
 
-    materials.fade(wall);
-    materials.fade(otherWall);
-    expect(wall.material).toBe(otherWall.material);
-    expect(wall.material?.alpha).toBeCloseTo(STRUCTURE_OPACITY);
-    expect(wall.material?.needAlphaBlendingForMesh(wall)).toBe(true);
-    expect(prop.material?.needAlphaBlendingForMesh(prop)).toBe(false);
-    expect(wall.checkCollisions).toBe(true);
-    materials.restore(wall);
-    expect(wall.material).toBe(original);
+    materials.apply(floor);
+    materials.apply(window);
+    expect(floor.material).toBe(window.material);
+    expect(floor.material?.alpha).toBe(1);
+    expect(floor.material?.needAlphaBlendingForMesh(floor)).toBe(false);
+    expect(prop.material?.alpha).toBe(0.4);
+    expect(prop.material?.needAlphaBlendingForMesh(prop)).toBe(true);
+    expect(floor.position.y).toBe(2.5);
+    expect(floor.checkCollisions).toBe(true);
   } finally {
     materials.dispose();
     scene.dispose();

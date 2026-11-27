@@ -4,7 +4,7 @@ import { mapRequirements } from "./validation";
 import { confirmDialog, textDialog } from "../ui/confirmDialog";
 import { packLabel } from "./packLabels";
 import "../styles/editor.css";
-import type { EditorTool, SelectionColors, WallMode } from "../scenes/EditorScene";
+import type { EditorTool, SelectionColors } from "../scenes/EditorScene";
 import type { MapData, MapMeta, MapPlacedObject, MapSlotSummary } from "./MapData";
 import { EDITOR_ASSET_CATALOG, objectLabel, type EditorAssetEntry } from "./catalog";
 import { ASSET_LIBRARY_BY_ID } from "../data/assetLibrary";
@@ -36,7 +36,6 @@ export interface EditorUIHandlers {
   /** Plays the map as it is now, without saving it; the pause menu brings you back. */
   onTest(): void;
   onPlacementOptions(snap: boolean, height: number): void;
-  onSetWallMode(mode: WallMode): void;
   onToggleGrid(): void;
   onToggleTopView(): void;
   onRotate(direction: number): void;
@@ -68,7 +67,6 @@ export interface EditorViewState {
   readonly tool: EditorTool;
   readonly asset: EditorAssetEntry | null;
   readonly gizmo: "position" | "rotation" | "scale";
-  readonly wallMode: WallMode;
   readonly gridVisible: boolean;
   /** "Livre": objects and walls go anywhere, at any angle, off the grid (L). */
   readonly freePlacement: boolean;
@@ -106,9 +104,6 @@ const ICONS: Readonly<Record<string, string>> = {
   erase: "M14 4l6 6-3 3-6-6zM11 7 4 14l3 3h6l4-4M4 20h16",
   wall: "M3 6h18v12H3zM3 12h18M9 6v6M15 12v6",
   floor: "M3 9l9-5 9 5-9 5zM3 14l9 5 9-5",
-  wallsUp: "M4 20V8h16v12M4 14h16",
-  wallsCut: "M4 20V8h16v12M5 14h3m3 0h3m3 0h3",
-  wallsDown: "M4 20v-3m0-6V8h3m10 0h3v3m0 6v3",
   position: "M4 5h16M4 12h16M4 19h16M8 2v6M15 9v6M11 16v6",
   top: "M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
   grid: "M4 4h16v16H4zM4 10h16M4 15h16M10 4v16M15 4v16",
@@ -172,12 +167,6 @@ const tools = (): readonly { tool: EditorTool; label: string; key: string; icon:
   { tool: "floor", label: t("editor.toolFloor"), key: "", icon: "floor", title: t("editor.toolFloorTitle") },
 ];
 
-const wallModes = (): readonly { mode: WallMode; label: string; icon: string }[] => [
-  { mode: "up", label: t("editor.wallsUp"), icon: "wallsUp" },
-  { mode: "cutaway", label: t("editor.wallsCutaway"), icon: "wallsCut" },
-  { mode: "down", label: t("editor.wallsDown"), icon: "wallsDown" },
-];
-
 const PALETTE = [
   "#f4efe6", "#d9c7a7", "#a8744a", "#5b3a29", "#e84f4f", "#f2a93b",
   "#f6d84a", "#6fb35a", "#3f8f9f", "#3d6fd6", "#8e5bd6", "#2b2f36",
@@ -192,7 +181,6 @@ const shortcuts = (): readonly (readonly [string, string])[] => [
   [t("editor.keyShiftDrag"), t("editor.textShiftDrag")],
   ["T", t("editor.textTop")],
   ["F", t("editor.textFrame")],
-  ["V", t("editor.textWalls")],
   ["G", t("editor.textGrid")],
   ["H I R K", t("editor.textTools")],
   [", .", t("editor.textRotate")],
@@ -309,9 +297,6 @@ export class EditorUI {
     if (this.currentSlotId !== state.slotId) this.setMap(state.map, state.slotId);
     for (const button of this.shell.querySelectorAll<HTMLElement>("[data-tool]")) {
       button.dataset.active = String(button.dataset.tool === state.tool);
-    }
-    for (const button of this.shell.querySelectorAll<HTMLElement>("[data-wall-mode]")) {
-      button.dataset.active = String(button.dataset.wallMode === state.wallMode);
     }
     for (const button of this.shell.querySelectorAll<HTMLElement>("[data-gizmo]")) {
       button.dataset.active = String(button.dataset.gizmo === state.gizmo);
@@ -438,9 +423,6 @@ export class EditorUI {
       }
       this.handlers.onTest();
     });
-    for (const button of this.shell.querySelectorAll<HTMLButtonElement>("[data-wall-mode]")) {
-      button.addEventListener("click", () => this.handlers.onSetWallMode(button.dataset.wallMode as WallMode), { signal });
-    }
     // A click anywhere outside an open panel closes it.
     document.addEventListener("pointerdown", (event) => {
       const target = event.target;
@@ -1200,8 +1182,6 @@ export class EditorUI {
       <button type="button" class="bm-tool" data-tool="${tool.tool}" title="${tool.title}${tool.key ? ` (${tool.key})` : ""}">
         ${icon(tool.icon)}<span>${tool.label}</span>${tool.key ? `<kbd>${tool.key}</kbd>` : ""}
       </button>`).join("");
-    const wallModeButtons = wallModes().map((mode) => `
-      <button type="button" class="bm-icon-button" data-wall-mode="${mode.mode}" title="${mode.label} (V)" aria-label="${mode.label}">${icon(mode.icon)}</button>`).join("");
     const shortcutRows = shortcuts().map(([keys, text]) => `<dt><kbd>${keys}</kbd></dt><dd>${text}</dd>`).join("");
     return `
       <header class="bm-topbar" data-editor-chrome>
@@ -1227,7 +1207,6 @@ export class EditorUI {
           <input class="bm-name" data-map-name type="text" maxlength="40" aria-label="${t("editor.mapName")}" placeholder="${t("editor.mapName")}">
         </div>
         <div class="bm-cluster">
-          <div class="bm-segment" role="group" aria-label="${t("editor.walls")}">${wallModeButtons}</div>
           <div class="bm-segment">
             <button type="button" class="bm-icon-button" data-action="top" title="${t("editor.topView")} (T)" aria-label="${t("editor.topView")}">${icon("top")}</button>
             <button type="button" class="bm-icon-button" data-action="grid" title="${t("editor.grid")} (G)" aria-label="${t("editor.grid")}">${icon("grid")}</button>

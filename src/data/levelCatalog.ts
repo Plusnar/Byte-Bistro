@@ -101,6 +101,7 @@ export const buildLevelCatalog = (
       ...scenarioEntry(scenario),
       map: level.map,
       summary: contentsSummary(level.map.objects),
+      difficultyLabel: getDifficulty(level.map.meta?.difficultyId ?? scenario.difficultyId).label,
       shiftDurationSeconds: level.map.meta?.shiftDurationSeconds ?? scenario.shiftDurationSeconds,
     };
   });

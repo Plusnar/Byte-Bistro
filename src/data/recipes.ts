@@ -305,6 +305,109 @@ export const RECIPES: readonly RecipeData[] = [
     reward: 320,
     color: "#ff6fae",
   }),
+
+  // ------------------------------------------------------------------ Univille
+  recipe({
+    id: "artificial_barbecue",
+    finalItemId: "artificial_barbecue",
+    components: [
+      { ingredientId: "ram_module", state: "fried" },
+      { ingredientId: "ram_module", state: "fried" },
+      { ingredientId: "cache_fragment", state: "baked" },
+      { ingredientId: "cache_cream", state: "chopped" },
+    ],
+    ingredients: [
+      { ingredientId: "ram_module", quantity: 2 },
+      { ingredientId: "cache_fragment", quantity: 1 },
+      { ingredientId: "cache_cream", quantity: 1 },
+    ],
+    steps: [
+      { stationId: "cutting_board", step: 1 },
+      { stationId: "stove", step: 2 },
+      { stationId: "oven", step: 3 },
+      { stationId: "plate_rack", step: 4 },
+      { stationId: "delivery", step: 5 },
+    ],
+    effects: { energy: 28, memory: 22, temperature: 7 },
+    reward: 680,
+    color: "#ff8b47",
+  }),
+  recipe({
+    id: "quantum_pave",
+    finalItemId: "quantum_pave",
+    components: [
+      { ingredientId: "cache_fragment", state: "baked" },
+      { ingredientId: "cache_cream", state: "mixed" },
+      { ingredientId: "data_cream", state: "mixed" },
+      { ingredientId: "binary_sugar", state: "raw" },
+    ],
+    ingredients: [
+      { ingredientId: "cache_fragment", quantity: 1 },
+      { ingredientId: "cache_cream", quantity: 1 },
+      { ingredientId: "data_cream", quantity: 1 },
+      { ingredientId: "binary_sugar", quantity: 1 },
+    ],
+    steps: [
+      { stationId: "cutting_board", step: 1 },
+      { stationId: "oven", step: 2 },
+      { stationId: "mixer", step: 3 },
+      { stationId: "plate_rack", step: 4 },
+      { stationId: "delivery", step: 5 },
+    ],
+    effects: { creativity: 30, processing: 18 },
+    reward: 620,
+    color: "#bd83f5",
+  }),
+  recipe({
+    id: "holographic_gelatin",
+    finalItemId: "holographic_gelatin",
+    components: [
+      { ingredientId: "cooling_fluid", state: "mixed" },
+      { ingredientId: "cooling_fluid", state: "mixed" },
+      { ingredientId: "data_cream", state: "chopped" },
+      { ingredientId: "binary_sugar", state: "raw" },
+    ],
+    ingredients: [
+      { ingredientId: "cooling_fluid", quantity: 2 },
+      { ingredientId: "data_cream", quantity: 1 },
+      { ingredientId: "binary_sugar", quantity: 1 },
+    ],
+    steps: [
+      { stationId: "cutting_board", step: 1 },
+      { stationId: "mixer", step: 2 },
+      { stationId: "plate_rack", step: 3 },
+      { stationId: "delivery", step: 4 },
+    ],
+    effects: { stability: 24, creativity: 16, temperature: -24 },
+    reward: 580,
+    color: "#43e2f8",
+  }),
+  recipe({
+    id: "firewall_fondue",
+    finalItemId: "firewall_fondue",
+    components: [
+      { ingredientId: "cache_fragment", state: "boiled" },
+      { ingredientId: "ram_module", state: "fried" },
+      { ingredientId: "cache_cream", state: "mixed" },
+      { ingredientId: "data_cream", state: "chopped" },
+    ],
+    ingredients: [
+      { ingredientId: "cache_fragment", quantity: 1 },
+      { ingredientId: "ram_module", quantity: 1 },
+      { ingredientId: "cache_cream", quantity: 1 },
+      { ingredientId: "data_cream", quantity: 1 },
+    ],
+    steps: [
+      { stationId: "cutting_board", step: 1 },
+      { stationId: "stove", step: 2 },
+      { stationId: "mixer", step: 3 },
+      { stationId: "plate_rack", step: 4 },
+      { stationId: "delivery", step: 5 },
+    ],
+    effects: { stability: 32, memory: 20, temperature: 9 },
+    reward: 720,
+    color: "#f8bc49",
+  }),
 ];
 
 export const getRecipeById = (recipeId: string): RecipeData | undefined =>

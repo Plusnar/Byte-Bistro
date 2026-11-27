@@ -1,5 +1,6 @@
 import { Color3, MeshBuilder, StandardMaterial, TransformNode, Vector3, type Mesh } from "@babylonjs/core";
 import { t } from "../../i18n";
+import { STOREY_REACH } from "../../physics/collisionPolicy";
 import { DISASTER_MODEL_IDS } from "./assets";
 import { spawnProp, type Prop } from "./props";
 import { between, type Disaster, type DisasterHost, type LooseItem } from "./types";
@@ -23,6 +24,7 @@ type RatState = "seek" | "flee";
 
 interface Rat {
   readonly prop: Prop;
+  readonly floorY: number;
   state: RatState;
   /** The item it is after, by id, while seeking. */
   targetId: string | null;
@@ -103,7 +105,11 @@ export class RatHeist implements Disaster {
     const x = side < 2 ? bounds.minX + (bounds.maxX - bounds.minX) * along : side === 2 ? bounds.minX - 1 : bounds.maxX + 1;
     const z = side >= 2 ? bounds.minZ + (bounds.maxZ - bounds.minZ) * along : side === 0 ? bounds.minZ - 1 : bounds.maxZ + 1;
     const prop = spawnProp(scene, assets, DISASTER_MODEL_IDS.rat, "rat", (parent) => this.fallbackRat(parent));
-    prop.root.position.set(x, 0, z);
+    const cooks = this.host.cooks.filter(cook => !cook.player.isAbducted);
+    const cook = cooks[this.rats.length % cooks.length];
+    const at = cook?.player.position;
+    const floorY = at ? this.host.floorHeight(at.x, at.y, at.z) : 0;
+    prop.root.position.set(x, floorY, z);
     prop.root.scaling.setAll(RAT_SCALE);
     const crumb = MeshBuilder.CreateSphere("rat-loot", { diameter: 0.07, segments: 6 }, scene);
     crumb.material = this.crumbMaterial;
@@ -114,12 +120,13 @@ export class RatHeist implements Disaster {
     crumb.isPickable = false;
     this.rats.push({
       prop,
+      floorY,
       state: "seek",
       targetId: null,
       loot: null,
       lootLabel: "",
       crumb,
-      exit: new Vector3(x, 0, z),
+      exit: new Vector3(x, floorY, z),
       clock: this.random() * 10,
       calm: 0,
     });
@@ -134,7 +141,7 @@ export class RatHeist implements Disaster {
     // A cook close by sends it running, dropping whatever it has.
     if (rat.calm <= 0) {
       for (const cook of this.host.cooks) {
-        if (cook.player.isAbducted) continue;
+        if (cook.player.isAbducted || Math.abs(cook.player.position.y - rat.floorY) > STOREY_REACH) continue;
         const dx = cook.player.position.x - root.position.x;
         const dz = cook.player.position.z - root.position.z;
         if (dx * dx + dz * dz > SCARE_RADIUS * SCARE_RADIUS) continue;
@@ -155,7 +162,7 @@ export class RatHeist implements Disaster {
         this.flee(rat);
         return;
       }
-      const targets = this.host.stealables();
+      const targets = this.host.stealables().filter(item => Math.abs(item.floorY - rat.floorY) <= STOREY_REACH);
       let target = rat.targetId ? targets.find((item) => item.id === rat.targetId) : undefined;
       if (!target) {
         // The nearest food not already claimed by another rat.
@@ -178,8 +185,9 @@ export class RatHeist implements Disaster {
       }
       const distance = this.moveTowards(rat, target.x, target.z, SEEK_SPEED, dt);
       // Up onto the counter for food left on top of it.
-      const up = target.y > 0.1 && distance < CLIMB_RADIUS ? target.y * (1 - distance / CLIMB_RADIUS) * 1.4 : 0;
-      root.position.y += (Math.min(target.y, up) - root.position.y) * Math.min(1, dt * 14);
+      const floor = this.host.floorHeight(root.position.x, rat.floorY, root.position.z);
+      const climb = distance < CLIMB_RADIUS ? Math.min(1, (1 - distance / CLIMB_RADIUS) * 1.4) : 0;
+      root.position.y += (floor + Math.max(0, target.y - floor) * climb - root.position.y) * Math.min(1, dt * 14);
       if (distance < GRAB_RADIUS) {
         const loot = target.take();
         if (loot) {
@@ -195,7 +203,8 @@ export class RatHeist implements Disaster {
     }
 
     // Fleeing: down off any counter and out the nearest edge.
-    root.position.y += (0 - root.position.y) * Math.min(1, dt * 10);
+    const floor = this.host.floorHeight(root.position.x, rat.floorY, root.position.z);
+    root.position.y += (floor - root.position.y) * Math.min(1, dt * 10);
     const distance = this.moveTowards(rat, rat.exit.x, rat.exit.z, FLEE_SPEED, dt);
     if (distance < 0.2) {
       // Out of the kitchen: what it carried is gone for good.
@@ -210,10 +219,10 @@ export class RatHeist implements Disaster {
     const { bounds } = this.host;
     const p = rat.prop.root.position;
     const options = [
-      new Vector3(bounds.minX - 1.5, 0, p.z),
-      new Vector3(bounds.maxX + 1.5, 0, p.z),
-      new Vector3(p.x, 0, bounds.minZ - 1.5),
-      new Vector3(p.x, 0, bounds.maxZ + 1.5),
+      new Vector3(bounds.minX - 1.5, rat.floorY, p.z),
+      new Vector3(bounds.maxX + 1.5, rat.floorY, p.z),
+      new Vector3(p.x, rat.floorY, bounds.minZ - 1.5),
+      new Vector3(p.x, rat.floorY, bounds.maxZ + 1.5),
     ];
     options.sort((a, b) => Vector3.Distance(a, p) - Vector3.Distance(b, p));
     rat.exit.copyFrom(options[0]!);
@@ -223,7 +232,7 @@ export class RatHeist implements Disaster {
   private release(rat: Rat): void {
     if (!rat.loot) return;
     const p = rat.prop.root.position;
-    this.host.dropLoose(rat.loot, p.x, p.z);
+    this.host.dropLoose(rat.loot, p.x, rat.floorY, p.z);
     rat.loot = null;
     rat.crumb.isVisible = false;
   }

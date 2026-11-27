@@ -7,9 +7,10 @@ import {
   Vector3,
   type BaseTexture,
 } from "@babylonjs/core";
-import { COUNTER_HEIGHT, KITCHEN_TILE } from "../../data/kitchen";
+import { KITCHEN_TILE } from "../../data/kitchen";
 import { trackParticleSystem } from "../../core/perf/effectBudget";
 import { t } from "../../i18n";
+import { STOREY_REACH } from "../../physics/collisionPolicy";
 import type { WeddingGuest } from "../WeddingGuests";
 import { DISASTER_MODEL_IDS } from "./assets";
 import { spawnProp, type Prop } from "./props";
@@ -30,6 +31,7 @@ interface Tomato {
   readonly prop: Prop;
   readonly velocity: Vector3;
   readonly spin: Vector3;
+  readonly floorY: number;
   /** Null while flying; seconds on the floor once it has splattered. */
   splatted: number | null;
 }
@@ -144,7 +146,7 @@ export class TomatoBarrage implements Disaster {
   private edgeThrow(target: DisasterCook): void {
     const { bounds } = this.host;
     const x = between(bounds.minX, bounds.maxX, this.random);
-    const from = new Vector3(x, 1.6, bounds.maxZ + 3);
+    const from = new Vector3(x, target.player.position.y + 1.6, bounds.maxZ + 3);
     this.pending.push({ delay: 0.1, from: () => from, target });
   }
 
@@ -169,6 +171,7 @@ export class TomatoBarrage implements Disaster {
     this.flying.push({
       prop,
       velocity,
+      floorY: this.host.floorHeight(to.x, to.y, to.z),
       spin: new Vector3(between(-9, 9, this.random), between(-9, 9, this.random), between(-9, 9, this.random)),
       splatted: null,
     });
@@ -202,21 +205,23 @@ export class TomatoBarrage implements Disaster {
       if (dx * dx + dz * dz > HIT_RADIUS * HIT_RADIUS || height < 0.1 || height > 1.6) continue;
       this.host.hitCook(cook, root.position.x - tomato.velocity.x * 0.05, root.position.z - tomato.velocity.z * 0.05, 0.5);
       this.host.notify(t("disaster.splatted", { name: cook.label }), "warning");
-      this.splat(tomato, new Vector3(player.position.x, 0.02, player.position.z));
+      this.splat(tomato, new Vector3(player.position.x, player.position.y + 0.02, player.position.z));
       return;
     }
 
-    const floor = this.surfaceUnder(root.position.x, root.position.z);
+    if (tomato.velocity.y > 0) return;
+    const floor = this.surfaceUnder(root.position.x, tomato.floorY, root.position.z);
     if (root.position.y <= floor) this.splat(tomato, new Vector3(root.position.x, floor + 0.01, root.position.z));
   }
 
   /** The counter top under (x, z), or the floor. */
-  private surfaceUnder(x: number, z: number): number {
+  private surfaceUnder(x: number, y: number, z: number): number {
     const half = KITCHEN_TILE / 2;
     for (const view of this.host.stationViews()) {
-      if (Math.abs(view.x - x) < half && Math.abs(view.z - z) < half) return COUNTER_HEIGHT;
+      if (Math.abs(view.root.position.y - y) <= STOREY_REACH &&
+        Math.abs(view.x - x) < half && Math.abs(view.z - z) < half) return view.root.position.y + view.topHeight;
     }
-    return 0;
+    return this.host.floorHeight(x, y, z);
   }
 
   private splat(tomato: Tomato, at: Vector3): void {

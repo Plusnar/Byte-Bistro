@@ -258,6 +258,7 @@ export class WorkstationView {
   private whiskAngle = 0;
   private readonly swingRotation = new Quaternion();
   private fire: ParticleSystem | null = null;
+  private smoke: ParticleSystem | null = null;
   private water: ParticleSystem | null = null;
   private foam: ParticleSystem | null = null;
   private highlightOwners = 0;
@@ -391,8 +392,8 @@ export class WorkstationView {
       this.bar.setEnabled(false);
     }
 
-    this.warningIcon.setEnabled(state.warning && !state.onFire);
-    if (state.warning) {
+    this.warningIcon.setEnabled(state.warning || state.onFire);
+    if (state.warning || state.onFire) {
       const pulse = 1 + Math.abs(Math.sin(this.clock * 9)) * 0.35;
       this.warningIcon.scaling.setAll(pulse);
     }
@@ -432,6 +433,8 @@ export class WorkstationView {
   dispose(): void {
     this.fire?.dispose();
     this.fire = null;
+    this.smoke?.dispose();
+    this.smoke = null;
     this.water?.dispose();
     this.water = null;
     this.foam?.dispose();
@@ -655,17 +658,20 @@ export class WorkstationView {
     if (onFire && !this.fire) {
       const fire = new ParticleSystem(`${this.root.name}-fire`, 120, this.scene);
       fire.particleTexture = this.resources.fireTexture;
-      fire.emitter = new Vector3(this.placement.x, this.topHeight + 0.05, this.placement.z);
+      const base = this.root.getAbsolutePosition();
+      fire.emitter = base.add(new Vector3(0, this.topHeight + 0.12, 0));
       fire.minEmitBox = new Vector3(-0.35, 0, -0.35);
       fire.maxEmitBox = new Vector3(0.35, 0.05, 0.35);
       fire.color1 = new Color4(1, 0.72, 0.18, 1);
       fire.color2 = new Color4(1, 0.28, 0.05, 1);
       fire.colorDead = new Color4(0.25, 0.08, 0.02, 0);
-      fire.minSize = 0.25;
-      fire.maxSize = 0.6;
+      fire.minSize = 0.38;
+      fire.maxSize = 0.86;
+      fire.minScaleY = 1.3;
+      fire.maxScaleY = 1.85;
       fire.minLifeTime = 0.35;
       fire.maxLifeTime = 0.8;
-      fire.emitRate = 90;
+      fire.emitRate = 110;
       fire.blendMode = ParticleSystem.BLENDMODE_ADD;
       fire.direction1 = new Vector3(-0.2, 1.6, -0.2);
       fire.direction2 = new Vector3(0.2, 2.4, 0.2);
@@ -673,16 +679,41 @@ export class WorkstationView {
       fire.maxEmitPower = 1.2;
       fire.gravity = new Vector3(0, 0.6, 0);
       this.fire = trackParticleSystem(fire);
+
+      const smoke = new ParticleSystem(`${this.root.name}-fire-smoke`, 48, this.scene);
+      smoke.particleTexture = this.resources.fireTexture;
+      smoke.emitter = base.add(new Vector3(0, this.topHeight + 0.7, 0));
+      smoke.minEmitBox = new Vector3(-0.18, 0, -0.18);
+      smoke.maxEmitBox = new Vector3(0.18, 0.15, 0.18);
+      smoke.color1 = new Color4(0.19, 0.16, 0.16, 0.75);
+      smoke.color2 = new Color4(0.36, 0.31, 0.29, 0.64);
+      smoke.colorDead = new Color4(0.48, 0.43, 0.41, 0);
+      smoke.minSize = 0.55;
+      smoke.maxSize = 1.04;
+      smoke.minLifeTime = 0.95;
+      smoke.maxLifeTime = 1.65;
+      smoke.emitRate = 22;
+      smoke.direction1 = new Vector3(-0.35, 0.9, -0.35);
+      smoke.direction2 = new Vector3(0.35, 1.45, 0.35);
+      smoke.minEmitPower = 0.65;
+      smoke.maxEmitPower = 1.05;
+      smoke.blendMode = ParticleSystem.BLENDMODE_STANDARD;
+      this.smoke = trackParticleSystem(smoke);
     }
-    if (!this.fire) return;
-    if (onFire && !this.fire.isStarted()) this.fire.start();
-    if (!onFire && this.fire.isStarted()) this.fire.stop();
+    this.setParticlesActive(this.fire, onFire);
+    this.setParticlesActive(this.smoke, onFire);
+  }
+
+  private setParticlesActive(system: ParticleSystem | null, active: boolean): void {
+    if (!system) return;
+    if (active && (!system.isStarted() || system.isStopping())) system.start();
+    if (!active && system.isStarted() && !system.isStopping()) system.stop();
   }
 
   /** Splashing water and soap bubbles out of the basin while a plate is scrubbed. */
   private updateWash(washing: boolean): void {
     if (washing && !this.water) {
-      const basin = new Vector3(this.placement.x, this.topHeight - 0.02, this.placement.z);
+      const basin = this.root.getAbsolutePosition().add(new Vector3(0, this.topHeight - 0.02, 0));
       const water = new ParticleSystem(`${this.root.name}-water`, 90, this.scene);
       water.particleTexture = this.resources.fireTexture;
       water.emitter = basin.clone();
@@ -723,10 +754,7 @@ export class WorkstationView {
       foam.gravity = new Vector3(0, 0.05, 0);
       this.foam = trackParticleSystem(foam);
     }
-    for (const system of [this.water, this.foam]) {
-      if (!system) continue;
-      if (washing && !system.isStarted()) system.start();
-      if (!washing && system.isStarted()) system.stop();
-    }
+    this.setParticlesActive(this.water, washing);
+    this.setParticlesActive(this.foam, washing);
   }
 }

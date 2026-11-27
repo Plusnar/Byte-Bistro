@@ -12820,5 +12820,261 @@
     "labelEn": "RGB light bar",
     "pack": "Salão Pauli",
     "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/auditorium_seats.glb",
+    "path": "asset-library/Scenario/Univille/auditorium_seats.glb",
+    "label": "Fileira de três poltronas",
+    "labelEn": "Auditorium seating row",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/backpack.glb",
+    "path": "asset-library/Scenario/Univille/backpack.glb",
+    "label": "Mochila escolar",
+    "labelEn": "School backpack",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/basketball.glb",
+    "path": "asset-library/Scenario/Univille/basketball.glb",
+    "label": "Bola de basquete",
+    "labelEn": "Basketball",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/basket_hoop.glb",
+    "path": "asset-library/Scenario/Univille/basket_hoop.glb",
+    "label": "Tabela e aro de basquete",
+    "labelEn": "Basketball hoop and backboard",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/bench.glb",
+    "path": "asset-library/Scenario/Univille/bench.glb",
+    "label": "Banco de madeira do pátio",
+    "labelEn": "Courtyard bench",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/bleachers.glb",
+    "path": "asset-library/Scenario/Univille/bleachers.glb",
+    "label": "Arquibancada modular",
+    "labelEn": "Modular bleachers",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/bookcase.glb",
+    "path": "asset-library/Scenario/Univille/bookcase.glb",
+    "label": "Estante de livros",
+    "labelEn": "Bookcase",
+    "pack": "Univille",
+    "category": "storage"
+  },
+  {
+    "id": "library:Scenario/Univille/column.glb",
+    "path": "asset-library/Scenario/Univille/column.glb",
+    "label": "Pilar verde do ginásio",
+    "labelEn": "Green gym column",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/floor_carpet.glb",
+    "path": "asset-library/Scenario/Univille/floor_carpet.glb",
+    "label": "Carpete de auditório",
+    "labelEn": "Auditorium carpet",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/floor_court.glb",
+    "path": "asset-library/Scenario/Univille/floor_court.glb",
+    "label": "Piso verde da quadra",
+    "labelEn": "Green court floor",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/floor_court_center.glb",
+    "path": "asset-library/Scenario/Univille/floor_court_center.glb",
+    "label": "Círculo central da quadra",
+    "labelEn": "Court centre circle",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/floor_court_line.glb",
+    "path": "asset-library/Scenario/Univille/floor_court_line.glb",
+    "label": "Faixa laranja da quadra",
+    "labelEn": "Orange court stripe",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/floor_patio.glb",
+    "path": "asset-library/Scenario/Univille/floor_patio.glb",
+    "label": "Piso cerâmico do pátio",
+    "labelEn": "Courtyard tile floor",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/floor_terrazzo.glb",
+    "path": "asset-library/Scenario/Univille/floor_terrazzo.glb",
+    "label": "Piso de granilite",
+    "labelEn": "Terrazzo floor",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/lectern.glb",
+    "path": "asset-library/Scenario/Univille/lectern.glb",
+    "label": "Púlpito do auditório",
+    "labelEn": "Auditorium lectern",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/linear_lamp.glb",
+    "path": "asset-library/Scenario/Univille/linear_lamp.glb",
+    "label": "Luminária linear",
+    "labelEn": "Linear ceiling light",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/monitor.glb",
+    "path": "asset-library/Scenario/Univille/monitor.glb",
+    "label": "Tela multimídia",
+    "labelEn": "Multimedia display",
+    "pack": "Univille",
+    "category": "screen"
+  },
+  {
+    "id": "library:Scenario/Univille/notice_board.glb",
+    "path": "asset-library/Scenario/Univille/notice_board.glb",
+    "label": "Mural de avisos",
+    "labelEn": "Notice board",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/planter.glb",
+    "path": "asset-library/Scenario/Univille/planter.glb",
+    "label": "Jardineira de folhagens",
+    "labelEn": "Foliage planter",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/recycling_bin.glb",
+    "path": "asset-library/Scenario/Univille/recycling_bin.glb",
+    "label": "Lixeira seletiva dupla",
+    "labelEn": "Twin recycling bin",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/stage_module.glb",
+    "path": "asset-library/Scenario/Univille/stage_module.glb",
+    "label": "Módulo de palco",
+    "labelEn": "Stage module",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/stage_steps.glb",
+    "path": "asset-library/Scenario/Univille/stage_steps.glb",
+    "label": "Escada de acesso ao palco",
+    "labelEn": "Stage steps",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/student_chair.glb",
+    "path": "asset-library/Scenario/Univille/student_chair.glb",
+    "label": "Cadeira escolar verde",
+    "labelEn": "Green classroom chair",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/student_desk.glb",
+    "path": "asset-library/Scenario/Univille/student_desk.glb",
+    "label": "Carteira escolar",
+    "labelEn": "Student desk",
+    "pack": "Univille",
+    "category": "storage"
+  },
+  {
+    "id": "library:Scenario/Univille/teacher_desk.glb",
+    "path": "asset-library/Scenario/Univille/teacher_desk.glb",
+    "label": "Mesa do professor",
+    "labelEn": "Teacher's desk",
+    "pack": "Univille",
+    "category": "storage"
+  },
+  {
+    "id": "library:Scenario/Univille/truss.glb",
+    "path": "asset-library/Scenario/Univille/truss.glb",
+    "label": "Tesoura metálica da cobertura",
+    "labelEn": "Steel roof truss",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/wall_class.glb",
+    "path": "asset-library/Scenario/Univille/wall_class.glb",
+    "label": "Parede com faixa verde",
+    "labelEn": "Green stripe classroom wall",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/wall_door.glb",
+    "path": "asset-library/Scenario/Univille/wall_door.glb",
+    "label": "Parede com porta aberta",
+    "labelEn": "Wall with open door",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/wall_gallery.glb",
+    "path": "asset-library/Scenario/Univille/wall_gallery.glb",
+    "label": "Parede com janela corrida",
+    "labelEn": "Gallery window wall",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/wall_gym.glb",
+    "path": "asset-library/Scenario/Univille/wall_gym.glb",
+    "label": "Parede alta com veneziana",
+    "labelEn": "Tall louvred gym wall",
+    "pack": "Univille",
+    "category": "room"
+  },
+  {
+    "id": "library:Scenario/Univille/wayfinding.glb",
+    "path": "asset-library/Scenario/Univille/wayfinding.glb",
+    "label": "Placa de orientação",
+    "labelEn": "Wayfinding sign",
+    "pack": "Univille",
+    "category": "decor"
+  },
+  {
+    "id": "library:Scenario/Univille/whiteboard.glb",
+    "path": "asset-library/Scenario/Univille/whiteboard.glb",
+    "label": "Quadro branco",
+    "labelEn": "Whiteboard",
+    "pack": "Univille",
+    "category": "decor"
   }
 ]

@@ -47,7 +47,7 @@ describe("computeBounds", () => {
   });
 });
 
-describe("placementsFromMap cutaway", () => {
+describe("placementsFromMap geometry", () => {
   const wall = (z: number): MapPlacedObject => ({
     id: `wall-${z}`,
     assetId: "library:Scenario/Praca/parede_colonial.glb",
@@ -60,14 +60,12 @@ describe("placementsFromMap cutaway", () => {
   });
   const map = { version: 1, name: "t", createdAt: 0, updatedAt: 0, environment: { ambient: "#000000", fog: "#000000", fogDensity: 0 }, objects: [wall(-6), wall(6)] } as const;
 
-  it("keeps joined walls at their authored height and marks them for transparency", async () => {
+  it("keeps joined walls solid and at their authored height", async () => {
     const { placementsFromMap } = await import("../../scenes/KitchenEnvironment");
-    const { isSeeThroughStructure } = await import("../../core/render/structureVisibility");
     const placed = placementsFromMap(map);
     for (const wall of placed) {
       expect(wall.scale?.y).toBeCloseTo(1.25);
       expect(wall.collides).toBe(true);
-      expect(isSeeThroughStructure(wall.assetId, wall.position.y, wall.category)).toBe(true);
     }
   });
 });

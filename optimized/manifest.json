@@ -2072,6 +2072,27 @@
         "textures": []
       }
     },
+    "src/assets/environment/cidade_sem_arvores.glb": {
+      "profile": "staticScene",
+      "profileKey": "5801fe231243",
+      "sourceHash": "52ee451b0c105cc1af89c428e20f755103b1378bbcf5e473201eb704e6e98cc6",
+      "sourceBytes": 84304,
+      "status": "optimized",
+      "output": "optimized/src/assets/environment/cidade_sem_arvores.glb",
+      "outputHash": "35e5333a71074430f156883262d01412680db5f51d4d12ab9e9c93dd27a86e6c",
+      "outputBytes": 29896,
+      "meshopt": true,
+      "before": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
     "public/asset-library/Scenario/Praca/araucaria.glb": {
       "profile": "staticProp",
       "profileKey": "4e621bd19fb7",
@@ -2804,6 +2825,678 @@
       "after": {
         "meshes": 3,
         "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/auditorium_seats.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "5b78d9eea0dcbdeb034925ac138c9524ce8459a485a642c2edcd2f0f5bf19714",
+      "sourceBytes": 49388,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/auditorium_seats.glb",
+      "outputHash": "bafb8800019c09d7cba50af6026daf1e65f8b9e6442d12a0deb9b2f8f8875bc8",
+      "outputBytes": 16068,
+      "meshopt": true,
+      "before": {
+        "meshes": 19,
+        "primitives": 19,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/backpack.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "de95be6e67b7b4bd3b1382604f005d46d5c23cda9912e05370bb5a7c1bd23cd5",
+      "sourceBytes": 24776,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/backpack.glb",
+      "outputHash": "692c48a865ceae159c1e746b60e687225dbc74b44ec10326b07a94c19be79bdf",
+      "outputBytes": 10220,
+      "meshopt": true,
+      "before": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/basketball.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "2bb595e28b2e9cb959b6def81da19dc0f524c7dacdf999d2e437e8cd975092ac",
+      "sourceBytes": 127348,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/basketball.glb",
+      "outputHash": "c758caccf2c60e7b72f3bb78cdfb0fa7f6aa4c78a72a813986d3820f7e0609c7",
+      "outputBytes": 29564,
+      "meshopt": true,
+      "before": {
+        "meshes": 73,
+        "primitives": 73,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/basket_hoop.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "4a71c8e003a80dc1e5f5b1cb2cd4d5d7a9d36ac2f131a8c00f414f15cf8ce7e3",
+      "sourceBytes": 92720,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/basket_hoop.glb",
+      "outputHash": "f5aef68534d011bdc797979c8ebd537e8b25595d15b4230bdbce234d07167f91",
+      "outputBytes": 24708,
+      "meshopt": true,
+      "before": {
+        "meshes": 58,
+        "primitives": 58,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/bench.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "79a4fc3108434dec8ba3f8f18720f88cc542e1e517a91c54c51f5cfa597dd88e",
+      "sourceBytes": 16444,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/bench.glb",
+      "outputHash": "2da7393c669149df313988e53ec60424f135a8a5d135eae3afcecb166ba2a59d",
+      "outputBytes": 6672,
+      "meshopt": true,
+      "before": {
+        "meshes": 7,
+        "primitives": 7,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/bleachers.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "5eff6b2e66a027e8ec335f334eda69d8cce27d6047a2cb8dee278a57ae232b7a",
+      "sourceBytes": 30248,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/bleachers.glb",
+      "outputHash": "76afef369bcd5ee7b79d67304a4848395d088355fa33689447332211f590ea88",
+      "outputBytes": 10776,
+      "meshopt": true,
+      "before": {
+        "meshes": 12,
+        "primitives": 12,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/bookcase.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "9d7c07fc153bb2cd53ddd17c3715c4a7896d29a04f25d1dbacd5c33e47d956df",
+      "sourceBytes": 83464,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/bookcase.glb",
+      "outputHash": "8fa8aff5af0134b507aed99e9cf2c00fe533335ddb809f1988dcf34667097e4f",
+      "outputBytes": 23268,
+      "meshopt": true,
+      "before": {
+        "meshes": 28,
+        "primitives": 28,
+        "textures": []
+      },
+      "after": {
+        "meshes": 7,
+        "primitives": 7,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/column.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "c89cf37fd7b75eff915a595eb489c768f264069f8d2e88331ef789af59932280",
+      "sourceBytes": 15956,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/column.glb",
+      "outputHash": "99b9aabb803b9e31949257278d11e67593c1f102bdd8399725336fe643c57651",
+      "outputBytes": 7928,
+      "meshopt": true,
+      "before": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/floor_carpet.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "74b8b0288b5a7a83a8aa41566021ea2742ea7e7053bca453d7a77c9806494c96",
+      "sourceBytes": 3740,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/floor_carpet.glb",
+      "outputHash": "4bda6e7ac927b847c20162352f9b09cd816b6a05ccfdfea88180dfceea2b4831",
+      "outputBytes": 2636,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/floor_court.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "130910fcab8ec099406096c6d99c6b3ed1b6895ba32e1d847ca317b7cf3d9419",
+      "sourceBytes": 3728,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/floor_court.glb",
+      "outputHash": "e58384feb3ddcc1925b8d29e6a0fc8ab80d57df194e6141f43b365403b02f1ab",
+      "outputBytes": 2624,
+      "meshopt": true,
+      "before": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      },
+      "after": {
+        "meshes": 1,
+        "primitives": 1,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/floor_court_center.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "0692a57077ad07e7dcb6c719e0e403e550c6a29acb276f6625d8aed86b6db1af",
+      "sourceBytes": 75916,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/floor_court_center.glb",
+      "outputHash": "6ea46f34b0888afa1dd599cb96ee500ea5d1cd47e58e01d2e87057e87cb2f9e8",
+      "outputBytes": 16120,
+      "meshopt": true,
+      "before": {
+        "meshes": 51,
+        "primitives": 51,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/floor_court_line.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "ea7fb4018f50e374f57b3b7fab1bac750609ecddd841ca0626e2e3e5e82331e1",
+      "sourceBytes": 4552,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/floor_court_line.glb",
+      "outputHash": "4818496c98474088c1cb20fe955422195b5fd448a519a5aa083170972b6c3e16",
+      "outputBytes": 4048,
+      "meshopt": true,
+      "before": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/floor_patio.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "6d741aec5a582f060dd839ac84ae5a00512f51a355c2533ef3da9973819ee04e",
+      "sourceBytes": 75720,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/floor_patio.glb",
+      "outputHash": "ea6de4ac381646c614fd2018379806898c05a0327f77877c97c45c511bb63caa",
+      "outputBytes": 19932,
+      "meshopt": true,
+      "before": {
+        "meshes": 26,
+        "primitives": 26,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/floor_terrazzo.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "2857e9aafacc0154074e10a3f56db74e202691041ee08ba650dc60decf203e2b",
+      "sourceBytes": 24864,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/floor_terrazzo.glb",
+      "outputHash": "31ae2af1920da206d8222be95330da7ca302f6d0da206d7e1daa03bebf44df2b",
+      "outputBytes": 9592,
+      "meshopt": true,
+      "before": {
+        "meshes": 17,
+        "primitives": 17,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/lectern.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "833d092dbfdd2b63b81c22db3d1fdb32abde9a2e97da8f11396af900d3ef1cc3",
+      "sourceBytes": 22276,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/lectern.glb",
+      "outputHash": "04f51fc80fde24a37d673dab4d1d9f3d2f4f49d532f219b63c3298ae471bddea",
+      "outputBytes": 9368,
+      "meshopt": true,
+      "before": {
+        "meshes": 7,
+        "primitives": 7,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/linear_lamp.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "0b7348522c88d131305c3d11c09953f0dc16d332cd20d1056386587a85446b34",
+      "sourceBytes": 12940,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/linear_lamp.glb",
+      "outputHash": "d8488a9bc25ffd8523c78a08ced955d5b7f24b29962125f8efa3501f95cda5cf",
+      "outputBytes": 6820,
+      "meshopt": true,
+      "before": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/monitor.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "716dc4ef05116f1f4dfa8d67871f4a71e61358c97e4bca3da75e5af9f2cdace0",
+      "sourceBytes": 25344,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/monitor.glb",
+      "outputHash": "213463e6e78131cfb44bfc0035d74468948f7fd10107fcdd98b181624a03d6c2",
+      "outputBytes": 10884,
+      "meshopt": true,
+      "before": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/notice_board.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "1183474d4a07479127871ef475d9cba82eb73ce9f2fadaf4d5d8c32a29f61776",
+      "sourceBytes": 41836,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/notice_board.glb",
+      "outputHash": "0325fdbe013a732f1b6a6345bc969f2052a7d27588b62a917255dab0b366b250",
+      "outputBytes": 14936,
+      "meshopt": true,
+      "before": {
+        "meshes": 22,
+        "primitives": 22,
+        "textures": []
+      },
+      "after": {
+        "meshes": 7,
+        "primitives": 7,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/planter.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "cd1b57a997eca3c35329a0e2913db61f8ec6b8503a035805c2aaf8b84b0e62fc",
+      "sourceBytes": 70600,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/planter.glb",
+      "outputHash": "efc0f88fb773618c508c88b9843f68f4f10e5f9731fd7ae490da296b22ea6c9e",
+      "outputBytes": 26308,
+      "meshopt": true,
+      "before": {
+        "meshes": 23,
+        "primitives": 23,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/recycling_bin.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "e110a43d943f160fa1b06c036c3f653c03fac47125b001b013e5d13e4b4269ad",
+      "sourceBytes": 36908,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/recycling_bin.glb",
+      "outputHash": "98487285f9fee8130654d29dc7eb54deb87233db70f486f22e013f7277ac8356",
+      "outputBytes": 11004,
+      "meshopt": true,
+      "before": {
+        "meshes": 12,
+        "primitives": 12,
+        "textures": []
+      },
+      "after": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/stage_module.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "3e56e38cef1d90fb81696fddf94bc73e64e4a42264f35510f9a7fdfbd7e7ab54",
+      "sourceBytes": 9884,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/stage_module.glb",
+      "outputHash": "e2d938e6d79f02dcd3e920e8fa81b4b74fea5f7e3e80a9b41a0c9f6c6c647538",
+      "outputBytes": 5028,
+      "meshopt": true,
+      "before": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/stage_steps.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "4aeff88b3a191dcb05180eb46e3b5f3b0e1ab635da4f71f226b46b260e58a71e",
+      "sourceBytes": 27472,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/stage_steps.glb",
+      "outputHash": "14f10dcc0a4136db08d81118b67acead95f2bb9846a5edc1e22506bd67be27e5",
+      "outputBytes": 7980,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/student_chair.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "9cbe4e9b71d7cbba52f2a4c20c9788f704e1e7b0e637d9976dc4e7729fbb3d00",
+      "sourceBytes": 25068,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/student_chair.glb",
+      "outputHash": "89c23cd1917f5782cd1e5ce86ef2476d4520dc8f759461a3b5ef5a3e546d9ed2",
+      "outputBytes": 9924,
+      "meshopt": true,
+      "before": {
+        "meshes": 8,
+        "primitives": 8,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/student_desk.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "6120f839b5757dea71aabccca772d743c03bc639bccbfcf98a0e6e803b83fd8f",
+      "sourceBytes": 39980,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/student_desk.glb",
+      "outputHash": "e10cae461f9a8228fb1fc08d8b150d9a2aa5425d90f7e759a035a3c84a973dd3",
+      "outputBytes": 15356,
+      "meshopt": true,
+      "before": {
+        "meshes": 13,
+        "primitives": 13,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/teacher_desk.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "95eb7acbb903f0d30cdf455edb32fbc84f53f4c9395e37ca3a8dd17e392a2645",
+      "sourceBytes": 15752,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/teacher_desk.glb",
+      "outputHash": "a2efd6c981770b96e970a65bbda900a3c4dc88b6ee81b509ba114c035d221392",
+      "outputBytes": 7452,
+      "meshopt": true,
+      "before": {
+        "meshes": 5,
+        "primitives": 5,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/truss.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "164c730f2b000693833506fe3357143dcd84ef5e5bda9640e072af4896af71cf",
+      "sourceBytes": 42260,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/truss.glb",
+      "outputHash": "c51e4fdf7ab705af267dbb28e625ad855ec78e4d156e3390f34d350806b5413c",
+      "outputBytes": 12652,
+      "meshopt": true,
+      "before": {
+        "meshes": 14,
+        "primitives": 14,
+        "textures": []
+      },
+      "after": {
+        "meshes": 2,
+        "primitives": 2,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/wall_class.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "e51d719377cbcdd7ede031d5032e453108f206c0565407ac369d42b488342b8e",
+      "sourceBytes": 12928,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/wall_class.glb",
+      "outputHash": "625fec6d11265f1d7bb9d8dd28bd851561a8b2380af1ddea9be3d13995c96d5d",
+      "outputBytes": 6164,
+      "meshopt": true,
+      "before": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/wall_door.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "0e785dd0155ae91a388a8479be1eacaa9791e99b98db7acab9d2e4ab238e0e18",
+      "sourceBytes": 20500,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/wall_door.glb",
+      "outputHash": "bf17c4690acf03956751e6f7bb6b7f55d53a903e00d4189ebecdb81e8e85f19b",
+      "outputBytes": 11680,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/wall_gallery.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "0ee7502f48a467691af778b187c92b3248e0455049e941d7f99e6f76224674d3",
+      "sourceBytes": 36608,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/wall_gallery.glb",
+      "outputHash": "4bf59f6c383d138aedd870d110c6daaae338c7f234c6278ac87ed02b528ba56d",
+      "outputBytes": 13548,
+      "meshopt": true,
+      "before": {
+        "meshes": 12,
+        "primitives": 12,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/wall_gym.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "d30cb9c8af7cf631b4a5979999bf5c1f88b7dbbc4cea16200c87d85c90a2725e",
+      "sourceBytes": 34404,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/wall_gym.glb",
+      "outputHash": "ea146999d007305c38d521f1eb99570877c038ff51abe04da3f464060824d7e5",
+      "outputBytes": 12944,
+      "meshopt": true,
+      "before": {
+        "meshes": 13,
+        "primitives": 13,
+        "textures": []
+      },
+      "after": {
+        "meshes": 4,
+        "primitives": 4,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/wayfinding.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "bc9f95480fd73a3bec14ef9cb94ceaa28a772f3289a3ca702b2d3c6ec2f1f0f3",
+      "sourceBytes": 19032,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/wayfinding.glb",
+      "outputHash": "ad3b4ff5224ba04692b7f5acf8d8f21c3c1009dfd7843f420ddcd645979c2f9d",
+      "outputBytes": 9136,
+      "meshopt": true,
+      "before": {
+        "meshes": 6,
+        "primitives": 6,
+        "textures": []
+      },
+      "after": {
+        "meshes": 3,
+        "primitives": 3,
+        "textures": []
+      }
+    },
+    "public/asset-library/Scenario/Univille/whiteboard.glb": {
+      "profile": "staticProp",
+      "profileKey": "4e621bd19fb7",
+      "sourceHash": "d54bf4c0078548d4efc8b852d19a70a47451b2c7a4c4343eb7e0712710d8e0a7",
+      "sourceBytes": 20088,
+      "status": "optimized",
+      "output": "optimized/public/asset-library/Scenario/Univille/whiteboard.glb",
+      "outputHash": "50b94279dfcfe4f7a80f6a54306c969973427a3cceb31114db0bd5ba6296f39c",
+      "outputBytes": 10068,
+      "meshopt": true,
+      "before": {
+        "meshes": 9,
+        "primitives": 9,
+        "textures": []
+      },
+      "after": {
+        "meshes": 6,
+        "primitives": 6,
         "textures": []
       }
     }

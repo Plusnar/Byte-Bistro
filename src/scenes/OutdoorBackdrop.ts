@@ -13,10 +13,10 @@ import {
   type Scene,
 } from "@babylonjs/core";
 import type { AssetManager, ModelInstance } from "../core/AssetManager";
-import { publicModelUrl } from "../core/assets/assetRegistry";
+import { bundledModelUrl } from "../core/assets/assetRegistry";
 
 /**
- * The world outside the build area: a sky, a lawn to the horizon and a ring of trees around it.
+ * The world outside the build area: a sky, a lawn to the horizon, a path and clouds.
  *
  * Shared by the map editor and the kitchen (built-in level and custom maps alike), so a map
  * looks the same while it is built and while it is played. Nothing here is pickable or
@@ -25,9 +25,9 @@ import { publicModelUrl } from "../core/assets/assetRegistry";
  */
 
 export const BACKDROP_ASSET_ID = "environment-city";
-export const BACKDROP_ASSET_URL = publicModelUrl("assets/environment/cidade_fundo.glb");
+export const BACKDROP_ASSET_URL = bundledModelUrl("src/assets/environment/cidade_sem_arvores.glb");
 
-/** Sky and lawn palette; the horizon doubles as fog and clear colour so the trees fade into it. */
+/** Sky and lawn palette; the horizon doubles as fog and clear colour. */
 export const BACKDROP_COLORS = {
   zenith: "#4F8FD1",
   horizon: "#CFE2F0",
@@ -42,9 +42,9 @@ export interface OutdoorBackdropOptions {
 }
 
 export class OutdoorBackdrop {
-  /** Everything drawn, for glow exclusion; the trees join once they have loaded. */
+  /** Everything drawn, for glow exclusion; the path and clouds join once loaded. */
   readonly meshes: AbstractMesh[] = [];
-  /** Resolves when the trees are in (or failed to load; the sky and lawn never wait on it). */
+  /** Resolves once the town model loads or fails; the sky and lawn never wait on it. */
   readonly ready: Promise<void>;
 
   private readonly root: TransformNode;

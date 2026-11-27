@@ -81,6 +81,8 @@ const ABANDON_AFTER = 3;
 
 /** Seconds left on a ticket before its guest starts complaining. */
 const NAG_THRESHOLD_SECONDS = 15;
+/** Leave room between the couple's bodies when the bride reaches the altar. */
+const ALTAR_MEETING_DISTANCE = 1.05;
 /** Bounded reception, staggered arrivals and one kitchen ticket per guest. */
 export class WeddingGuests {
   readonly guests: WeddingGuest[] = [];
@@ -109,6 +111,13 @@ export class WeddingGuests {
   /** Seconds since the collider set was last checked. */
   private gridAge = Number.POSITIVE_INFINITY;
   private readonly bounds: MovementBounds;
+  private readonly ceremony: {
+    bride: WeddingGuest;
+    groom: WeddingGuest;
+    destination: Vector3;
+    yaw: number;
+    arrived: boolean;
+  } | null;
 
   /**
    * `area` places the reception explicitly; otherwise it is centred in `bounds`.
@@ -136,6 +145,7 @@ export class WeddingGuests {
      * so at construction time there are none to take.
      */
     private readonly mechanismFootprints: () => readonly Rect[] = () => [],
+    choreographWedding = false,
   ) {
     if (area) {
       this.area = { ...area };
@@ -215,11 +225,30 @@ export class WeddingGuests {
         path: [], lastSpeed: 0,
         anchor: entry.anchor, config: entry.config });
     }
+    const bride = choreographWedding ? this.guests[cast.findIndex(entry => entry.variant === 'bride')] : undefined;
+    const groom = choreographWedding ? this.guests[cast.findIndex(entry => entry.variant === 'groom')] : undefined;
+    this.ceremony = null;
+    if (bride && groom) {
+      const dx = groom.anchor.x - bride.anchor.x;
+      const dz = groom.anchor.z - bride.anchor.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > ALTAR_MEETING_DISTANCE) {
+        const fraction = 1 - ALTAR_MEETING_DISTANCE / distance;
+        this.ceremony = {
+          bride, groom,
+          destination: Vector3.Lerp(bride.anchor, groom.anchor, fraction),
+          yaw: Math.atan2(dx, dz),
+          arrived: false,
+        };
+        bride.config = { ...bride.config, canMove: false };
+        groom.config = { ...groom.config, canMove: false };
+      }
+    }
     this.ready = Promise.all(this.guests.map((guest, index) =>
       guest.controller.selectCharacter(robotCharacter(cast[index]!.variant)))).then(() => undefined);
   }
 
-  reset(): void {
+  reset(shiftDuration: number): void {
     this.generation++;
     this.elapsed = 0; this.nextArrival = 0;
     this.tickets.clear(); this.pending = []; this.lastRecipient = -1;
@@ -229,6 +258,34 @@ export class WeddingGuests {
       g.icon.setEnabled(false); g.root.setEnabled(false);
     }
     for (let i = 0; i < this.guests.length; i += 1) this.spawn();
+    if (this.ceremony) {
+      const { bride, groom, destination, yaw } = this.ceremony;
+      this.ceremony.arrived = false;
+      bride.root.rotation.y = yaw;
+      groom.root.rotation.y = yaw + Math.PI;
+      bride.controller.setLocomotion('walk');
+      // Slow both the travel and the existing walk cycle to match the ceremony's pace.
+      const speed = Vector3.Distance(bride.anchor, destination) / shiftDuration;
+      bride.controller.setAnimationSpeed(speed);
+    }
+  }
+
+  /** The aisle is laid out in a straight line. The round clock owns the entire trip. */
+  updateCeremony(progress: number): void {
+    const ceremony = this.ceremony;
+    if (!ceremony || ceremony.arrived) return;
+    const { bride, destination } = ceremony;
+    Vector3.LerpToRef(bride.anchor, destination, progress, bride.root.position);
+    if (progress >= 1) {
+      ceremony.arrived = true;
+      bride.controller.setLocomotion('idle');
+    }
+  }
+
+  setCeremonyPaused(paused: boolean): void {
+    if (this.ceremony && !this.ceremony.arrived) {
+      this.ceremony.bride.controller.setAnimationPaused(paused);
+    }
   }
 
   /** The most urgent ticket's guest, for the HUD's single-guest readout. */
@@ -299,6 +356,7 @@ export class WeddingGuests {
     const grid = this.navGrid();
     for (const g of this.guests) {
       if (!g.active) continue;
+      if (g === this.ceremony?.bride) continue;
       if (g.busy > 0) {
         g.busy -= dt;
         continue;
@@ -523,14 +581,15 @@ export class WeddingGuests {
     // Routed rather than aimed: the destination has to be somewhere the robot
     // can stand, and it needs a path before it takes its first step.
     this.retarget(g);
-    this.playIdle(g);
+    if (g !== this.ceremony?.bride) this.playIdle(g);
     this.nextArrival = this.elapsed + 5;
   }
 
   /** Loops whatever this robot idles as, falling back to the stock idle for unknown clips. */
   /** Robots standing in the kitchen, free to throw something. */
   get idleRobots(): WeddingGuest[] {
-    return this.guests.filter((g) => g.active && g.busy <= 0 && g.controller.hasCharacter);
+    return this.guests.filter((g) => g.active && g.busy <= 0 && g.controller.hasCharacter &&
+      g !== this.ceremony?.bride && g !== this.ceremony?.groom);
   }
 
   /**

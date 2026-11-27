@@ -7,6 +7,7 @@ import {
   Vector3,
 } from "@babylonjs/core";
 import { t } from "../../i18n";
+import { STOREY_REACH } from "../../physics/collisionPolicy";
 import { between, type Disaster, type DisasterHost } from "./types";
 
 /** How long a strike's circle shows on the floor before the bolt comes down. */
@@ -19,6 +20,7 @@ const BOLT_TOP = 16;
 
 interface Strike {
   readonly x: number;
+  readonly y: number;
   readonly z: number;
   clock: number;
   readonly marker: Mesh;
@@ -87,10 +89,12 @@ export class LightningStorm implements Disaster {
   private addStrike(): void {
     const { bounds, cooks } = this.host;
     const targets = cooks.filter((cook) => !cook.player.isAbducted);
+    let referenceY = targets[0]?.player.position.y ?? 0;
     let x: number;
     let z: number;
     if (targets.length > 0 && this.random() < 0.75) {
       const cook = targets[Math.floor(this.random() * targets.length)]!;
+      referenceY = cook.player.position.y;
       const angle = this.random() * Math.PI * 2;
       const distance = this.random() * 1.1;
       x = cook.player.position.x + Math.cos(angle) * distance;
@@ -102,10 +106,11 @@ export class LightningStorm implements Disaster {
     x = Math.min(bounds.maxX, Math.max(bounds.minX, x));
     z = Math.min(bounds.maxZ, Math.max(bounds.minZ, z));
 
+    const y = this.host.floorHeight(x, referenceY, z);
     const scene = this.host.scene;
     const marker = MeshBuilder.CreateDisc("lightning-target", { radius: STRIKE_RADIUS, tessellation: 40 }, scene);
     marker.rotation.x = Math.PI / 2;
-    marker.position.set(x, 0.03, z);
+    marker.position.set(x, y + 0.03, z);
     marker.material = this.markerMaterial;
     marker.isPickable = false;
     const ring = MeshBuilder.CreateTorus("lightning-ring", {
@@ -113,10 +118,10 @@ export class LightningStorm implements Disaster {
       thickness: 0.07,
       tessellation: 40,
     }, scene);
-    ring.position.set(x, 0.05, z);
+    ring.position.set(x, y + 0.05, z);
     ring.material = this.ringMaterial;
     ring.isPickable = false;
-    this.strikes.push({ x, z, clock: 0, marker, ring, bolt: null, light: null, struck: false });
+    this.strikes.push({ x, y, z, clock: 0, marker, ring, bolt: null, light: null, struck: false });
   }
 
   private updateStrike(strike: Strike, dt: number): void {
@@ -163,8 +168,8 @@ export class LightningStorm implements Disaster {
     strike.marker.scaling.setAll(0.75);
     const scene = this.host.scene;
 
-    strike.bolt = this.makeBolt(strike.x, strike.z);
-    const light = new PointLight("lightning-flash", new Vector3(strike.x, 3, strike.z), scene);
+    strike.bolt = this.makeBolt(strike.x, strike.y, strike.z);
+    const light = new PointLight("lightning-flash", new Vector3(strike.x, strike.y + 3, strike.z), scene);
     light.diffuse = Color3.FromHexString("#CFEAFF");
     light.intensity = 14;
     light.range = 9;
@@ -176,7 +181,7 @@ export class LightningStorm implements Disaster {
 
     for (const cook of this.host.cooks) {
       const player = cook.player;
-      if (player.isDowned()) continue;
+      if (player.isDowned() || Math.abs(player.position.y - strike.y) > STOREY_REACH) continue;
       const dx = player.position.x - strike.x;
       const dz = player.position.z - strike.z;
       if (dx * dx + dz * dz > STRIKE_RADIUS * STRIKE_RADIUS) continue;
@@ -187,12 +192,12 @@ export class LightningStorm implements Disaster {
   }
 
   /** A jagged bolt from the sky to (x, z), with a couple of short branches. */
-  private makeBolt(x: number, z: number): Mesh {
+  private makeBolt(x: number, floor: number, z: number): Mesh {
     const scene = this.host.scene;
     const path: Vector3[] = [];
     const steps = 12;
     for (let i = 0; i <= steps; i += 1) {
-      const y = BOLT_TOP * (1 - i / steps);
+      const y = floor + BOLT_TOP * (1 - i / steps);
       const jitter = i === 0 || i === steps ? 0 : 0.55;
       path.push(new Vector3(
         x + (this.random() - 0.5) * 2 * jitter,

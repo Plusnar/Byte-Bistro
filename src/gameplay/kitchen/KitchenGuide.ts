@@ -1,14 +1,15 @@
 import type { PlayerIndex } from "../../types/events";
 import { t } from "../../i18n";
-import { cookableState, getFoodDefinition, vesselForState, type CookwareKind } from "../../data/kitchen";
+import { cookableState, getFoodDefinition, vesselForState, STATE_OF_VESSEL, type CookwareKind } from "../../data/kitchen";
 import { getIngredient } from "../../data/ingredients";
 import type { FoodState, KitchenStationKind, RecipeComponent, RecipeData } from "../../types/game";
-import { isCookware, type FoodItem, type KitchenItem } from "./KitchenItems";
+import { componentsFitRecipe, isCookware, isCookwareCooked, type FoodItem, type KitchenItem, type PlateItem } from "./KitchenItems";
 
 /** Where a top-level item currently is; held items carry the player index. */
 export interface ItemLocation {
   readonly item: KitchenItem;
   readonly holder: PlayerIndex | null;
+  readonly processing?: boolean;
 }
 
 export interface GuideTask {
@@ -26,7 +27,7 @@ export interface ComponentStatus {
   readonly ingredientId: string;
   /** The state the recipe wants it in. */
   readonly state: FoodState;
-  readonly stage: Stage;
+  readonly stage: ComponentStage;
 }
 
 export interface GuideResult {
@@ -50,57 +51,60 @@ export interface QueueGuideResult {
   readonly byOrder: ReadonlyMap<string, GuideResult>;
 }
 
-type Stage = "fetch" | "mix" | "chop" | "cook" | "cooking" | "plate" | "plated";
+export type ComponentStage = "fetch" | "chop" | "cutting" | "cook" | "cooking" | "plate" | "plated";
 
 interface TrackedFood {
   readonly food: FoodItem;
-  readonly holder: PlayerIndex | null;
-  readonly inCookware: boolean;
-  /** Which vessel it is in, when `inCookware`. */
   readonly vessel?: CookwareKind;
-  readonly onPlate: boolean;
+  readonly vesselReady?: boolean;
+  readonly processing?: boolean;
+  readonly plate?: PlateItem;
 }
 
-const STAGE_RANK: Readonly<Record<Stage, number>> = {
+const STAGE_RANK: Readonly<Record<ComponentStage, number>> = {
   plated: 6,
   plate: 5,
   cooking: 4,
   cook: 3,
-  chop: 2,
-  /** Unused since nothing is made out of other ingredients; kept for the ticket's type. */
-  mix: 1,
+  cutting: 2,
+  chop: 1,
   fetch: 0,
 };
 
 const nameOf = (ingredientId: string): string =>
   getIngredient(ingredientId)?.displayName ?? ingredientId;
 
-const stageOf = (tracked: TrackedFood, component: RecipeComponent): Stage | null => {
+const stageOf = (tracked: TrackedFood, component: RecipeComponent): ComponentStage | null => {
   const definition = getFoodDefinition(component.ingredientId);
   if (!definition || tracked.food.ingredientId !== component.ingredientId) return null;
   const state = tracked.food.state;
   if (state === "burnt") return null;
-  if (state === component.state) return tracked.onPlate ? "plated" : "plate";
+  if (state === component.state && (!tracked.vessel || tracked.vesselReady)) {
+    return tracked.plate ? "plated" : "plate";
+  }
   const vessel = vesselForState(component.state);
   const prepared = state === cookableState(definition);
-  if (tracked.inCookware) return vessel && tracked.vessel === vessel && prepared ? "cooking" : null;
-  if (tracked.onPlate) return null;
+  if (tracked.vessel) {
+    return tracked.vessel === vessel && (prepared || state === STATE_OF_VESSEL[tracked.vessel])
+      ? tracked.processing ? "cooking" : "cook"
+      : null;
+  }
+  if (tracked.plate) return null;
   if (vessel && prepared) return "cook";
-  if (definition.chop && state === "raw") return "chop";
+  if (definition.chop && state === "raw") return tracked.food.chopProgress > 0 ? "cutting" : "chop";
   return null;
 };
 
 const collectFood = (locations: readonly ItemLocation[]): TrackedFood[] => {
   const result: TrackedFood[] = [];
-  for (const { item, holder } of locations) {
+  for (const { item, processing } of locations) {
     if (item.kind === "food") {
-      result.push({ food: item, holder, inCookware: false, onPlate: false });
+      result.push({ food: item });
     } else if (item.kind === "plate" && !item.dirty) {
-      for (const food of item.contents) result.push({ food, holder, inCookware: false, onPlate: true });
+      for (const food of item.contents) result.push({ food, plate: item });
     } else if (isCookware(item)) {
-      for (const food of item.contents) {
-        result.push({ food, holder, inCookware: true, vessel: item.kind, onPlate: false });
-      }
+      const vesselReady = isCookwareCooked(item);
+      for (const food of item.contents) result.push({ food, vessel: item.kind, vesselReady, processing });
     }
   }
   return result;
@@ -123,14 +127,16 @@ const computeGuideWithClaims = (
   recipe: RecipeData,
   foods: readonly TrackedFood[],
   used: Set<FoodItem>,
+  plate?: PlateItem,
 ): GuideResult => {
   const tasks: GuideTask[] = [];
   const componentStages: ComponentStatus[] = [];
   let completed = 0;
 
   recipe.components.forEach((component, index) => {
-    let best: { tracked: TrackedFood; stage: Stage } | null = null;
+    let best: { tracked: TrackedFood; stage: ComponentStage } | null = null;
     for (const tracked of foods) {
+      if (tracked.plate && tracked.plate !== plate) continue;
       if (used.has(tracked.food)) continue;
       const stage = stageOf(tracked, component);
       if (!stage) continue;
@@ -167,7 +173,8 @@ export const computeGuide = (
   locations: readonly ItemLocation[],
 ): GuideResult => {
   const foods = collectFood(locations);
-  const result = computeGuideWithClaims(recipe, foods, new Set());
+  const plate = availablePlates(locations).find(item => componentsFitRecipe(item.contents, recipe.components));
+  const result = computeGuideWithClaims(recipe, foods, new Set(), plate);
   if (!foods.some((tracked) => tracked.food.state === "burnt")) return result;
   return { ...result, tasks: [burntTask(), ...result.tasks] };
 };
@@ -190,8 +197,22 @@ export const computeQueueGuide = (
   const tasks: GuideTask[] = [];
 
   const ordered = [...requests].sort((a, b) => a.secondsRemaining - b.secondsRemaining);
+  const plates = availablePlates(locations);
+  const assigned = new Map<string, PlateItem>();
+  // Reserve complete dishes first. A different recipe with overlapping ingredients
+  // cannot claim pieces from a finished plate, and each plate can serve only one ticket.
   for (const request of ordered) {
-    const result = computeGuideWithClaims(request.recipe, foods, used);
+    const plate = plates.findIndex(item => item.contents.length === request.recipe.components.length &&
+      componentsFitRecipe(item.contents, request.recipe.components));
+    if (plate >= 0) assigned.set(request.orderId, plates.splice(plate, 1)[0]!);
+  }
+  for (const request of ordered) {
+    let plate = assigned.get(request.orderId);
+    if (!plate) {
+      const partial = plates.findIndex(item => componentsFitRecipe(item.contents, request.recipe.components));
+      if (partial >= 0) plate = plates.splice(partial, 1)[0];
+    }
+    const result = computeGuideWithClaims(request.recipe, foods, used, plate);
     const namespaced = result.tasks.map((task) => ({
       ...task,
       key: `${request.orderId}#${task.key}`,
@@ -206,7 +227,12 @@ export const computeQueueGuide = (
   return { tasks, byOrder };
 };
 
-const taskFor = (stage: Stage, component: RecipeComponent, index: number): GuideTask => {
+const availablePlates = (locations: readonly ItemLocation[]): PlateItem[] => locations
+  .map(({ item }) => item)
+  .filter((item): item is PlateItem => item.kind === "plate" && !item.dirty && item.contents.length > 0)
+  .sort((a, b) => b.contents.length - a.contents.length);
+
+const taskFor = (stage: ComponentStage, component: RecipeComponent, index: number): GuideTask => {
   const name = nameOf(component.ingredientId);
   const key = `${stage}:${component.ingredientId}:${index}`;
   switch (stage) {
@@ -219,13 +245,13 @@ const taskFor = (stage: Stage, component: RecipeComponent, index: number): Guide
         ingredientId: component.ingredientId,
       };
     case "chop":
+    case "cutting":
       return {
         key,
         title: t("kitchen.guideChopTitle", { name }),
         detail: t("kitchen.guideChopDetail"),
         stationKind: "cutting_board",
       };
-    case "mix":
     case "cook": {
       const vessel = vesselForState(component.state);
       if (vessel === "bowl") {

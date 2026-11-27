@@ -2,7 +2,7 @@ import { formatNumber, t } from "../i18n";
 import { moveCameraTarget } from "./editorCamera";
 import { INGREDIENT_ASSETS } from "../data/ingredientAssets";
 import { MIXER_ASSET_ID, OVEN_ASSET_ID, STATION_ASSETS } from "../data/stationAssets";
-import { isSeeThroughStructure, STRUCTURE_OPACITY, StructureMaterials } from "../core/render/structureVisibility";
+import { isConstruction, ConstructionMaterials } from "../core/render/structureVisibility";
 import { ASSET_LIBRARY } from "../data/assetLibrary";
 import { createBuildingMesh } from "../editor/building";
 import { isMapPlayable } from "../editor/validation";
@@ -25,7 +25,6 @@ import {
   UtilityLayerRenderer,
   Vector3,
   type AbstractEngine,
-  type AbstractMesh,
   type LinesMesh,
 } from "@babylonjs/core";
 import type { ModelInstance } from "../core/AssetManager";
@@ -89,8 +88,6 @@ import {
  * - `erase` (sledgehammer): click to delete, drag a box to delete everything in it.
  */
 export type EditorTool = "select" | "place" | "erase" | "eyedropper" | "design" | "wall" | "floor";
-/** The three transparency levels for walls and upper floors. */
-export type WallMode = "up" | "cutaway" | "down";
 /** Nothing refuses a placement; off the lot it is only scenery, and the hint says so. */
 export type PlacementIssue = "outside" | null;
 
@@ -149,7 +146,6 @@ interface GhostSource {
 
 const SNAP_ROTATION = Math.PI / 12;
 const MIN_SCALE = MIN_OBJECT_SCALE;
-const WALL_OPACITY: Readonly<Record<WallMode, number>> = { up: 0.36, cutaway: STRUCTURE_OPACITY, down: 0.10 };
 /** Beyond this many selected objects the outline is too costly; they get a tint instead. */
 const OUTLINE_LIMIT = 60;
 const SELECTION_COLOR = Color3.FromHexString("#5DE4FF");
@@ -197,7 +193,7 @@ export class EditorScene implements ManagedScene {
   private readonly contextMenuObserver: (event: Event) => void;
   private readonly backdrop: OutdoorBackdrop;
   private readonly colorCache = new MaterialOverrideCache();
-  private readonly structureMaterials = new StructureMaterials();
+  private readonly constructionMaterials = new ConstructionMaterials();
   private readonly highlight: HighlightLayer;
   private currentTool: EditorTool = "select";
   private currentAsset: EditorAssetEntry | null = null;
@@ -269,8 +265,6 @@ export class EditorScene implements ManagedScene {
   };
   private savedBeta: number = DEFAULT_CAMERA.beta;
   private readonly cameraKeys = new Set<string>();
-  private wallMode: WallMode = "cutaway";
-  private wallsDirty = true;
   private loadingProgress = 1;
   private stateVersion = 0;
   private readonly releaseInput = (): void => {
@@ -391,7 +385,6 @@ export class EditorScene implements ManagedScene {
   getGizmoMode(): "position" | "rotation" | "scale" { return this.gizmoMode; }
   getLoadingProgress(): number { return this.loadingProgress; }
   getSelectionSize(): number { return this.selectionIds.size; }
-  getWallMode(): WallMode { return this.wallMode; }
   isGridVisible(): boolean { return this.gridVisible; }
   /** "Livre": no grid, any angle, no squaring up to walls, as when Alt is held. */
   isFreePlacement(): boolean { return !this.snap; }
@@ -537,18 +530,6 @@ export class EditorScene implements ManagedScene {
     this.bump();
   }
 
-  setWallMode(mode: WallMode): void {
-    if (this.wallMode === mode) return;
-    this.wallMode = mode;
-    this.wallsDirty = true;
-    this.bump();
-  }
-
-  cycleWallMode(): WallMode {
-    const order: WallMode[] = ["up", "cutaway", "down"];
-    this.setWallMode(order[(order.indexOf(this.wallMode) + 1) % order.length]!);
-    return this.wallMode;
-  }
 
   setGridVisible(visible: boolean): void {
     this.gridVisible = visible;
@@ -827,7 +808,6 @@ export class EditorScene implements ManagedScene {
   update(deltaSeconds: number): void {
     if (this.disposed) return;
     this.updateCamera(Math.min(deltaSeconds, 0.1));
-    this.updateWalls();
   }
 
   render(): void {
@@ -863,7 +843,7 @@ export class EditorScene implements ManagedScene {
     this.highlight.dispose();
     for (const visual of this.visuals.values()) this.disposeVisual(visual);
     this.visuals.clear();
-    this.structureMaterials.dispose();
+    this.constructionMaterials.dispose();
     this.colorCache.dispose();
     this.backdrop.dispose();
     this.assets.dispose();
@@ -1077,7 +1057,6 @@ export class EditorScene implements ManagedScene {
       objects: this.currentMap.objects.map((entry: MapPlacedObject) => updated.get(entry.id) ?? entry),
       updatedAt: Date.now(),
     };
-    this.wallsDirty = true;
     this.bump();
   }
 
@@ -1116,7 +1095,6 @@ export class EditorScene implements ManagedScene {
       visual.data = data;
     }
     for (const id of [...this.selectionIds]) if (!byId.has(id)) this.selectionIds.delete(id);
-    this.wallsDirty = true;
     this.refreshSelectionHighlights();
 
     const missing = this.currentMap.objects.filter(object => !this.visuals.has(object.id));
@@ -1137,7 +1115,6 @@ export class EditorScene implements ManagedScene {
         if (this.visuals.has(visual.data.id) || !byId.has(visual.data.id)) this.disposeVisual(visual);
         else this.visuals.set(visual.data.id, visual);
       }
-      this.wallsDirty = true;
     }
     this.loadingProgress = 1;
     this.refreshSelectionHighlights();
@@ -1225,6 +1202,7 @@ export class EditorScene implements ManagedScene {
       span: null,
     };
     this.nudgeBody(visual);
+    this.makeConstructionOpaque(visual);
     return visual;
   }
 
@@ -1307,38 +1285,20 @@ export class EditorScene implements ManagedScene {
   }
 
   private pickObjectId(x: number, y: number): string | null {
-    const selectable = (mesh: AbstractMesh): boolean =>
-      Boolean(mesh.metadata?.objectId) && mesh.isPickable && mesh.isEnabled();
-    // Click through a translucent wall to the visible object. Pick the wall itself
-    // where there is no object behind it.
-    const object = this.scene.pick(x, y, mesh => !this.structureMaterials.has(mesh) && selectable(mesh));
-    const pick = object?.hit ? object : this.scene.pick(x, y, selectable);
+    const pick = this.scene.pick(x, y, (mesh) =>
+      Boolean(mesh.metadata?.objectId) && mesh.isPickable && mesh.isEnabled());
     return (pick?.pickedMesh?.metadata?.objectId as string | undefined) ?? null;
   }
 
-  // ---------------------------------------------------------------------------------------
-  // Walls views
-
-  private updateWalls(): void {
-    if (!this.wallsDirty) return;
-    this.wallsDirty = false;
-    for (const visual of this.visuals.values()) this.applyStructureOpacity(visual);
-  }
-
-  private applyStructureOpacity(visual: EditorObjectVisual): void {
-    const { assetId, category } = visual.data;
-    const translucent = isSeeThroughStructure(assetId, visual.root.position.y, category);
-    for (const mesh of visual.root.getChildMeshes()) {
-      if (translucent) this.structureMaterials.fade(mesh, WALL_OPACITY[this.wallMode]);
-      else this.structureMaterials.restore(mesh);
-    }
+  private makeConstructionOpaque(visual: EditorObjectVisual): void {
+    if (!isConstruction(visual.data.assetId, visual.data.category)) return;
+    for (const mesh of visual.root.getChildMeshes()) this.constructionMaterials.apply(mesh);
   }
 
   private paintVisual(visual: EditorObjectVisual, colors: MapPlacedObject["colors"]): void {
     if (!visual.instance) return;
-    for (const mesh of visual.root.getChildMeshes()) this.structureMaterials.restore(mesh);
     applyColorOverrides(visual.instance.rootNodes, colors, this.colorCache);
-    this.applyStructureOpacity(visual);
+    this.makeConstructionOpaque(visual);
   }
 
   // ---------------------------------------------------------------------------------------
@@ -2255,9 +2215,10 @@ export class EditorScene implements ManagedScene {
     const visual = await this.spawnObject({ ...data, id: `preview-${version}` });
     if (!visual) return;
     if (this.disposed || version !== this.previewVersion) { this.disposeVisual(visual); return; }
+    const construction = isConstruction(visual.data.assetId, visual.data.category);
     for (const mesh of visual.root.getChildMeshes()) {
       mesh.isPickable = false;
-      mesh.visibility = 0.55;
+      mesh.visibility = construction ? 1 : 0.55;
       mesh.metadata = null;
     }
     visual.root.rotation.y = this.placementRotation;
@@ -2497,7 +2458,6 @@ export class EditorScene implements ManagedScene {
       case "KeyI": this.setTool("eyedropper"); this.setAsset(null); return true;
       case "KeyR": this.setTool("design"); this.setAsset(null); return true;
       case "KeyK": this.setTool("erase"); this.setAsset(null); return true;
-      case "KeyV": this.cycleWallMode(); return true;
       case "KeyG": this.setGridVisible(!this.gridVisible); return true;
       case "KeyL": this.setFreePlacement(this.snap); return true;
       case "KeyT": this.toggleTopView(); return true;

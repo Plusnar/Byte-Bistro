@@ -9,6 +9,7 @@ import {
   Vector3,
 } from "@babylonjs/core";
 import { t } from "../../i18n";
+import { STOREY_REACH } from "../../physics/collisionPolicy";
 import type { LoopHandle } from "../../core/SynthSfx";
 import { trackParticleSystem } from "../../core/perf/effectBudget";
 import { DISASTER_MODEL_IDS } from "./assets";
@@ -60,6 +61,7 @@ export class AlienAbduction implements Disaster {
   private readonly exit = new Vector3();
   private hum: LoopHandle | null = null;
   private wander = 0;
+  private beamFloor = 0;
 
   constructor(private readonly host: DisasterHost, private readonly random: () => number = Math.random) {}
 
@@ -75,8 +77,9 @@ export class AlienAbduction implements Disaster {
     // In from one side, high, and out the other when it leaves.
     const fromLeft = this.random() < 0.5;
     const midZ = (bounds.minZ + bounds.maxZ) / 2;
-    this.entry.set(fromLeft ? bounds.minX - 8 : bounds.maxX + 8, HOVER_HEIGHT + 5, midZ);
-    this.exit.set(fromLeft ? bounds.maxX + 10 : bounds.minX - 10, HOVER_HEIGHT + 8, midZ);
+    const floor = this.targetFloor(this.chaseTarget());
+    this.entry.set(fromLeft ? bounds.minX - 8 : bounds.maxX + 8, floor + HOVER_HEIGHT + 5, midZ);
+    this.exit.set(fromLeft ? bounds.maxX + 10 : bounds.minX - 10, floor + HOVER_HEIGHT + 8, midZ);
     this.ship.root.position.copyFrom(this.entry);
 
     const beamMaterial = this.material("ufo-beam", "#7DFFC8", 0.26);
@@ -109,7 +112,7 @@ export class AlienAbduction implements Disaster {
     if (this.clock < ARRIVE_SECONDS) {
       const t = this.clock / ARRIVE_SECONDS;
       const target = this.chaseTarget();
-      Vector3.LerpToRef(this.entry, new Vector3(target.x, HOVER_HEIGHT, target.z), t * t * (3 - 2 * t), root.position);
+      Vector3.LerpToRef(this.entry, new Vector3(target.x, this.targetFloor(target) + HOVER_HEIGHT, target.z), t * t * (3 - 2 * t), root.position);
     } else if (leaving) {
       // Up and away; done once it is out of sight.
       const toExit = this.exit.subtract(root.position);
@@ -125,8 +128,10 @@ export class AlienAbduction implements Disaster {
     root.position.y += Math.sin(this.wander * 2.1) * 0.004;
 
     this.cycleBeam(dt, leaving);
-    this.placeBeam(root.position);
-    if (this.beamOn) this.grab(root, dt);
+    if (this.beamOn) {
+      this.placeBeam(root.position);
+      this.grab(root, dt);
+    }
     this.updateCaptives(dt);
     return true;
   }
@@ -134,7 +139,7 @@ export class AlienAbduction implements Disaster {
   stop(): void {
     for (const captive of this.captives) {
       if (!captive.dropped && captive.cook.player.isAbducted) {
-        const spot = this.host.freeSpot();
+        const spot = this.host.spawnPoint(captive.cook);
         captive.cook.player.dropFromSky(spot.x, spot.z);
       }
     }
@@ -169,6 +174,10 @@ export class AlienAbduction implements Disaster {
     return best ?? new Vector3((bounds.minX + bounds.maxX) / 2, 0, (bounds.minZ + bounds.maxZ) / 2);
   }
 
+  private targetFloor(at: Vector3): number {
+    return this.host.floorHeight(at.x, at.y, at.z);
+  }
+
   private chase(root: TransformNode, dt: number): void {
     const target = this.chaseTarget();
     // A loose circle round the target, so it sweeps rather than sits on them.
@@ -182,7 +191,7 @@ export class AlienAbduction implements Disaster {
       root.position.x += (dx / distance) * step;
       root.position.z += (dz / distance) * step;
     }
-    root.position.y += (HOVER_HEIGHT - root.position.y) * Math.min(1, dt * 2);
+    root.position.y += (this.targetFloor(target) + HOVER_HEIGHT - root.position.y) * Math.min(1, dt * 2);
   }
 
   private cycleBeam(dt: number, leaving: boolean): void {
@@ -207,13 +216,15 @@ export class AlienAbduction implements Disaster {
   }
 
   private placeBeam(ship: Vector3): void {
-    const height = Math.max(0.5, ship.y - 0.25);
+    const floor = this.targetFloor(this.chaseTarget());
+    this.beamFloor = this.host.floorHeight(ship.x, floor, ship.z);
+    const height = Math.max(0.5, ship.y - this.beamFloor - 0.25);
     if (this.beam) {
-      this.beam.position.set(ship.x, height / 2, ship.z);
+      this.beam.position.set(ship.x, this.beamFloor + height / 2, ship.z);
       this.beam.scaling.y = height / HOVER_HEIGHT;
       this.beam.visibility = 0.75 + Math.sin(this.wander * 14) * 0.25;
     }
-    this.spot?.position.set(ship.x, 0.04, ship.z);
+    this.spot?.position.set(ship.x, this.beamFloor + 0.04, ship.z);
   }
 
   /** Anyone in the light long enough is lifted up into the saucer. */
@@ -224,7 +235,7 @@ export class AlienAbduction implements Disaster {
       if (player.isAbducted || player.isDowned()) continue;
       const dx = player.position.x - root.position.x;
       const dz = player.position.z - root.position.z;
-      if (dx * dx + dz * dz > BEAM_RADIUS * BEAM_RADIUS) {
+      if (Math.abs(player.position.y - this.beamFloor) > STOREY_REACH || dx * dx + dz * dz > BEAM_RADIUS * BEAM_RADIUS) {
         this.exposure.delete(cook.index);
         continue;
       }
@@ -267,7 +278,7 @@ export class AlienAbduction implements Disaster {
   private puff(at: Vector3): void {
     const smoke = new ParticleSystem("ufo-landing-smoke", 70, this.host.scene);
     if (this.host.juiceTexture) smoke.particleTexture = this.host.juiceTexture;
-    smoke.emitter = new Vector3(at.x, 0.15, at.z);
+    smoke.emitter = new Vector3(at.x, at.y + 0.15, at.z);
     smoke.minEmitBox = new Vector3(-0.25, 0, -0.25);
     smoke.maxEmitBox = new Vector3(0.25, 0.1, 0.25);
     smoke.color1 = new Color4(0.92, 0.9, 0.88, 0.85);

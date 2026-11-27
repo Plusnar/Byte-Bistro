@@ -163,6 +163,10 @@
       "profile": "staticScene"
     },
     {
+      "path": "src/assets/environment/cidade_sem_arvores.glb",
+      "profile": "staticScene"
+    },
+    {
       "path": "public/asset-library/Scenario/Praca/araucaria.glb",
       "profile": "staticProp"
     },
@@ -300,6 +304,134 @@
     },
     {
       "path": "public/asset-library/Scenario/SalaoPauli/light_disco.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/auditorium_seats.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/backpack.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/basketball.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/basket_hoop.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/bench.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/bleachers.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/bookcase.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/column.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/floor_carpet.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/floor_court.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/floor_court_center.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/floor_court_line.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/floor_patio.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/floor_terrazzo.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/lectern.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/linear_lamp.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/monitor.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/notice_board.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/planter.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/recycling_bin.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/stage_module.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/stage_steps.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/student_chair.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/student_desk.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/teacher_desk.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/truss.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/wall_class.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/wall_door.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/wall_gallery.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/wall_gym.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/wayfinding.glb",
+      "profile": "staticProp"
+    },
+    {
+      "path": "public/asset-library/Scenario/Univille/whiteboard.glb",
       "profile": "staticProp"
     }
   ],

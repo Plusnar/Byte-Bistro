@@ -9,6 +9,7 @@ import {
   type Node,
 } from "@babylonjs/core";
 import { t } from "../../i18n";
+import { STOREY_REACH } from "../../physics/collisionPolicy";
 import type { LoopHandle } from "../../core/SynthSfx";
 import { DISASTER_MODEL_IDS } from "./assets";
 import { spawnProp, type Prop } from "./props";
@@ -112,6 +113,8 @@ export class TeslaCrash implements Disaster {
     this.hitCooks.clear();
     const victims = cooks.filter((cook) => !cook.player.isAbducted);
     const cook = victims[Math.floor(this.random() * victims.length)];
+    const target = cook?.player.position;
+    const floor = target ? this.host.floorHeight(target.x, target.y, target.z) : 0;
     const across = this.pass !== 1;
     // Each pass comes from the other side to the one before.
     const forwards = (this.pass % 2 === 0) === (this.random() < 0.5);
@@ -120,14 +123,14 @@ export class TeslaCrash implements Disaster {
       const z = cook
         ? Math.min(bounds.maxZ, Math.max(bounds.minZ, cook.player.position.z + between(-0.4, 0.4, this.random)))
         : between(bounds.minZ, bounds.maxZ, this.random);
-      this.from.set(forwards ? bounds.minX - margin : bounds.maxX + margin, 0, z);
-      this.to.set(forwards ? bounds.maxX + margin : bounds.minX - margin, 0, z);
+      this.from.set(forwards ? bounds.minX - margin : bounds.maxX + margin, floor, z);
+      this.to.set(forwards ? bounds.maxX + margin : bounds.minX - margin, floor, z);
     } else {
       const x = cook
         ? Math.min(bounds.maxX, Math.max(bounds.minX, cook.player.position.x + between(-0.4, 0.4, this.random)))
         : between(bounds.minX, bounds.maxX, this.random);
-      this.from.set(x, 0, forwards ? bounds.minZ - margin : bounds.maxZ + margin);
-      this.to.set(x, 0, forwards ? bounds.maxZ + margin : bounds.minZ - margin);
+      this.from.set(x, floor, forwards ? bounds.minZ - margin : bounds.maxZ + margin);
+      this.to.set(x, floor, forwards ? bounds.maxZ + margin : bounds.minZ - margin);
     }
     this.to.subtractToRef(this.from, this.direction);
     this.length = this.direction.length();
@@ -140,7 +143,7 @@ export class TeslaCrash implements Disaster {
     }, scene);
     this.lane.position.set(
       across ? (bounds.minX + bounds.maxX) / 2 : this.from.x,
-      0.035,
+      floor + 0.035,
       across ? this.from.z : (bounds.minZ + bounds.maxZ) / 2,
     );
     this.lane.material = this.laneMaterial;
@@ -216,10 +219,11 @@ export class TeslaCrash implements Disaster {
     this.travelled += CAR_SPEED * dt;
     this.from.addToRef(this.direction.scale(this.travelled), car.root.position);
     // A rattle on the suspension at that speed.
-    car.root.position.y = Math.abs(Math.sin(this.travelled * 3)) * 0.04;
+    car.root.position.y = this.from.y + Math.abs(Math.sin(this.travelled * 3)) * 0.04;
     const front = car.root.position.add(this.direction.scale(CAR_HALF_LENGTH));
 
     for (const view of this.host.stationViews()) {
+      if (Math.abs(view.root.position.y - this.from.y) > STOREY_REACH) continue;
       // Views are listed afresh each call, so they are matched by their node.
       if (this.wrecks.some((wreck) => wreck.view.root === view.root)) continue;
       const along = (view.x - this.from.x) * this.direction.x + (view.z - this.from.z) * this.direction.z;
@@ -230,6 +234,7 @@ export class TeslaCrash implements Disaster {
     for (const cook of this.host.cooks) {
       if (this.hitCooks.has(cook.index) || cook.player.isAbducted) continue;
       const p = cook.player.position;
+      if (Math.abs(p.y - this.from.y) > STOREY_REACH) continue;
       const along = (p.x - car.root.position.x) * this.direction.x + (p.z - car.root.position.z) * this.direction.z;
       const lateral = Math.abs((p.x - this.from.x) * this.direction.z - (p.z - this.from.z) * this.direction.x);
       if (lateral > LANE_HALF_WIDTH * 0.9 || Math.abs(along) > CAR_HALF_LENGTH) continue;
@@ -242,7 +247,7 @@ export class TeslaCrash implements Disaster {
     const passedCentre = (centre.x - front.x) * this.direction.x + (centre.z - front.z) * this.direction.z < 0;
     if (!this.scattered && passedCentre) {
       this.scattered = true;
-      this.host.scatterFloorItems(front.x, front.z, 3, 7);
+      this.host.scatterFloorItems(front.x, this.from.y, front.z, 3, 7);
     }
     for (const wreck of this.wrecks) this.fly(wreck, dt);
 
@@ -299,9 +304,11 @@ export class TeslaCrash implements Disaster {
     flight.position.addInPlace(wreck.velocity.scale(dt));
     const turn = Quaternion.FromEulerAngles(wreck.spin.x * dt, wreck.spin.y * dt, wreck.spin.z * dt);
     flight.rotationQuaternion = turn.multiply(flight.rotationQuaternion!);
-    if (flight.position.y > 0) return;
+    if (flight.position.y > wreck.home.y + 0.35) return;
+    const floor = this.host.floorHeight(flight.position.x, wreck.home.y, flight.position.z);
+    if (flight.position.y > floor) return;
     // Bounces, slowing, until it lies still where it fell.
-    flight.position.y = 0;
+    flight.position.y = floor;
     if (Math.abs(wreck.velocity.y) < 1.5) {
       wreck.velocity.setAll(0);
       wreck.spin.setAll(0);

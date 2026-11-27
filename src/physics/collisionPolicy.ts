@@ -20,6 +20,9 @@
  */
 export const STEP_HEIGHT = 0.58;
 
+/** Vertical tolerance for interactions on a floor, including a nearby step or ramp. */
+export const STOREY_REACH = 1.2;
+
 /**
  * Props shorter than this get no collider at all and are simply walked over;
  * the cook's collision capsule floats this high above the feet to match.

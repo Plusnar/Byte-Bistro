@@ -20,6 +20,7 @@ import {
 } from "@babylonjs/core";
 import { DeliveryBeacon, type BeaconTarget } from "../ui/DeliveryBeacon";
 import { flightGroundContact } from "../physics/groundProbe";
+import { STOREY_REACH } from "../physics/collisionPolicy";
 import { NearbyColliders } from "../physics/nearbyColliders";
 import { GAME_CONFIG, isDevelopmentMode } from "../config";
 import type { AssetManager } from "../core/AssetManager";
@@ -45,7 +46,6 @@ import {
 } from "../data";
 import {
   KITCHEN_ASSETS,
-  COUNTER_HEIGHT,
   KITCHEN_TILE,
   STATION_KIND_LABEL,
   cookableState,
@@ -187,6 +187,8 @@ const DASH_SHOVE_STRENGTH = 0.3;
 const BOTTLE_STUN_STRENGTH = 0.45;
 /** How far ahead of the player the "tile in front" probe sits. */
 const REACH_PROBE = 0.85;
+/** The wedding's serving counter sits behind the church door. Serve from the aisle. */
+const WEDDING_DOOR_REACH_OFFSET = 1.5;
 /** Max distance from the probe to a station centre for it to be targetable. */
 const STATION_REACH = KITCHEN_TILE * 0.8;
 const FLOOR_REACH = 0.8;
@@ -195,7 +197,6 @@ const NOTIFY_THROTTLE_MS = 900;
 /** How often the task guide and order cards are rebuilt. */
 const HUD_REFRESH_SECONDS = 1 / 12;
 /** How far above or below a cook's feet a station may stand and still be in reach. */
-const STOREY_REACH = 1.2;
 /** Kept low so the bloom does not wash out speech bubbles and HUD billboards. */
 const GLOW_BASE_INTENSITY = 0.34;
 const COOK_ASSET_IDS: ReadonlySet<string> = new Set(CHARACTERS.map((character) => character.modelAssetId));
@@ -257,6 +258,7 @@ interface CoopPlayerState {
 
 export interface KitchenSceneOptions {
   readonly shiftDuration: number;
+  readonly officialWedding?: boolean;
   readonly persistentState: PersistentGameState;
   readonly onShiftComplete: (result: ShiftResult) => void;
   readonly map?: MapData;
@@ -344,7 +346,8 @@ export class KitchenScene implements ManagedScene {
   /** Each moving body is swept only against the colliders around it. */
   private readonly nearbyColliders: NearbyColliders;
   private readonly beaconStations: Workstation[] = [];
-  private readonly beaconTargets: { x: number; y: number; inFront: boolean }[] = [];
+  private readonly beaconTargets: BeaconTarget[] = [];
+  private readonly beaconTransform = Matrix.Identity();
   private readonly beaconWorld = new Vector3();
   private readonly beaconScreen = new Vector3();
   private readonly beaconViewport = new Viewport(0, 0, 1, 1);
@@ -492,6 +495,7 @@ export class KitchenScene implements ManagedScene {
       options.map ? robotsFromMap(options.map) : [],
       options.map ? null : WEDDING_BANNER,
       () => this.environment.mechanisms.map((mechanism) => mechanism.footprint),
+      options.officialWedding,
     );
     this.wedding.nearbyColliders = this.nearbyColliders;
     this.inputs = Array.from({ length: MAX_PLAYERS }, (_, index) =>
@@ -893,6 +897,9 @@ export class KitchenScene implements ManagedScene {
     const previousTimeRemaining = this.runtime.shiftTimeRemaining;
     const previousOrders = this.runtime.activeOrders;
     this.runtime = this.shifts.tick(this.runtime, delta);
+    this.shiftClock.progress = shiftProgress(this.runtime.shiftTimeRemaining, this.runtime.shiftDuration);
+    this.shiftClock.duration = this.runtime.shiftDuration;
+    this.wedding.updateCeremony(this.shiftClock.progress);
     if (previousTimeRemaining > 0 && this.runtime.shiftEnded) {
       // ShiftSystem has no EventBus, so the orders it just failed are diffed out here.
       this.reportOrdersLostAtBuzzer(previousOrders);
@@ -912,8 +919,6 @@ export class KitchenScene implements ManagedScene {
     this.wedding.update(delta);
     // Moving parts first: a cook carried by a platform has to be where the platform put
     // them before their own step is resolved, or they fight it every frame.
-    this.shiftClock.progress = shiftProgress(this.runtime.shiftTimeRemaining, this.runtime.shiftDuration);
-    this.shiftClock.duration = this.runtime.shiftDuration;
     this.mechanisms?.update(this.kitchenClockMs / 1_000, this.mechanismRiders, this.shiftClock);
     this.announceLayoutPhases();
     for (const slot of this.players) {
@@ -1040,7 +1045,7 @@ export class KitchenScene implements ManagedScene {
     this.spokenDialogueIds.clear();
     this.activeCriticals.clear();
     for (const slot of this.players) slot.input.enabled = true;
-    this.wedding.reset();
+    this.wedding.reset(this.runtime.shiftDuration);
     this.punishment.reset();
     this.chaos.reset();
     this.disasterOverlay.reset();
@@ -1059,7 +1064,7 @@ export class KitchenScene implements ManagedScene {
     this.speak("shift:start");
     this.sfx.play("start");
     this.eventBus.emit("shift:started", { duration: this.options.shiftDuration });
-    this.notify(t("kitchen.shiftIntro"), "info", 6000);
+    this.notify(t("kitchen.shiftIntro", { level: this.scenario.displayName }), "info", 6000);
     this.ui.update(this.runtime);
   }
 
@@ -1099,7 +1104,7 @@ export class KitchenScene implements ManagedScene {
       const heightGap = Math.abs((station.spec.y ?? 0) - position.y);
       if (heightGap > STOREY_REACH) continue;
       const dx = station.spec.x - this.probe.x;
-      const dz = station.spec.z - this.probe.z;
+      const dz = this.stationInteractionZ(station) - this.probe.z;
       const distance = Math.sqrt(dx * dx + dz * dz);
       if (distance < STATION_REACH &&
           (distance < bestDistance || (distance === bestDistance && heightGap < bestHeightGap))) {
@@ -1120,6 +1125,12 @@ export class KitchenScene implements ManagedScene {
       }
     }
     this.setTarget(slot, best);
+  }
+
+  private stationInteractionZ(station: Workstation): number {
+    return this.options.officialWedding && station.spec.kind === "delivery"
+      ? station.spec.z - WEDDING_DOOR_REACH_OFFSET
+      : station.spec.z;
   }
 
   private setTarget(slot: CoopPlayerState, target: KitchenTarget | null): void {
@@ -1266,7 +1277,7 @@ export class KitchenScene implements ManagedScene {
         this.sfx.play("pickup");
         return;
       }
-      const combined = combineItems(slot.held, entry.item);
+      const combined = combineItems(slot.held, entry.item, this.recipeList);
       if (combined) {
         slot.held = combined.held;
         if (!combined.target) this.removeFloorItem(entry);
@@ -1290,6 +1301,7 @@ export class KitchenScene implements ManagedScene {
       const reach = KITCHEN_TILE * 1.05;
       const covers = this.kitchen.stations.some((station) =>
         station.onFire &&
+        Math.abs((station.spec.y ?? 0) - (aimed.spec.y ?? 0)) <= STOREY_REACH &&
         (station.spec.x - aimed.spec.x) ** 2 + (station.spec.z - aimed.spec.z) ** 2 <= reach * reach);
       if (covers) return aimed;
     }
@@ -1297,6 +1309,7 @@ export class KitchenScene implements ManagedScene {
     let bestDistance = EXTINGUISHER_REACH;
     for (const station of this.kitchen.stations) {
       if (!station.onFire) continue;
+      if (Math.abs((station.spec.y ?? 0) - slot.player.position.y) > STOREY_REACH) continue;
       const dx = station.spec.x - this.probe.x;
       const dz = station.spec.z - this.probe.z;
       const distance = Math.sqrt(dx * dx + dz * dz);
@@ -1320,7 +1333,13 @@ export class KitchenScene implements ManagedScene {
         case "cook":
           if (event.event === "cooked") {
             this.sfx.play("ding");
-            this.notify(t("kitchen.foodReady"), "success", 2200);
+            const item = event.station.item;
+            if (isCookware(item)) {
+              this.notify(t("kitchen.foodReady", {
+                count: item.contents.length,
+                station: STATION_KIND_LABEL[event.station.spec.kind],
+              }), "success", 2200);
+            }
           } else if (event.event === "burnt") {
             this.sfx.play("burnt");
             this.notify(t("kitchen.burnt"), "error", 2600);
@@ -1570,9 +1589,9 @@ export class KitchenScene implements ManagedScene {
   private readonly supportFrom = new Vector3();
   private readonly supportTo = new Vector3();
 
-  private supportNear(x: number, y: number, z: number): number | null {
-    const from = this.supportFrom.set(x, y + 0.3, z);
-    const to = this.supportTo.set(x, y - 0.3, z);
+  private supportNear(x: number, y: number, z: number, rise = 0.3, drop = rise): number | null {
+    const from = this.supportFrom.set(x, y + rise, z);
+    const to = this.supportTo.set(x, y - drop, z);
     const time = this.groundContact(from, to);
     return Number.isFinite(time) ? from.y + (to.y - from.y) * time : null;
   }
@@ -1730,14 +1749,16 @@ export class KitchenScene implements ManagedScene {
         root: view.root,
         x: view.placement.x,
         z: view.placement.z,
+        topHeight: view.topHeight,
         kind: view.placement.kind,
       })),
-      scatterFloorItems: (x, z, radius, power) => this.scatterFloorItems(x, z, radius, power),
-      freeSpot: () => this.freeSpot(),
+      scatterFloorItems: (x, y, z, radius, power) => this.scatterFloorItems(x, y, z, radius, power),
+      floorHeight: (x, y, z) => this.supportNear(x, y, z, 0.35, STOREY_REACH) ?? y,
       spawnPoint: (cook) => (this.environment.playerSpawns[cook.index] ?? this.environment.playerSpawns[0]!).clone(),
       stealables: () => this.stealables(),
-      dropLoose: (item, x, z) => {
-        const entry = this.addFloorItem(item as unknown as KitchenItem, x, 0.25, z, null, true);
+      dropLoose: (item, x, y, z) => {
+        const floor = this.supportNear(x, y, z, 0.35, STOREY_REACH) ?? y;
+        const entry = this.addFloorItem(item as unknown as KitchenItem, x, floor + 0.25, z, null, true);
         entry.velocity.set((Math.random() - 0.5) * 1.2, 1.6, (Math.random() - 0.5) * 1.2);
       },
     };
@@ -1763,7 +1784,8 @@ export class KitchenScene implements ManagedScene {
         id: item.uid,
         x: station.spec.x,
         z: station.spec.z,
-        y: (station.spec.y ?? 0) + COUNTER_HEIGHT,
+        y: this.stationTop(station),
+        floorY: station.spec.y ?? 0,
         label: label(item.ingredientId),
         take: () => {
           if (station.item !== item) return null;
@@ -1779,7 +1801,8 @@ export class KitchenScene implements ManagedScene {
         id: item.uid,
         x: entry.position.x,
         z: entry.position.z,
-        y: 0,
+        y: entry.position.y,
+        floorY: entry.position.y,
         label: label(item.ingredientId),
         take: () => {
           if (!this.floorItems.includes(entry)) return null;
@@ -1853,8 +1876,9 @@ export class KitchenScene implements ManagedScene {
     slot.held = null;
   }
 
-  private scatterFloorItems(x: number, z: number, radius: number, power: number): void {
+  private scatterFloorItems(x: number, y: number, z: number, radius: number, power: number): void {
     for (const entry of this.floorItems) {
+      if (Math.abs(entry.position.y - y) > STOREY_REACH) continue;
       const dx = entry.position.x - x;
       const dz = entry.position.z - z;
       const distance = Math.hypot(dx, dz);
@@ -1866,21 +1890,6 @@ export class KitchenScene implements ManagedScene {
       entry.angularVelocity.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 14);
       entry.airborne = true;
     }
-  }
-
-  /** A clear spot on the kitchen floor, away from every counter. */
-  private freeSpot(): Vector3 {
-    const bounds = this.environment.bounds;
-    const clearance = KITCHEN_TILE * 0.9;
-    for (let attempt = 0; attempt < 40; attempt += 1) {
-      const x = bounds.minX + 0.5 + Math.random() * Math.max(0, bounds.maxX - bounds.minX - 1);
-      const z = bounds.minZ + 0.5 + Math.random() * Math.max(0, bounds.maxZ - bounds.minZ - 1);
-      const blocked = this.kitchen.stations.some(
-        (station) => Math.abs(station.spec.x - x) < clearance && Math.abs(station.spec.z - z) < clearance,
-      );
-      if (!blocked) return new Vector3(x, 0, z);
-    }
-    return this.environment.playerSpawns[0]!.clone();
   }
 
   /**
@@ -2085,7 +2094,7 @@ export class KitchenScene implements ManagedScene {
     const yaw = slot.player.facingYaw;
     const anchor = slot.player.carryAnchor.getAbsolutePosition();
     const nozzle = new Vector3(anchor.x + Math.sin(yaw) * 0.22, anchor.y + 0.56, anchor.z + Math.cos(yaw) * 0.22);
-    jet.aim(nozzle, new Vector3(station.spec.x, (station.spec.y ?? 0) + COUNTER_HEIGHT + 0.25, station.spec.z));
+    jet.aim(nozzle, new Vector3(station.spec.x, this.stationTop(station) + 0.25, station.spec.z));
   }
 
   private stationViewState(station: Workstation): WorkstationViewState {
@@ -2241,7 +2250,11 @@ export class KitchenScene implements ManagedScene {
   private collectItemLocations(): ItemLocation[] {
     const locations: ItemLocation[] = [];
     for (const station of this.kitchen.stations) {
-      if (station.item) locations.push({ item: station.item, holder: null });
+      const item = station.item;
+      if (!item) continue;
+      const processing = isCookware(item) && (HEATED_STATION_KINDS.has(station.spec.kind)
+        ? item.heat > 0 : station.spec.kind === "mixer" && station.mixProgress > 0);
+      locations.push({ item, holder: null, processing });
     }
     for (const slot of this.players) {
       if (slot.held) locations.push({ item: slot.held, holder: slot.index });
@@ -2268,27 +2281,35 @@ export class KitchenScene implements ManagedScene {
       else anyDish = true;
     }
     if (wanted.size > 0 || anyDish) {
-      const consider = (item: KitchenItem | null, x: number, z: number): void => {
+      const consider = (item: KitchenItem | null, x: number, y: number, z: number): void => {
         if (item?.kind !== "plate" || item.dirty || item.contents.length === 0) return;
         const recipe = findMatchingRecipe(item.contents, this.recipeList);
         if (!recipe || !(anyDish || wanted.has(recipe.id))) return;
         let nearest: Workstation | null = null;
+        let sameFloor = false;
         let best = Infinity;
         for (const station of this.kitchen.stations) {
           if (station.spec.kind !== "delivery") continue;
-          const distance = (station.spec.x - x) ** 2 + (station.spec.z - z) ** 2;
-          if (distance < best) {
+          const dy = (station.spec.y ?? 0) - y;
+          const onFloor = Math.abs(dy) <= STOREY_REACH;
+          if (sameFloor && !onFloor) continue;
+          const distance = (station.spec.x - x) ** 2 + dy * dy + (this.stationInteractionZ(station) - z) ** 2;
+          if ((onFloor && !sameFloor) || distance < best) {
+            sameFloor = onFloor;
             best = distance;
             nearest = station;
           }
         }
         if (nearest && !this.beaconStations.includes(nearest)) this.beaconStations.push(nearest);
       };
-      for (const slot of this.players) consider(slot.held, slot.player.position.x, slot.player.position.z);
-      for (const station of this.kitchen.stations) {
-        if (station.spec.kind !== "delivery") consider(station.item, station.spec.x, station.spec.z);
+      for (const slot of this.players) {
+        const { x, y, z } = slot.player.position;
+        consider(slot.held, x, y, z);
       }
-      for (const entry of this.floorItems) consider(entry.item, entry.position.x, entry.position.z);
+      for (const station of this.kitchen.stations) {
+        if (station.spec.kind !== "delivery") consider(station.item, station.spec.x, station.spec.y ?? 0, station.spec.z);
+      }
+      for (const entry of this.floorItems) consider(entry.item, entry.position.x, entry.position.y, entry.position.z);
     }
     // The canvas's place in the HUD layer only changes on resize; reading it here, not per
     // frame, keeps layout reads off the render loop.
@@ -2317,20 +2338,30 @@ export class KitchenScene implements ManagedScene {
       return;
     }
     const engine = this.scene.getEngine();
-    camera.viewport.toGlobalToRef(engine.getRenderWidth(), engine.getRenderHeight(), this.beaconViewport);
-    const transform = this.scene.getTransformMatrix();
     const frame = this.beaconFrame;
-    for (const station of this.beaconStations) {
-      this.beaconWorld.set(station.spec.x, (station.spec.y ?? 0) + COUNTER_HEIGHT + 0.9, station.spec.z);
-      Vector3.ProjectToRef(this.beaconWorld, Matrix.IdentityReadOnly, transform, this.beaconViewport, this.beaconScreen);
-      const screen = this.beaconScreen;
-      targets.push({
-        x: frame.left + screen.x * frame.scaleX,
-        y: frame.top + screen.y * frame.scaleY,
-        inFront: screen.z >= 0 && screen.z <= 1,
-      });
+    const cameras = this.scene.activeCameras;
+    for (let index = 0; index < (cameras?.length || 1); index += 1) {
+      const view = cameras?.[index] ?? camera;
+      const viewport = this.beaconViewport;
+      view.viewport.toGlobalToRef(engine.getRenderWidth(), engine.getRenderHeight(), viewport);
+      view.getViewMatrix().multiplyToRef(view.getProjectionMatrix(), this.beaconTransform);
+      const left = Math.max(0, frame.left + viewport.x * frame.scaleX);
+      const right = Math.min(frame.width, frame.left + (viewport.x + viewport.width) * frame.scaleX);
+      if (right - left < 100) continue;
+      for (const station of this.beaconStations) {
+        this.beaconWorld.set(station.spec.x, this.stationTop(station) + 1.2, this.stationInteractionZ(station));
+        Vector3.ProjectToRef(this.beaconWorld, Matrix.IdentityReadOnly, this.beaconTransform, viewport, this.beaconScreen);
+        const screen = this.beaconScreen;
+        targets.push({
+          x: frame.left + screen.x * frame.scaleX,
+          y: frame.top + screen.y * frame.scaleY,
+          inFront: screen.z >= 0 && screen.z <= 1,
+          left,
+          right,
+        });
+      }
     }
-    this.deliveryBeacon.update(targets as readonly BeaconTarget[], frame.width, frame.height);
+    this.deliveryBeacon.update(targets, frame.height);
   }
 
   // -------------------------------------------------------------------------
@@ -2626,7 +2657,7 @@ export class KitchenScene implements ManagedScene {
     if (points.length === 0) {
       for (const slot of this.players) {
         const ground = this.cameraGround[slot.index]!;
-        ground.set(slot.player.position.x, 0, slot.player.position.z);
+        ground.copyFrom(this.environment.playerSpawns[slot.index] ?? this.environment.playerSpawns[0]!);
         points.push(ground);
       }
     }
@@ -2848,6 +2879,7 @@ export class KitchenScene implements ManagedScene {
   private syncPauseState(): void {
     const paused = this.manualPaused || this.cookbookOpen;
     this.runtime = { ...this.runtime, paused };
+    this.wedding.setCeremonyPaused(paused);
     this.ui.setPausedVisible(this.manualPaused && !this.cookbookOpen);
     this.eventBus.emit("pause:changed", { paused });
   }

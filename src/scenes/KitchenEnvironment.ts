@@ -1,5 +1,5 @@
 import { t } from "../i18n";
-import { isSeeThroughStructure, StructureMaterials } from "../core/render/structureVisibility";
+import { isConstruction, ConstructionMaterials } from "../core/render/structureVisibility";
 import { createBuildingMesh, isBuildingAsset } from "../editor/building";
 import { WEDDING_HALL_PLACEMENTS } from "./weddingHall";
 import {
@@ -586,7 +586,7 @@ export class KitchenEnvironment {
   private readonly placementRoots: TransformNode[] = [];
   /** Recoloured material clones, shared by every object painted the same. */
   private readonly colorCache = new MaterialOverrideCache();
-  private readonly structureMaterials = new StructureMaterials();
+  private readonly constructionMaterials = new ConstructionMaterials();
   /**
    * The level's moving parts. They are deliberately outside `placementRoots`, which is
    * what keeps them out of the static batch and out of `freezeWorldMatrix` — see the
@@ -659,7 +659,7 @@ export class KitchenEnvironment {
     this.pauliLighting?.dispose();
     for (const light of this.lights) light.dispose();
     this.backdrop.dispose();
-    this.structureMaterials.dispose();
+    this.constructionMaterials.dispose();
     this.colorCache.dispose();
     this.root.dispose(false, false);
   }
@@ -775,11 +775,11 @@ export class KitchenEnvironment {
     }
 
     const authoredSolid = placement.collides !== false;
-    const translucent = isSeeThroughStructure(placement.assetId, placement.position.y, placement.category);
+    const construction = isConstruction(placement.assetId, placement.category);
     const building = createBuildingMesh(placement.assetId, this.scene, placementRoot, placement.color);
     if (building) {
       building.isPickable = false;
-      if (translucent) this.structureMaterials.fade(building);
+      if (construction) this.constructionMaterials.apply(building);
       building.receiveShadows = true;
       building.computeWorldMatrix(true);
       const box = building.getBoundingInfo().boundingBox;
@@ -818,7 +818,7 @@ export class KitchenEnvironment {
       for (const node of [rootNode, ...rootNode.getDescendants()]) {
         if (!(node instanceof AbstractMesh)) continue;
         node.isPickable = false;
-        if (translucent) this.structureMaterials.fade(node);
+        if (construction) this.constructionMaterials.apply(node);
         node.receiveShadows = true;
         // A collider as wide as the room would be swept in full on every step
         // anywhere in it; its triangles are regrouped by location, once, here.
