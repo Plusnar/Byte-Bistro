@@ -1,6 +1,6 @@
 /*
- * The character-select street fills the whole screen behind the menu: no card, no frame.
- * The header and the start buttons float over it; each player's keys sit beside their cook.
+ * The character-select street fills the whole screen. The start buttons float over
+ * it and each player's keys sit beside their cook.
  *
  * Scoped to the characters step, so the level map's own screen keeps its layout. The 3D
  * canvas is transparent where nothing is drawn, so the sky is this gradient.
@@ -10,7 +10,7 @@
 }
 
 .game-ui .selection-screen[data-step="characters"] {
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 100%;
 }
 
@@ -52,13 +52,13 @@
   height: 100%;
 }
 
-.game-ui .selection-screen[data-step="characters"] .selection-header,
-.game-ui .selection-screen[data-step="characters"] .selection-footer {
-  position: relative;
-  z-index: 2;
+.game-ui .selection-screen[data-step="characters"] .selection-header {
+  display: none;
 }
 
 .game-ui .selection-screen[data-step="characters"] .selection-footer {
+  position: relative;
+  z-index: 2;
   align-self: end;
 }
 
