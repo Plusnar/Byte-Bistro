@@ -1,5 +1,6 @@
 import type { ShiftRank } from "../types/game";
 import { publicUrl } from "../utils/assetUrl";
+import { clamp } from "../utils/math";
 
 export type MusicTrack = "menu" | "level-select" | "character-select" | "editor" | "success" | "defeat"
   | "wedding" | "schlachtfest" | "pauli" | "univille";
@@ -18,12 +19,8 @@ export function stageMusic(scenarioId: string): MusicTrack | null {
 
 export const resultMusic = (rank: ShiftRank): MusicTrack => rank === "C" || rank === "D" ? "defeat" : "success";
 
-function containsTime(ranges: TimeRanges, seconds: number): boolean {
-  for (let i = 0; i < ranges.length; i += 1) {
-    if (ranges.start(i) <= seconds && seconds < ranges.end(i)) return true;
-  }
-  return false;
-}
+const CLOCK_TOLERANCE = 0.18;
+const MAX_RATE_ADJUSTMENT = 0.04;
 
 export class Soundtrack {
   private readonly audio = new Audio();
@@ -36,14 +33,13 @@ export class Soundtrack {
   private playRequested = false;
   private failedPlay = false;
   private finished = false;
-  private nextSeekAt = 0;
 
   constructor() {
     this.audio.preload = "none";
+    this.audio.preservesPitch = true;
     const { signal } = this.listeners;
     window.addEventListener("pointerup", this.activate, { signal });
     window.addEventListener("keydown", this.activate, { signal });
-    this.audio.addEventListener("loadedmetadata", () => this.syncClock(), { signal });
     this.audio.addEventListener("ended", () => { this.finished = true; }, { signal });
     this.audio.addEventListener("error", () => { this.failedPlay = true; }, { signal });
   }
@@ -79,7 +75,7 @@ export class Soundtrack {
       this.playRequested = false;
       this.failedPlay = false;
       this.finished = false;
-      this.nextSeekAt = 0;
+      this.audio.playbackRate = 1;
       if (this.track) {
         this.audio.loop = this.elapsed === undefined;
         this.audio.preload = this.audio.loop ? "none" : "auto";
@@ -109,19 +105,16 @@ export class Soundtrack {
   }
 
   private syncClock(): void {
-    const elapsed = this.elapsed;
-    if (elapsed === undefined || this.paused || this.finished || !Number.isFinite(this.audio.duration)) return;
-    if (elapsed >= this.audio.duration) {
-      this.finished = true;
-      return;
+    let rate = 1;
+    if (this.elapsed !== undefined && !this.paused && !this.finished && this.playRequested &&
+      this.audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      // A slow frame can leave the game clock behind the audio. Correct the drift
+      // without seeking to a passage the player has already heard.
+      const drift = this.audio.currentTime - this.elapsed;
+      const adjustment = clamp((Math.abs(drift) - CLOCK_TOLERANCE) * 0.12, 0, MAX_RATE_ADJUSTMENT);
+      rate -= Math.sign(drift) * adjustment;
     }
-    if (Math.abs(this.audio.currentTime - elapsed) <= 0.35 || this.audio.seeking) return;
-    // A server can stream audio without allowing seeks yet. Such a seek can snap to zero.
-    // Leave playback running until the target is both buffered and seekable.
-    const now = performance.now();
-    if (now < this.nextSeekAt || !containsTime(this.audio.seekable, elapsed) ||
-      !containsTime(this.audio.buffered, elapsed + 0.25)) return;
-    this.nextSeekAt = now + 1_500;
-    this.audio.currentTime = elapsed;
+    const current = this.audio.playbackRate;
+    if (current !== rate && (rate === 1 || Math.abs(current - rate) >= 0.003)) this.audio.playbackRate = rate;
   }
 }

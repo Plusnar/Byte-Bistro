@@ -59,19 +59,17 @@ describe("soundtrack", () => {
       .toEqual(["success", "success", "success", "defeat", "defeat"]);
   });
 
-  it("preloads the stage and plays continuously while the browser cannot seek", () => {
+  it("preloads the stage and adjusts tempo without seeking after a game-clock delay", () => {
     const browser = new EventTarget();
-    let seekableEnd = 0;
     const audio = Object.assign(new EventTarget(), {
-      currentTime: 0.2, duration: 204.8, seeking: false,
-      buffered: { length: 1, start: () => 0, end: () => 2 },
-      seekable: { length: 1, start: () => 0, end: () => seekableEnd },
+      currentTime: 2, playbackRate: 1, readyState: 4, loop: false, preservesPitch: false,
       pause: vi.fn(), play: vi.fn().mockResolvedValue(undefined),
       load: vi.fn(), removeAttribute: vi.fn(),
       preload: "", src: "",
     });
     vi.stubGlobal("window", browser);
     vi.stubGlobal("Audio", function () { return audio; });
+    vi.stubGlobal("HTMLMediaElement", { HAVE_CURRENT_DATA: 2 });
     const music = new Soundtrack();
     try {
       const gesture = new Event("pointerup");
@@ -81,14 +79,28 @@ describe("soundtrack", () => {
       expect(audio.preload).toBe("auto");
       expect(audio.src).toMatch(/schlachtfest\.mp3$/);
       expect(audio.play).not.toHaveBeenCalled();
-      music.update("schlachtfest", false, 0.8);
+      music.update("schlachtfest", false, 1.2);
       expect(audio.play).toHaveBeenCalledTimes(1);
-      expect(audio.currentTime).toBe(0.2);
-      seekableEnd = 2;
-      music.update("schlachtfest", false, 0.8);
-      expect(audio.currentTime).toBe(0.8);
-      music.update("schlachtfest", false, 1.55);
-      expect(audio.currentTime).toBe(0.8);
+      music.update("schlachtfest", false, 1.2);
+      expect(audio.currentTime).toBe(2);
+      expect(audio.playbackRate).toBe(0.96);
+      expect(audio.preservesPitch).toBe(true);
+      music.update("schlachtfest", false, 2);
+      expect(audio.playbackRate).toBe(1);
+      music.update("schlachtfest", false, 2.8);
+      expect(audio.currentTime).toBe(2);
+      expect(audio.playbackRate).toBe(1.04);
+      music.update("schlachtfest", true, 2.8);
+      expect(audio.pause).toHaveBeenCalled();
+      expect(audio.playbackRate).toBe(1);
+      music.update("schlachtfest", false, 2.8);
+      expect(audio.play).toHaveBeenCalledTimes(2);
+      audio.dispatchEvent(new Event("ended"));
+      music.update("schlachtfest", false, 3);
+      expect(audio.play).toHaveBeenCalledTimes(2);
+      music.update("success");
+      expect(audio.loop).toBe(true);
+      expect(audio.playbackRate).toBe(1);
     } finally {
       music.dispose();
       vi.unstubAllGlobals();
