@@ -649,6 +649,12 @@ export class KitchenEnvironment {
     this.ready = this.loadScenario(placements).then(() => { if (!this.disposed) this.batchStaticDecor(); });
   }
 
+  stopCampusStorm(): void {
+    if (!this.campusStorm) return;
+    this.campusStorm.stop();
+    this.pauliLighting?.update(0);
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;

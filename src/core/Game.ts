@@ -109,6 +109,7 @@ export class Game {
   private readonly stopQualitySampling: () => void;
   private readonly saveSystem = new SaveSystem();
   private readonly music = new Soundtrack();
+  private preparingStageMusic: MusicTrack | null = null;
   private resultTrack: MusicTrack | null = null;
   private readonly ui: GameUI;
   /** Level titles and descriptions are copied into the picker's entries; rebuilt on a switch. */
@@ -353,7 +354,9 @@ export class Game {
   }
 
   private syncMusic(): void {
-    if (this.editor) {
+    if (this.preparingStageMusic) {
+      this.music.update(this.preparingStageMusic, true, 0);
+    } else if (this.editor) {
       this.music.update("editor");
     } else if (this.ui.isSplashVisible) {
       const step = this.ui.splashStep;
@@ -693,6 +696,8 @@ export class Game {
     if (this.pendingLevel || this.activeLevelKey) await this.applyLevel(this.pendingLevel);
     const kitchen = this.ensureKitchen();
     kitchen.setCookCount(cookIds.length);
+    this.preparingStageMusic = stageMusic(kitchen.scenarioId);
+    this.syncMusic();
 
     const cookUrls = this.cooks(cookIds).map((character) => absoluteUrl(character.modelUrl));
     const ready = kitchen.isReadyFor(cookIds);
@@ -718,6 +723,8 @@ export class Game {
       steps = 2;
     } catch (error: unknown) {
       stopTracking();
+      this.preparingStageMusic = null;
+      this.syncMusic();
       const failed = assetCache.snapshot().filter((entry) => entry.state === "failed");
       console.error("A partida não pôde ser preparada.", failed.map((entry) => entry.url), error);
       void this.loading?.hide();
@@ -732,6 +739,8 @@ export class Game {
     if (!ready) await this.loading?.hide();
     performance.mark("bb:match-start");
     kitchen.startShift();
+    this.music.update(this.preparingStageMusic, false, 0);
+    this.preparingStageMusic = null;
   }
 
   /** Loads the phone feature and opens the room on the pairing panel. */
@@ -1200,7 +1209,9 @@ export class Game {
       officialWedding: map !== null && map === OFFICIAL_LEVELS.find((level) => level.id === "casamento")?.map,
       onShiftComplete: (result) => this.saveShiftResult(result),
     });
-    kitchen.events.on("shift:started", () => { this.music.update(null); });
+    kitchen.events.on("shift:started", () => {
+      if (!this.preparingStageMusic) this.music.update(null);
+    });
     kitchen.events.on("ingredient:picked", ({ item }) => {
       if (item.kind === "food") this.discover(item.ingredientId);
     });

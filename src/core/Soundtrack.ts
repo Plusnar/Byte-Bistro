@@ -18,6 +18,13 @@ export function stageMusic(scenarioId: string): MusicTrack | null {
 
 export const resultMusic = (rank: ShiftRank): MusicTrack => rank === "C" || rank === "D" ? "defeat" : "success";
 
+function containsTime(ranges: TimeRanges, seconds: number): boolean {
+  for (let i = 0; i < ranges.length; i += 1) {
+    if (ranges.start(i) <= seconds && seconds < ranges.end(i)) return true;
+  }
+  return false;
+}
+
 export class Soundtrack {
   private readonly audio = new Audio();
   private readonly listeners = new AbortController();
@@ -29,6 +36,7 @@ export class Soundtrack {
   private playRequested = false;
   private failedPlay = false;
   private finished = false;
+  private nextSeekAt = 0;
 
   constructor() {
     this.audio.preload = "none";
@@ -71,8 +79,10 @@ export class Soundtrack {
       this.playRequested = false;
       this.failedPlay = false;
       this.finished = false;
+      this.nextSeekAt = 0;
       if (this.track) {
         this.audio.loop = this.elapsed === undefined;
+        this.audio.preload = this.audio.loop ? "none" : "auto";
         this.audio.src = publicUrl(`audio/music/${this.track}.mp3`);
       } else {
         this.audio.removeAttribute("src");
@@ -100,14 +110,18 @@ export class Soundtrack {
 
   private syncClock(): void {
     const elapsed = this.elapsed;
-    if (elapsed === undefined || this.finished || !Number.isFinite(this.audio.duration)) return;
+    if (elapsed === undefined || this.paused || this.finished || !Number.isFinite(this.audio.duration)) return;
     if (elapsed >= this.audio.duration) {
       this.finished = true;
       return;
     }
-    // The shift can advance more slowly than real time when a frame stalls.
-    if (Math.abs(this.audio.currentTime - elapsed) > 0.35 && !this.audio.seeking) {
-      this.audio.currentTime = elapsed;
-    }
+    if (Math.abs(this.audio.currentTime - elapsed) <= 0.35 || this.audio.seeking) return;
+    // A server can stream audio without allowing seeks yet. Such a seek can snap to zero.
+    // Leave playback running until the target is both buffered and seekable.
+    const now = performance.now();
+    if (now < this.nextSeekAt || !containsTime(this.audio.seekable, elapsed) ||
+      !containsTime(this.audio.buffered, elapsed + 0.25)) return;
+    this.nextSeekAt = now + 1_500;
+    this.audio.currentTime = elapsed;
   }
 }

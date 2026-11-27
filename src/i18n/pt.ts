@@ -578,7 +578,7 @@ export const pt = {
   kitchen: {
     deliverHere: "Entregue aqui",
     shiftIntro: "{level} // Corte, cozinhe, monte e entregue os pratos",
-    stormPowerDip: "A energia oscilou! As luzes vão voltar em instantes.",
+    stormPowerDip: "Apagão! As luzes vão voltar em instantes.",
     onlyIngredientsThrow: "Só ingredientes podem ser arremessados",
     hey: "Ei!",
     heyCarrying: "Ei! Peguei {item}",

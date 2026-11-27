@@ -851,7 +851,7 @@ export class KitchenScene implements ManagedScene {
    */
   abortShift(): void {
     this.started = false;
-    this.environment.campusStorm?.stop();
+    this.environment.stopCampusStorm();
     this.resultShown = false;
     this.manualPaused = false;
     if (this.cookbookOpen) this.ui.toggleCookbook(false);
@@ -928,7 +928,7 @@ export class KitchenScene implements ManagedScene {
       this.sfx.play("thunder", 0.35);
       this.notify(t("kitchen.stormPowerDip"), "warning", 2600);
     }
-    this.environment.pauliLighting?.update(delta);
+    this.environment.pauliLighting?.update(delta, this.environment.campusStorm?.powerLevel);
     this.updateOrders(delta);
     this.wedding.syncOrders(this.runtime.activeOrders, this.orderUrgencySeconds());
     this.wedding.update(delta);
@@ -2863,7 +2863,7 @@ export class KitchenScene implements ManagedScene {
   private finishShift(): void {
     if (this.resultShown) return;
     this.resultShown = true;
-    this.environment.campusStorm?.stop();
+    this.environment.stopCampusStorm();
     for (const slot of this.players) slot.input.enabled = false;
     for (const slot of this.players) {
       this.setStationKeyPrompt(slot, null);

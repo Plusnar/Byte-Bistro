@@ -574,7 +574,7 @@ export const en: Messages = {
   kitchen: {
     deliverHere: "Deliver here",
     shiftIntro: "{level} // Chop, cook, plate and serve the dishes",
-    stormPowerDip: "Power flickered! The lights will be back in a moment.",
+    stormPowerDip: "Blackout! The lights will be back in a moment.",
     onlyIngredientsThrow: "Only ingredients can be thrown",
     hey: "Hey!",
     heyCarrying: "Hey! I have {item}",

@@ -1,4 +1,4 @@
-import { DynamicTexture, ParticleSystem, Vector3, type Light, type Scene } from "@babylonjs/core";
+import { DynamicTexture, ParticleSystem, Vector3, type Color3, type Light, type Scene } from "@babylonjs/core";
 import { trackParticleSystem } from "../core/perf/effectBudget";
 import type { MovementBounds } from "../entities/Player";
 import type { SkyPalette } from "./OutdoorBackdrop";
@@ -12,6 +12,7 @@ export const STORM_SKY: SkyPalette = {
 
 const FIRST_OUTAGE = 16;
 const OUTAGE_PERIOD = 27;
+const OUTAGE_POWER = 0.06;
 const RAIN_SPEED = 0.01;
 
 /** Simulated seconds in the current power dip. The initial grace period has no dip. */
@@ -22,7 +23,8 @@ export const campusPower = (phase: number, reducedMotion: boolean): number => {
   const fadeIn = clamp((phase - 1) / 0.9, 0, 1);
   const fadeOut = clamp((5.6 - phase) / 1.2, 0, 1);
   const warning = reducedMotion ? 0 : Math.max(0, 1 - Math.abs(phase - 0.45) / 0.45) * 0.10;
-  return 1 - 0.25 * Math.min(fadeIn, fadeOut) - warning;
+  const outage = Math.min(fadeIn, fadeOut);
+  return (1 - outage) + OUTAGE_POWER * outage - warning;
 };
 
 /** Non-overlapping outdoor strips. Rain falls vertically so it cannot drift under cover. */
@@ -39,16 +41,22 @@ export const rainZones = (shelter: Readonly<MovementBounds>): readonly MovementB
   ];
 };
 
-/** Owned by KitchenEnvironment. Only the level lights dim, keeping HUD and station alerts legible. */
+/** Owned by KitchenEnvironment. Keeps the outage independent of HUD and station alerts. */
 export class CampusStorm {
   private readonly rain: ParticleSystem | null;
   private readonly baseIntensity: readonly number[];
+  private readonly baseAmbient: Color3;
   private power = 1;
   private inOutage = false;
 
-  constructor(scene: Scene, shelter: Readonly<MovementBounds>, private readonly lights: readonly Light[]) {
+  constructor(private readonly scene: Scene, shelter: Readonly<MovementBounds>, private readonly lights: readonly Light[]) {
     this.baseIntensity = lights.map(light => light.intensity);
+    this.baseAmbient = scene.ambientColor.clone();
     this.rain = typeof document === "undefined" ? null : this.createRain(scene, shelter);
+  }
+
+  get powerLevel(): number {
+    return this.power;
   }
 
   reset(): void {
@@ -84,6 +92,7 @@ export class CampusStorm {
   private setPower(factor: number): void {
     if (factor === this.power) return;
     this.power = factor;
+    this.baseAmbient.scaleToRef(factor, this.scene.ambientColor);
     for (let index = 0; index < this.lights.length; index += 1) {
       this.lights[index]!.intensity = this.baseIntensity[index]! * factor;
     }

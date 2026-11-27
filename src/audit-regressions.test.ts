@@ -19,7 +19,7 @@ import { isConstruction, ConstructionMaterials } from "./core/render/structureVi
 import { isMapPlayable, mapRequirements } from "./editor/validation";
 import { campusPower, outagePhase, rainZones } from "./scenes/CampusStorm";
 import { getOfficialLevel } from "./data/officialLevels";
-import { resultMusic } from "./core/Soundtrack";
+import { resultMusic, Soundtrack } from "./core/Soundtrack";
 
 vi.mock("./core/PlayerAccount", async (original) => ({
   ...await original<typeof import("./core/PlayerAccount")>(),
@@ -58,6 +58,42 @@ describe("soundtrack", () => {
     expect((["S", "A", "B", "C", "D"] as const).map(resultMusic))
       .toEqual(["success", "success", "success", "defeat", "defeat"]);
   });
+
+  it("preloads the stage and plays continuously while the browser cannot seek", () => {
+    const browser = new EventTarget();
+    let seekableEnd = 0;
+    const audio = Object.assign(new EventTarget(), {
+      currentTime: 0.2, duration: 204.8, seeking: false,
+      buffered: { length: 1, start: () => 0, end: () => 2 },
+      seekable: { length: 1, start: () => 0, end: () => seekableEnd },
+      pause: vi.fn(), play: vi.fn().mockResolvedValue(undefined),
+      load: vi.fn(), removeAttribute: vi.fn(),
+      preload: "", src: "",
+    });
+    vi.stubGlobal("window", browser);
+    vi.stubGlobal("Audio", function () { return audio; });
+    const music = new Soundtrack();
+    try {
+      const gesture = new Event("pointerup");
+      Object.defineProperty(gesture, "isTrusted", { value: true });
+      browser.dispatchEvent(gesture);
+      music.update("schlachtfest", true, 0);
+      expect(audio.preload).toBe("auto");
+      expect(audio.src).toMatch(/schlachtfest\.mp3$/);
+      expect(audio.play).not.toHaveBeenCalled();
+      music.update("schlachtfest", false, 0.8);
+      expect(audio.play).toHaveBeenCalledTimes(1);
+      expect(audio.currentTime).toBe(0.2);
+      seekableEnd = 2;
+      music.update("schlachtfest", false, 0.8);
+      expect(audio.currentTime).toBe(0.8);
+      music.update("schlachtfest", false, 1.55);
+      expect(audio.currentTime).toBe(0.8);
+    } finally {
+      music.dispose();
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe("the official Univille storm", () => {
@@ -69,14 +105,16 @@ describe("the official Univille storm", () => {
     expect(isMapPlayable(level.map)).toBe(true);
   });
 
-  it("repeats mild dips with full recovery and respects reduced motion", () => {
+  it("repeats near-blackouts with smooth transitions and full recovery", () => {
     const powerAt = (seconds: number) => campusPower(outagePhase(seconds), false);
     expect(powerAt(10)).toBe(1);
-    expect(powerAt(19)).toBe(0.75);
+    expect(powerAt(19)).toBe(0.06);
+    expect(powerAt(20.8)).toBeGreaterThan(0.06);
     expect(powerAt(22)).toBe(1);
-    expect(powerAt(46)).toBe(0.75);
+    expect(powerAt(46)).toBe(0.06);
     expect(campusPower(0.45, true)).toBe(1);
     expect(campusPower(0.45, false)).toBeLessThan(1);
+    expect(campusPower(3, true)).toBe(0.06);
   });
 
   it("keeps every rain emitter outside the indoor footprint", () => {
