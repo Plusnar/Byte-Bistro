@@ -21,6 +21,7 @@ import { OFFICIAL_LEVELS } from "../data/officialLevels";
 import { MapStore } from "../editor/MapStore";
 import { publicUrl } from "../utils/assetUrl";
 import { AccountMaps, type MapSyncStatus } from "./AccountMaps";
+import { resultMusic, Soundtrack, stageMusic, type MusicTrack } from "./Soundtrack";
 import { getDifficulty } from "../data/difficulty";
 import { INGREDIENT_ASSETS } from "../data/ingredientAssets";
 import { KITCHEN_ASSETS } from "../data/kitchen";
@@ -107,6 +108,8 @@ export class Game {
   private readonly uninstallPerfProbe: () => void;
   private readonly stopQualitySampling: () => void;
   private readonly saveSystem = new SaveSystem();
+  private readonly music = new Soundtrack();
+  private resultTrack: MusicTrack | null = null;
   private readonly ui: GameUI;
   /** Level titles and descriptions are copied into the picker's entries; rebuilt on a switch. */
   private readonly stopLanguage = onLanguageChange(() => this.refreshLevels());
@@ -210,6 +213,11 @@ export class Game {
       onStart: (characterIds) => this.startShift(characterIds),
       onCharacterChange: (characterIds) => this.onCooksChanged(characterIds),
       onRestart: () => this.kitchenScene?.restartShift(),
+      onMusicMuteChange: (musicMuted) => {
+        this.persistentState.settings = { ...this.persistentState.settings, musicMuted };
+        this.syncMusicSettings();
+        this.saveProgress();
+      },
       onPause: () => this.kitchenScene?.setManualPaused(true),
       onResume: () => this.kitchenScene?.setManualPaused(false),
       onQuitToMenu: () => this.quitToMenu(),
@@ -237,6 +245,7 @@ export class Game {
         await this.characterPreview?.playConfirm();
       },
     });
+    this.syncMusicSettings();
     performance.mark("bb:ui-created");
     this.navigator = new MenuNavigator({
       root: this.ui.root(),
@@ -282,6 +291,7 @@ export class Game {
     if (this.disposed) return;
     this.disposed = true;
     this.stopLanguage();
+    this.music.dispose();
     this.gamepads.dispose();
     this.phoneTyping.dispose();
     this.phoneHub?.dispose();
@@ -311,6 +321,7 @@ export class Game {
     if (this.disposed) return;
     const deltaSeconds = Math.min(this.engine.getDeltaTime() / 1_000, 0.1);
     this.sceneManager.update(deltaSeconds);
+    this.syncMusic();
     // Automatic quality only judges frames of a shift being played, never menus or loads.
     qualityManager.setAutoActive(!this.ui.isSplashVisible && this.kitchenScene?.isShiftRunning === true);
     // The splash is opaque and covers the whole canvas. Drawing the kitchen behind it —
@@ -332,7 +343,33 @@ export class Game {
 
   private readonly handleVisibilityChange = (): void => {
     if (document.hidden && !this.editor) this.kitchenScene?.setManualPaused(true);
+    this.syncMusic();
   };
+
+  private syncMusicSettings(): void {
+    const { musicMuted, masterVolume } = this.persistentState.settings;
+    this.music.setSettings(musicMuted, masterVolume);
+    this.ui.setMusicMuted(musicMuted);
+  }
+
+  private syncMusic(): void {
+    if (this.editor) {
+      this.music.update("editor");
+    } else if (this.ui.isSplashVisible) {
+      const step = this.ui.splashStep;
+      this.music.update(!this.menuReady ? null
+        : step === "level" ? "level-select"
+        : step === "characters" ? "character-select" : "menu");
+    } else {
+      const kitchen = this.kitchenScene;
+      const phase = kitchen?.shiftPhase;
+      if (kitchen && (phase === "playing" || phase === "paused")) {
+        this.music.update(stageMusic(kitchen.scenarioId), phase === "paused", kitchen.shiftElapsedSeconds);
+      } else {
+        this.music.update(phase === "results" ? this.resultTrack : null);
+      }
+    }
+  }
 
   // ---------------------------------------------------------------------------------------
   // Priority 1 — the menu
@@ -804,6 +841,7 @@ export class Game {
         (state) => {
           if (this.disposed) return;
           this.persistentState = state ?? this.saveSystem.load();
+          this.syncMusicSettings();
           this.ui.setLevelRanks(this.persistentState.levelRanks, this.persistentState.levelStars);
         },
         (user) => { if (!this.disposed) void this.accountChanged(user); },
@@ -952,6 +990,7 @@ export class Game {
   }
 
   private saveShiftResult(result: ShiftResult): void {
+    this.resultTrack = resultMusic(result.rank);
     const before = achievementProgress(this.persistentState)[1]!;
 
     const currentRankIndex = this.persistentState.highestRank
@@ -1127,6 +1166,7 @@ export class Game {
     if (this.disposed || !this.editor) return;
     const deltaSeconds = Math.min(this.engine.getDeltaTime() / 1_000, 0.1);
     this.editor.update(deltaSeconds);
+    this.syncMusic();
   };
 
   private detachScene(babylonScene: BabylonScene): void {
@@ -1160,6 +1200,7 @@ export class Game {
       officialWedding: map !== null && map === OFFICIAL_LEVELS.find((level) => level.id === "casamento")?.map,
       onShiftComplete: (result) => this.saveShiftResult(result),
     });
+    kitchen.events.on("shift:started", () => { this.music.update(null); });
     kitchen.events.on("ingredient:picked", ({ item }) => {
       if (item.kind === "food") this.discover(item.ingredientId);
     });

@@ -129,6 +129,7 @@ export const sanitizePersistentState = (
         0,
         1,
       ),
+      musicMuted: rawSettings.musicMuted === true,
       reducedMotion:
         typeof rawSettings.reducedMotion === "boolean"
           ? rawSettings.reducedMotion

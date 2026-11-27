@@ -175,6 +175,7 @@ export interface RuntimeGameState {
 
 export interface GameSettings {
   masterVolume: number;
+  musicMuted: boolean;
   reducedMotion: boolean;
   showDebug: boolean;
   /** Chosen in the menu or the pause card; null until then, which follows the browser. */

@@ -730,6 +730,14 @@ export class KitchenScene implements ManagedScene {
     return this.started && !this.runtime.shiftEnded && !this.runtime.paused;
   }
 
+  get scenarioId(): string {
+    return this.scenario.id;
+  }
+
+  get shiftElapsedSeconds(): number {
+    return this.runtime.shiftDuration - this.runtime.shiftTimeRemaining;
+  }
+
   /** Every file a shift with these cooks needs, for the match loading bar. */
   requiredUrls(characterIds: readonly string[]): string[] {
     const cooks = characterIds
@@ -843,6 +851,7 @@ export class KitchenScene implements ManagedScene {
    */
   abortShift(): void {
     this.started = false;
+    this.environment.campusStorm?.stop();
     this.resultShown = false;
     this.manualPaused = false;
     if (this.cookbookOpen) this.ui.toggleCookbook(false);
@@ -913,6 +922,12 @@ export class KitchenScene implements ManagedScene {
     }
 
     this.kitchenClockMs += delta * 1_000;
+    if (this.environment.campusStorm?.update(
+      this.runtime.shiftDuration - this.runtime.shiftTimeRemaining, this.reducedMotion?.matches ?? false,
+    )) {
+      this.sfx.play("thunder", 0.35);
+      this.notify(t("kitchen.stormPowerDip"), "warning", 2600);
+    }
     this.environment.pauliLighting?.update(delta);
     this.updateOrders(delta);
     this.wedding.syncOrders(this.runtime.activeOrders, this.orderUrgencySeconds());
@@ -1042,6 +1057,7 @@ export class KitchenScene implements ManagedScene {
     for (const slot of this.players) slot.focusedOrderId = null;
     this.scene.fogDensity = this.fogBaseDensity;
     this.glow.intensity = GLOW_BASE_INTENSITY;
+    this.environment.campusStorm?.reset();
     this.spokenDialogueIds.clear();
     this.activeCriticals.clear();
     for (const slot of this.players) slot.input.enabled = true;
@@ -2847,6 +2863,7 @@ export class KitchenScene implements ManagedScene {
   private finishShift(): void {
     if (this.resultShown) return;
     this.resultShown = true;
+    this.environment.campusStorm?.stop();
     for (const slot of this.players) slot.input.enabled = false;
     for (const slot of this.players) {
       this.setStationKeyPrompt(slot, null);
@@ -2880,6 +2897,7 @@ export class KitchenScene implements ManagedScene {
     const paused = this.manualPaused || this.cookbookOpen;
     this.runtime = { ...this.runtime, paused };
     this.wedding.setCeremonyPaused(paused);
+    this.environment.campusStorm?.setPaused(paused);
     this.ui.setPausedVisible(this.manualPaused && !this.cookbookOpen);
     this.eventBus.emit("pause:changed", { paused });
   }

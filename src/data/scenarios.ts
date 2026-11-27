@@ -74,6 +74,8 @@ export interface ScenarioDefinition {
    * the scenario plays its built-in layout.
    */
   readonly levelId?: string;
+  /** Footprint under cover in a level with outdoor rain. */
+  readonly stormShelter?: Readonly<MovementBounds>;
 }
 
 /** Warm evening light for the wedding hall: golden over the arch, rosy over the cake. */
@@ -162,7 +164,7 @@ export const SCHLACHTFEST_SCENARIO: ScenarioDefinition = {
   get displayName() { return translate("scenarios.schlachtfest.name"); },
   get description() { return translate("scenarios.schlachtfest.description"); },
   thumbnailUrl: publicUrl("images/scenarios/wedding.png"),
-  shiftDurationSeconds: 210,
+  shiftDurationSeconds: 204.8,
   difficultyId: "standard",
   lighting: WEDDING_LIGHTING,
   receptionArea: null,
@@ -188,7 +190,7 @@ export const PAULI_SCENARIO: ScenarioDefinition = {
   get displayName() { return translate("scenarios.pauli.name"); },
   get description() { return translate("scenarios.pauli.description"); },
   thumbnailUrl: publicUrl("images/scenarios/wedding.png"),
-  shiftDurationSeconds: 195,
+  shiftDurationSeconds: 202.24,
   difficultyId: "intense",
   lighting: WEDDING_LIGHTING,
   receptionArea: null,
@@ -202,7 +204,7 @@ export const UNIVILLE_SCENARIO: ScenarioDefinition = {
   get displayName() { return translate("scenarios.univille.name"); },
   get description() { return translate("scenarios.univille.description"); },
   thumbnailUrl: publicUrl("assets/ui/level-map/univille.webp"),
-  shiftDurationSeconds: 240,
+  shiftDurationSeconds: 195,
   difficultyId: "meltdown",
   lighting: {
     ambient: "#44534B",
@@ -214,6 +216,7 @@ export const UNIVILLE_SCENARIO: ScenarioDefinition = {
   recipeIds: UNIVILLE_MENU,
   requirements: WEDDING_REQUIREMENTS,
   levelId: "univille",
+  stormShelter: { minX: -12.65, maxX: 12.65, minZ: -5.15, maxZ: 7.9 },
 };
 
 export const SCENARIOS: readonly ScenarioDefinition[] = [

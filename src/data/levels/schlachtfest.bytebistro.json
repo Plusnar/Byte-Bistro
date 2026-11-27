@@ -14492,7 +14492,7 @@
   "scenarioId": "schlachtfest",
   "meta": {
     "description": "Sirva as bebidas e comidas da festa. Cuidado com os robôs que estão festejando. Eles podem estar um pouco... desnorteados?",
-    "shiftDurationSeconds": 210,
+    "shiftDurationSeconds": 204.8,
     "difficultyId": "standard"
   }
 }

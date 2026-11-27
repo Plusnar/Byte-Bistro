@@ -865,19 +865,25 @@
 .game-ui .bistro-home-settings summary { cursor: pointer; list-style: none; }
 .game-ui .bistro-home-settings summary::marker { content: ""; }
 .game-ui .bistro-home-settings summary::-webkit-details-marker { display: none; }
-.game-ui .bistro-home-settings .quality-switch {
+.game-ui .home-settings-panel {
   position: absolute;
   inset-block-end: calc(100% + .5rem);
   inset-inline-end: 0;
   inline-size: max-content;
   max-inline-size: calc(100vw - var(--home-edge) * 2);
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  justify-items: center;
+  gap: .35rem;
   z-index: 2;
   padding: .45rem;
   border: 1px solid #bffaff;
   border-radius: .8rem;
   background: #062c60;
+}
+.game-ui .home-settings-panel .quality-switch { flex-wrap: wrap; justify-content: center; }
+.game-ui .music-toggle[aria-pressed="true"] {
+  outline: 2px solid #91edff;
+  outline-offset: -3px;
 }
 .game-ui .bistro-home-actions .bistro-account-action {
   --home-icon: url("/assets/ui/panels/profile-board.webp");

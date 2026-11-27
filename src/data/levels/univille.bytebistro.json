@@ -1,579 +1,27 @@
 {
   "version": 1,
   "name": "Univille",
-  "createdAt": 1795799789811,
-  "updatedAt": 1795799789811,
+  "createdAt": 1790693233487,
+  "updatedAt": 1795803745740,
   "environment": {
-    "ambient": "#44534B",
-    "fog": "#24352D",
-    "fogDensity": 0.003
+    "ambient": "#3A2F36",
+    "fog": "#06101A",
+    "fogDensity": 0.008
   },
   "objects": [
     {
-      "id": "univille-001",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -6.25,
-        "y": 0,
-        "z": -3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-002",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -6.25,
-        "y": 0,
-        "z": -1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-003",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -6.25,
-        "y": 0,
-        "z": 1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-004",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -6.25,
-        "y": 0,
-        "z": 3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-005",
-      "assetId": "library:Scenario/Univille/wall_class.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -6.25,
-        "y": 0,
-        "z": 5
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Parede com faixa verde"
-    },
-    {
-      "id": "univille-006",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -3.75,
-        "y": 0,
-        "z": -3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-007",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -3.75,
-        "y": 0,
-        "z": -1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-008",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -3.75,
-        "y": 0,
-        "z": 1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-009",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -3.75,
-        "y": 0,
-        "z": 3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-010",
-      "assetId": "library:Scenario/Univille/wall_class.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -3.75,
-        "y": 0,
-        "z": 5
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Parede com faixa verde"
-    },
-    {
-      "id": "univille-011",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -1.25,
-        "y": 0,
-        "z": -3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-012",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -1.25,
-        "y": 0,
-        "z": -1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-013",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -1.25,
-        "y": 0,
-        "z": 1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-014",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -1.25,
-        "y": 0,
-        "z": 3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-015",
-      "assetId": "library:Scenario/Univille/wall_class.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": -1.25,
-        "y": 0,
-        "z": 5
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Parede com faixa verde"
-    },
-    {
-      "id": "univille-016",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 1.25,
-        "y": 0,
-        "z": -3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-017",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 1.25,
-        "y": 0,
-        "z": -1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-018",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 1.25,
-        "y": 0,
-        "z": 1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-019",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 1.25,
-        "y": 0,
-        "z": 3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-020",
-      "assetId": "library:Scenario/Univille/wall_class.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 1.25,
-        "y": 0,
-        "z": 5
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Parede com faixa verde"
-    },
-    {
-      "id": "univille-021",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 3.75,
-        "y": 0,
-        "z": -3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-022",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 3.75,
-        "y": 0,
-        "z": -1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-023",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 3.75,
-        "y": 0,
-        "z": 1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-024",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 3.75,
-        "y": 0,
-        "z": 3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-025",
+      "id": "obj-mwz9kzss-26",
       "assetId": "library:Scenario/Univille/wall_class.glb",
       "role": "decor",
       "category": "room",
       "position": {
         "x": 3.75,
         "y": 0,
-        "z": 5
+        "z": 7.75
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -3.1416,
         "z": 0
       },
       "scale": {
@@ -585,110 +33,18 @@
       "label": "Parede com faixa verde"
     },
     {
-      "id": "univille-026",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 6.25,
-        "y": 0,
-        "z": -3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-027",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 6.25,
-        "y": 0,
-        "z": -1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-028",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 6.25,
-        "y": 0,
-        "z": 1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-029",
-      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 6.25,
-        "y": 0,
-        "z": 3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso de granilite"
-    },
-    {
-      "id": "univille-030",
+      "id": "obj-mwz9kzss-27",
       "assetId": "library:Scenario/Univille/wall_class.glb",
       "role": "decor",
       "category": "room",
       "position": {
         "x": 6.25,
         "y": 0,
-        "z": 5
+        "z": 7.75
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -3.1416,
         "z": 0
       },
       "scale": {
@@ -700,18 +56,18 @@
       "label": "Parede com faixa verde"
     },
     {
-      "id": "univille-031",
-      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "id": "obj-mwz9kzss-28",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
       "role": "decor",
       "category": "room",
       "position": {
         "x": 8.75,
         "y": 0,
-        "z": -3.75
+        "z": 7.75
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -3.1416,
         "z": 0
       },
       "scale": {
@@ -720,21 +76,21 @@
         "z": 1
       },
       "collides": true,
-      "label": "Piso cerâmico do pátio"
+      "label": "Parede com faixa verde"
     },
     {
-      "id": "univille-032",
-      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "id": "obj-mwz9kzss-2b",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
       "role": "decor",
       "category": "room",
       "position": {
-        "x": 8.75,
+        "x": 11.25,
         "y": 0,
-        "z": -1.25
+        "z": 7.75
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -3.1416,
         "z": 0
       },
       "scale": {
@@ -743,67 +99,21 @@
         "z": 1
       },
       "collides": true,
-      "label": "Piso cerâmico do pátio"
+      "label": "Parede com faixa verde"
     },
     {
-      "id": "univille-033",
-      "assetId": "library:Scenario/Univille/floor_patio.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 8.75,
-        "y": 0,
-        "z": 1.25
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso cerâmico do pátio"
-    },
-    {
-      "id": "univille-034",
-      "assetId": "library:Scenario/Univille/floor_patio.glb",
-      "role": "decor",
-      "category": "room",
-      "position": {
-        "x": 8.75,
-        "y": 0,
-        "z": 3.75
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Piso cerâmico do pátio"
-    },
-    {
-      "id": "univille-035",
+      "id": "obj-mwz9ma2k-2u",
       "assetId": "library:Scenario/Univille/wall_gallery.glb",
       "role": "decor",
       "category": "room",
       "position": {
-        "x": 8.75,
+        "x": 12.5,
         "y": 0,
-        "z": 5
+        "z": 4
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -1.5708,
         "z": 0
       },
       "scale": {
@@ -815,18 +125,110 @@
       "label": "Parede com janela corrida"
     },
     {
-      "id": "univille-036",
+      "id": "obj-mwz9malp-2v",
+      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 12.5,
+        "y": 0,
+        "z": 6.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com janela corrida"
+    },
+    {
+      "id": "obj-mwz9mcc4-2w",
+      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 12.5,
+        "y": 0,
+        "z": -1
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com janela corrida"
+    },
+    {
+      "id": "obj-mwz9mcc4-2x",
+      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 12.5,
+        "y": 0,
+        "z": -3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com janela corrida"
+    },
+    {
+      "id": "obj-mwz9melq-2y",
+      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 12.5,
+        "y": 0,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com janela corrida"
+    },
+    {
+      "id": "obj-mwz9mm1o-31",
       "assetId": "library:Scenario/Univille/wall_class.glb",
       "role": "decor",
       "category": "room",
       "position": {
-        "x": -7.5,
+        "x": 2.5,
         "y": 0,
-        "z": 3.755
+        "z": 6.5
       },
       "rotation": {
         "x": 0,
-        "y": 1.5707963267948966,
+        "y": -1.5708,
         "z": 0
       },
       "scale": {
@@ -838,18 +240,18 @@
       "label": "Parede com faixa verde"
     },
     {
-      "id": "univille-037",
-      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "id": "obj-mwz9mq2k-33",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
       "role": "decor",
       "category": "room",
       "position": {
-        "x": -7.5,
+        "x": 2.5,
         "y": 0,
-        "z": 1.25
+        "z": -1
       },
       "rotation": {
         "x": 0,
-        "y": 1.5707963267948966,
+        "y": -1.5708,
         "z": 0
       },
       "scale": {
@@ -858,21 +260,21 @@
         "z": 1
       },
       "collides": true,
-      "label": "Parede com janela corrida"
+      "label": "Parede com faixa verde"
     },
     {
-      "id": "univille-038",
-      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "id": "obj-mwz9mq2k-34",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
       "role": "decor",
       "category": "room",
       "position": {
-        "x": 10,
+        "x": 2.5,
         "y": 0,
-        "z": 3.755
+        "z": -3.5
       },
       "rotation": {
         "x": 0,
-        "y": -1.5707963267948966,
+        "y": -1.5708,
         "z": 0
       },
       "scale": {
@@ -881,21 +283,21 @@
         "z": 1
       },
       "collides": true,
-      "label": "Parede com janela corrida"
+      "label": "Parede com faixa verde"
     },
     {
-      "id": "univille-039",
+      "id": "obj-mwz9na5o-39",
       "assetId": "library:Scenario/Univille/wall_door.glb",
       "role": "decor",
       "category": "room",
       "position": {
-        "x": 10,
+        "x": 2.5,
         "y": 0,
-        "z": 1.25
+        "z": 4
       },
       "rotation": {
         "x": 0,
-        "y": -1.5707963267948966,
+        "y": -1.5708,
         "z": 0
       },
       "scale": {
@@ -907,18 +309,2614 @@
       "label": "Parede com porta aberta"
     },
     {
-      "id": "univille-040",
-      "assetId": "library:Scenario/Univille/teacher_desk.glb",
+      "id": "obj-mwz9nswk-3b",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 2.5,
+        "y": 0,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com faixa verde"
+    },
+    {
+      "id": "obj-mwz9pd3w-3g",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -3.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3h",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -1.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3i",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": 1.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3j",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": 3.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3k",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": 6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3l",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": 8.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3u",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -3.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3v",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -1.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3w",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": 1.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3x",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": 3.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3y",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": 6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pd3w-3z",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": 8.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgto-48",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgto-49",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -8.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgto-4a",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -11.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgto-4b",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -13.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4c",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -16.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4d",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -18.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4e",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -21.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4f",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -23.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4g",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -26.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4h",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4i",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -8.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4j",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -11.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4k",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -13.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4l",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -16.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4m",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -18.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4n",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -21.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4o",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -23.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9pgtp-4p",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -26.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwz9sg50-6b",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 3.75,
+        "y": 0,
+        "z": 6.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9temu-6c",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 6.25,
+        "y": 0,
+        "z": 6.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9ti24-6d",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 8.75,
+        "y": 0,
+        "z": 6.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tkyk-6e",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 11.25,
+        "y": 0,
+        "z": 6.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tqv9-6f",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 3.75,
+        "y": 0,
+        "z": 4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tqv9-6g",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 6.25,
+        "y": 0,
+        "z": 4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tqv9-6h",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 8.75,
+        "y": 0,
+        "z": 4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tqv9-6i",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 11.25,
+        "y": 0,
+        "z": 4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tu05-6j",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 3.75,
+        "y": 0,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tu05-6k",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 6.25,
+        "y": 0,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tu05-6l",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 8.75,
+        "y": 0,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tu05-6m",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 11.25,
+        "y": 0,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9twjg-6n",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 3.75,
+        "y": 0,
+        "z": -1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9twjg-6o",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 6.25,
+        "y": 0,
+        "z": -1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9twjg-6p",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 8.75,
+        "y": 0,
+        "z": -1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9twjg-6q",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 11.25,
+        "y": 0,
+        "z": -1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tzrp-6r",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 3.75,
+        "y": 0,
+        "z": -3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tzrp-6s",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 6.25,
+        "y": 0,
+        "z": -3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tzrp-6t",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 8.75,
+        "y": 0,
+        "z": -3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9tzrp-6u",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 11.25,
+        "y": 0,
+        "z": -3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#c2c2c2"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-6v",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": 7.7206
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com faixa verde"
+    },
+    {
+      "id": "obj-mwz9uuf9-6w",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -6.25,
+        "y": 0,
+        "z": 7.7206
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com faixa verde"
+    },
+    {
+      "id": "obj-mwz9uuf9-6x",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -8.75,
+        "y": 0,
+        "z": 7.7206
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com faixa verde"
+    },
+    {
+      "id": "obj-mwz9uuf9-6y",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": 7.7206
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com faixa verde"
+    },
+    {
+      "id": "obj-mwz9uuf9-6z",
+      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -12.5,
+        "y": 0,
+        "z": -1.0294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com janela corrida"
+    },
+    {
+      "id": "obj-mwz9uuf9-70",
+      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -12.5,
+        "y": 0,
+        "z": -3.5294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com janela corrida"
+    },
+    {
+      "id": "obj-mwz9uuf9-71",
+      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -12.5,
+        "y": 0,
+        "z": 3.9706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com janela corrida"
+    },
+    {
+      "id": "obj-mwz9uuf9-72",
+      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -12.5,
+        "y": 0,
+        "z": 6.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com janela corrida"
+    },
+    {
+      "id": "obj-mwz9uuf9-73",
+      "assetId": "library:Scenario/Univille/wall_gallery.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -12.5,
+        "y": 0,
+        "z": 1.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com janela corrida"
+    },
+    {
+      "id": "obj-mwz9uuf9-74",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -2.5,
+        "y": 0,
+        "z": -3.5294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com faixa verde"
+    },
+    {
+      "id": "obj-mwz9uuf9-76",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -2.5,
+        "y": 0,
+        "z": 6.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com faixa verde"
+    },
+    {
+      "id": "obj-mwz9uuf9-77",
+      "assetId": "library:Scenario/Univille/wall_door.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -2.5,
+        "y": 0,
+        "z": 3.9706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com porta aberta"
+    },
+    {
+      "id": "obj-mwz9uuf9-78",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -2.5,
+        "y": 0,
+        "z": 1.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com faixa verde"
+    },
+    {
+      "id": "obj-mwz9uuf9-79",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": -3.5294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7a",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -6.25,
+        "y": 0,
+        "z": -3.5294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7b",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -8.75,
+        "y": 0,
+        "z": -3.5294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7c",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": -3.5294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7d",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": -1.0294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7e",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -6.25,
+        "y": 0,
+        "z": -1.0294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7f",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -8.75,
+        "y": 0,
+        "z": -1.0294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7g",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": -1.0294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7h",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": 1.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7i",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -6.25,
+        "y": 0,
+        "z": 1.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7j",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -8.75,
+        "y": 0,
+        "z": 1.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7k",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": 1.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7l",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": 3.9706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7m",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -6.25,
+        "y": 0,
+        "z": 3.9706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7n",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -8.75,
+        "y": 0,
+        "z": 3.9706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7o",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": 3.9706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7p",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": 6.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7q",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -6.25,
+        "y": 0,
+        "z": 6.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7r",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -8.75,
+        "y": 0,
+        "z": 6.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9uuf9-7s",
+      "assetId": "library:Scenario/Univille/floor_terrazzo.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": 6.4706
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso de granilite",
+      "colors": {
+        "Campus_Concreto": "#47443e",
+        "Campus_Chapa": "#736464",
+        "Campus_Junta": "#9a8d8d",
+        "Campus_Granilite": "#6f9574"
+      }
+    },
+    {
+      "id": "obj-mwz9wf1z-7t",
+      "assetId": "library:Scenario/Univille/wall_class.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -2.5,
+        "y": 0,
+        "z": -1.0294
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com faixa verde"
+    },
+    {
+      "id": "obj-mwz9xkcl-83",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -11.875,
+        "y": 0,
+        "z": -5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwz9yiz9-84",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -10.75,
+        "y": 0,
+        "z": -5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwz9yjv8-85",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -9.5,
+        "y": 0,
+        "z": -5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwz9ykst-86",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -8.25,
+        "y": 0,
+        "z": -5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwz9ylkt-87",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwz9ym5p-88",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -5.75,
+        "y": 0,
+        "z": -5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwz9yn8f-89",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -4.5,
+        "y": 0,
+        "z": -5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwz9yo9o-8a",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -3.25,
+        "y": 0,
+        "z": -5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwza0jct-8s",
+      "assetId": "library:Scenario/Univille/bookcase.glb",
       "role": "decor",
       "category": "storage",
       "position": {
-        "x": 8.68,
+        "x": 7.25,
         "y": 0,
-        "z": 3.9
+        "z": 4.25
       },
       "rotation": {
         "x": 0,
         "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Estante de livros"
+    },
+    {
+      "id": "obj-mwza0k5g-8t",
+      "assetId": "library:Scenario/Univille/bookcase.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": 8.5,
+        "y": 0,
+        "z": 4.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Estante de livros"
+    },
+    {
+      "id": "obj-mwza0kym-8u",
+      "assetId": "library:Scenario/Univille/bookcase.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": 9.75,
+        "y": 0,
+        "z": 4.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Estante de livros"
+    },
+    {
+      "id": "obj-mwza0pab-8v",
+      "assetId": "library:Scenario/Univille/bookcase.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": 9.75,
+        "y": 0,
+        "z": 4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Estante de livros"
+    },
+    {
+      "id": "obj-mwza0q0s-8w",
+      "assetId": "library:Scenario/Univille/bookcase.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": 8.5,
+        "y": 0,
+        "z": 4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Estante de livros"
+    },
+    {
+      "id": "obj-mwza0r0t-8x",
+      "assetId": "library:Scenario/Univille/bookcase.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": 7.25,
+        "y": 0,
+        "z": 4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Estante de livros"
+    },
+    {
+      "id": "obj-mwza235x-9i",
+      "assetId": "library:Scenario/Univille/whiteboard.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -8,
+        "y": 1,
+        "z": 7.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Quadro branco"
+    },
+    {
+      "id": "obj-mwza324v-9o",
+      "assetId": "library:Scenario/Univille/teacher_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": 10.529,
+        "y": 0,
+        "z": -1.9451
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7854,
         "z": 0
       },
       "scale": {
@@ -930,14 +2928,221 @@
       "label": "Mesa do professor"
     },
     {
-      "id": "univille-041",
-      "assetId": "library:Scenario/Univille/whiteboard.glb",
+      "id": "obj-mwza37io-9p",
+      "assetId": "library:Scenario/Univille/teacher_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": 10.8826,
+        "y": 0,
+        "z": -1.5915
+      },
+      "rotation": {
+        "x": 0,
+        "y": -2.3562,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Mesa do professor"
+    },
+    {
+      "id": "obj-mwza3crd-9r",
+      "assetId": "library:Scenario/Univille/student_chair.glb",
       "role": "decor",
       "category": "decor",
       "position": {
-        "x": 8.7,
-        "y": 1.23,
-        "z": 4.79
+        "x": 9.9987,
+        "y": 0,
+        "z": -2.4754
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7854,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Cadeira escolar verde"
+    },
+    {
+      "id": "obj-mwza3drp-9s",
+      "assetId": "library:Scenario/Univille/student_chair.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 11.5897,
+        "y": 0,
+        "z": -1.238
+      },
+      "rotation": {
+        "x": 0,
+        "y": -2.3562,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Cadeira escolar verde"
+    },
+    {
+      "id": "obj-mwza46kd-a0",
+      "assetId": "library:Scenario/Univille/auditorium_seats.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": 0.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Fileira de três poltronas"
+    },
+    {
+      "id": "obj-mwza47pw-a1",
+      "assetId": "library:Scenario/Univille/auditorium_seats.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -2.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Fileira de três poltronas"
+    },
+    {
+      "id": "obj-mwza49wf-a2",
+      "assetId": "library:Scenario/Univille/auditorium_seats.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": 6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Fileira de três poltronas"
+    },
+    {
+      "id": "obj-mwza4qg1-a6",
+      "assetId": "library:Scenario/Univille/auditorium_seats.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": 0.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Fileira de três poltronas"
+    },
+    {
+      "id": "obj-mwza4zb8-a7",
+      "assetId": "library:Scenario/Univille/auditorium_seats.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": -2.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Fileira de três poltronas"
+    },
+    {
+      "id": "obj-mwza579o-a8",
+      "assetId": "library:Scenario/Univille/auditorium_seats.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": 6
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Fileira de três poltronas"
+    },
+    {
+      "id": "obj-mwza7ygk-au",
+      "assetId": "library:Scenario/Univille/wall_door.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": -5
       },
       "rotation": {
         "x": 0,
@@ -949,18 +3154,639 @@
         "y": 1,
         "z": 1
       },
-      "collides": false,
-      "label": "Quadro branco"
+      "collides": true,
+      "label": "Parede com porta aberta"
     },
     {
-      "id": "univille-042",
+      "id": "obj-mwza84g4-aw",
+      "assetId": "library:Scenario/Univille/wall_door.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": -5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com porta aberta"
+    },
+    {
+      "id": "obj-mwza8uyc-ay",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza8uyc-az",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -6.25,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza8uyc-b0",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -8.75,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza8uyc-b1",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza8uyc-b2",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -13.75,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza8x1o-b3",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 3.75,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza8x1o-b4",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 6.25,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza8x1o-b5",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 8.75,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza8x1o-b6",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 11.25,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza94pc-b7",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -13.75,
+        "y": 0,
+        "z": -3.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza94pc-b8",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -13.75,
+        "y": 0,
+        "z": -1.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza94pc-b9",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -13.75,
+        "y": 0,
+        "z": 1.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza94pc-ba",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -13.75,
+        "y": 0,
+        "z": 3.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza94pc-bb",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -13.75,
+        "y": 0,
+        "z": 6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza94pc-bc",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -13.75,
+        "y": 0,
+        "z": 8.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza9b0c-bl",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 13.75,
+        "y": 0,
+        "z": 8.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza9cok-bm",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 13.75,
+        "y": 0,
+        "z": 6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza9cok-bn",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 13.75,
+        "y": 0,
+        "z": 3.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza9cok-bo",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 13.75,
+        "y": 0,
+        "z": 1.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza9cok-bp",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 13.75,
+        "y": 0,
+        "z": -1.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza9cok-bq",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 13.75,
+        "y": 0,
+        "z": -3.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza9cok-br",
+      "assetId": "library:Scenario/Univille/floor_patio.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 13.75,
+        "y": 0,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Piso cerâmico do pátio"
+    },
+    {
+      "id": "obj-mwza9ul0-bs",
+      "assetId": "library:Scenario/Univille/wall_door.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 1.25,
+        "y": 0,
+        "z": 7.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com porta aberta"
+    },
+    {
+      "id": "obj-mwza9ul0-bt",
+      "assetId": "library:Scenario/Univille/wall_door.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": 7.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Parede com porta aberta"
+    },
+    {
+      "id": "obj-mwzab2sl-c1",
+      "assetId": "library:Scenario/Univille/monitor.glb",
+      "role": "decor",
+      "category": "screen",
+      "position": {
+        "x": 2.75,
+        "y": 1,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Tela multimídia"
+    },
+    {
+      "id": "obj-mwzab4u4-c2",
+      "assetId": "library:Scenario/Univille/monitor.glb",
+      "role": "decor",
+      "category": "screen",
+      "position": {
+        "x": 2.75,
+        "y": 1,
+        "z": -2.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Tela multimídia"
+    },
+    {
+      "id": "obj-mwzad7p9-c8",
       "assetId": "library:Scenario/Univille/student_desk.glb",
       "role": "decor",
       "category": "storage",
       "position": {
-        "x": 8.6,
+        "x": -10.5,
         "y": 0,
-        "z": 1.76
+        "z": 4.5
       },
       "rotation": {
         "x": 0,
@@ -976,14 +3802,14 @@
       "label": "Carteira escolar"
     },
     {
-      "id": "univille-043",
+      "id": "obj-mwzad8od-c9",
       "assetId": "library:Scenario/Univille/student_desk.glb",
       "role": "decor",
       "category": "storage",
       "position": {
-        "x": 8.6,
+        "x": -9,
         "y": 0,
-        "z": 0.05
+        "z": 4.5
       },
       "rotation": {
         "x": 0,
@@ -999,60 +3825,14 @@
       "label": "Carteira escolar"
     },
     {
-      "id": "univille-044",
-      "assetId": "library:Scenario/Univille/student_chair.glb",
-      "role": "decor",
-      "category": "decor",
-      "position": {
-        "x": 8.6,
-        "y": 0,
-        "z": 1.1
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Cadeira escolar verde"
-    },
-    {
-      "id": "univille-045",
-      "assetId": "library:Scenario/Univille/student_chair.glb",
-      "role": "decor",
-      "category": "decor",
-      "position": {
-        "x": 8.6,
-        "y": 0,
-        "z": -0.62
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": true,
-      "label": "Cadeira escolar verde"
-    },
-    {
-      "id": "univille-046",
+      "id": "obj-mwzada2l-ca",
       "assetId": "library:Scenario/Univille/student_desk.glb",
       "role": "decor",
       "category": "storage",
       "position": {
-        "x": 8.6,
+        "x": -7.25,
         "y": 0,
-        "z": -1.64
+        "z": 4.5
       },
       "rotation": {
         "x": 0,
@@ -1068,18 +3848,225 @@
       "label": "Carteira escolar"
     },
     {
-      "id": "univille-047",
+      "id": "obj-mwzaddk0-cb",
+      "assetId": "library:Scenario/Univille/student_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -6.5,
+        "y": 0,
+        "z": 4.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Carteira escolar"
+    },
+    {
+      "id": "obj-mwzadg0t-cc",
+      "assetId": "library:Scenario/Univille/student_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -4.25,
+        "y": 0,
+        "z": 1.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7853981633974483,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Carteira escolar"
+    },
+    {
+      "id": "obj-mwzadh25-cd",
+      "assetId": "library:Scenario/Univille/student_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -10.75,
+        "y": 0,
+        "z": 1.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7853981633974483,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Carteira escolar"
+    },
+    {
+      "id": "obj-mwzadi79-ce",
+      "assetId": "library:Scenario/Univille/student_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -1
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Carteira escolar"
+    },
+    {
+      "id": "obj-mwzadk87-cf",
+      "assetId": "library:Scenario/Univille/student_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -4.5,
+        "y": 0,
+        "z": -0.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Carteira escolar"
+    },
+    {
+      "id": "obj-mwzadl1y-cg",
+      "assetId": "library:Scenario/Univille/student_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -5.5,
+        "y": 0,
+        "z": -2.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7853981633974483,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Carteira escolar"
+    },
+    {
+      "id": "obj-mwzadmoh-ch",
+      "assetId": "library:Scenario/Univille/student_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -7.75,
+        "y": 0,
+        "z": -3.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Carteira escolar"
+    },
+    {
+      "id": "obj-mwzadosd-ci",
+      "assetId": "library:Scenario/Univille/student_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -10.5,
+        "y": 0,
+        "z": -1.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7853981633974483,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Carteira escolar"
+    },
+    {
+      "id": "obj-mwzadplg-cj",
+      "assetId": "library:Scenario/Univille/student_desk.glb",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": 0.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Carteira escolar"
+    },
+    {
+      "id": "obj-mwzadtp2-cl",
       "assetId": "library:Scenario/Univille/student_chair.glb",
       "role": "decor",
       "category": "decor",
       "position": {
-        "x": 8.6,
+        "x": -10.5,
         "y": 0,
-        "z": -2.29
+        "z": 5
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": 3.1416,
         "z": 0
       },
       "scale": {
@@ -1088,17 +4075,411 @@
         "z": 1
       },
       "collides": true,
-      "label": "Cadeira escolar verde"
+      "label": "Cadeira escolar verde",
+      "colors": {
+        "Campus_Estofado": "#f4efe6"
+      }
     },
     {
-      "id": "univille-048",
-      "assetId": "library:Scenario/Univille/planter.glb",
+      "id": "obj-mwzaeamc-cm",
+      "assetId": "library:Scenario/Univille/student_chair.glb",
       "role": "decor",
       "category": "decor",
       "position": {
-        "x": 9.42,
+        "x": -9,
         "y": 0,
-        "z": -3.99
+        "z": 5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Cadeira escolar verde",
+      "colors": {
+        "Campus_Estofado": "#f4efe6"
+      }
+    },
+    {
+      "id": "obj-mwzaedjr-cn",
+      "assetId": "library:Scenario/Univille/student_chair.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -7.25,
+        "y": 0,
+        "z": 5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Cadeira escolar verde",
+      "colors": {
+        "Campus_Estofado": "#f4efe6"
+      }
+    },
+    {
+      "id": "obj-mwzaei00-co",
+      "assetId": "library:Scenario/Univille/student_chair.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -6.5,
+        "y": 0,
+        "z": 5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Cadeira escolar verde",
+      "colors": {
+        "Campus_Estofado": "#f4efe6"
+      }
+    },
+    {
+      "id": "obj-mwzaf199-cp",
+      "assetId": "library:Scenario/Univille/student_chair.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": 2.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 2.3562,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Cadeira escolar verde",
+      "colors": {
+        "Campus_Estofado": "#f4efe6"
+      }
+    },
+    {
+      "id": "obj-mwzaf8h0-cq",
+      "assetId": "library:Scenario/Univille/student_chair.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": -2.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7854,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Cadeira escolar verde",
+      "colors": {
+        "Campus_Estofado": "#f4efe6"
+      }
+    },
+    {
+      "id": "obj-mwzafe0a-cr",
+      "assetId": "library:Scenario/Univille/student_chair.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -0.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Cadeira escolar verde",
+      "colors": {
+        "Campus_Estofado": "#f4efe6"
+      }
+    },
+    {
+      "id": "obj-mwzafmik-cs",
+      "assetId": "library:Scenario/Univille/student_chair.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": 1.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -2.3562,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Cadeira escolar verde",
+      "colors": {
+        "Campus_Estofado": "#f4efe6"
+      }
+    },
+    {
+      "id": "obj-mwzag7j2-cv",
+      "assetId": "library:Scenario/Univille/notice_board.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -5.25,
+        "y": 1,
+        "z": 7.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Mural de avisos"
+    },
+    {
+      "id": "obj-mwzagdgl-cw",
+      "assetId": "library:Scenario/Univille/notice_board.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -2.75,
+        "y": 1,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Mural de avisos"
+    },
+    {
+      "id": "obj-mwzagmvg-cx",
+      "assetId": "library:Scenario/Univille/notice_board.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 11.5,
+        "y": 1,
+        "z": 7.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Mural de avisos"
+    },
+    {
+      "id": "obj-mwzahw3p-d2",
+      "assetId": "library:Scenario/SalaoPauli/light_disco.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -7.5,
+        "y": 2.5,
+        "z": 1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Globo espelhado RGB"
+    },
+    {
+      "id": "obj-mwzaj2ad-d8",
+      "assetId": "build-block",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 8.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 5,
+        "y": 2.3,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Bloco / bancada",
+      "color": "#d5a26c"
+    },
+    {
+      "id": "obj-mwzak1k5-d9",
+      "assetId": "build-block",
+      "role": "decor",
+      "category": "storage",
+      "position": {
+        "x": -0.25,
+        "y": 0,
+        "z": -4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 5,
+        "y": 2.3,
+        "z": 0.5
+      },
+      "collides": true,
+      "label": "Bloco / bancada",
+      "color": "#d5a26c"
+    },
+    {
+      "id": "obj-mwzakz40-dc",
+      "assetId": "library:Scenario/KayKit_Forest_Nature_Pack_1.0_FREE/KayKit_Forest_Nature_Pack_1.0_FREE/Assets/gltf/Tree_2_D_Color1.gltf",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -15,
+        "y": 0,
+        "z": 11.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": -2.356194490192345,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Árvore 2 D cor 1"
+    },
+    {
+      "id": "obj-mwzal0zw-dd",
+      "assetId": "library:Scenario/KayKit_Forest_Nature_Pack_1.0_FREE/KayKit_Forest_Nature_Pack_1.0_FREE/Assets/gltf/Tree_2_D_Color1.gltf",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -8.5,
+        "y": 0,
+        "z": 12.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Árvore 2 D cor 1"
+    },
+    {
+      "id": "obj-mwzal2hx-de",
+      "assetId": "library:Scenario/KayKit_Forest_Nature_Pack_1.0_FREE/KayKit_Forest_Nature_Pack_1.0_FREE/Assets/gltf/Tree_2_D_Color1.gltf",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": 11
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.7853981633974483,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Árvore 2 D cor 1"
+    },
+    {
+      "id": "obj-mwzal31w-df",
+      "assetId": "library:Scenario/KayKit_Forest_Nature_Pack_1.0_FREE/KayKit_Forest_Nature_Pack_1.0_FREE/Assets/gltf/Tree_2_D_Color1.gltf",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": 14.75
       },
       "rotation": {
         "x": 0,
@@ -1111,21 +4492,841 @@
         "z": 1
       },
       "collides": true,
-      "label": "Jardineira de folhagens"
+      "label": "Árvore 2 D cor 1"
     },
     {
-      "id": "univille-049",
+      "id": "obj-mwzal3o2-dg",
+      "assetId": "library:Scenario/KayKit_Forest_Nature_Pack_1.0_FREE/KayKit_Forest_Nature_Pack_1.0_FREE/Assets/gltf/Tree_2_D_Color1.gltf",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 5.75,
+        "y": 0,
+        "z": 10
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7853981633974483,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Árvore 2 D cor 1"
+    },
+    {
+      "id": "obj-mwzal5bo-dh",
+      "assetId": "library:Scenario/KayKit_Forest_Nature_Pack_1.0_FREE/KayKit_Forest_Nature_Pack_1.0_FREE/Assets/gltf/Tree_2_D_Color1.gltf",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 13,
+        "y": 0,
+        "z": 13.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7853981633974483,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Árvore 2 D cor 1"
+    },
+    {
+      "id": "obj-mwzal6jp-di",
+      "assetId": "library:Scenario/KayKit_Forest_Nature_Pack_1.0_FREE/KayKit_Forest_Nature_Pack_1.0_FREE/Assets/gltf/Tree_2_D_Color1.gltf",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 11.5,
+        "y": 0,
+        "z": 9.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Árvore 2 D cor 1"
+    },
+    {
+      "id": "obj-mwzalik7-do",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzaljdi-dp",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": -8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzalk2t-dq",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -8.75,
+        "y": 0,
+        "z": -8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzalkjh-dr",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -6.25,
+        "y": 0,
+        "z": -8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzallkv-ds",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": -3.5,
+        "y": 0,
+        "z": -7.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzalrbv-dt",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 3.5,
+        "y": 0,
+        "z": -8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzalrbv-du",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 6.25,
+        "y": 0,
+        "z": -8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzalrbv-dv",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 8.75,
+        "y": 0,
+        "z": -8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzalrbv-dw",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 11.25,
+        "y": 0,
+        "z": -8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzalrbv-dx",
+      "assetId": "library:Scenario/IgrejaMatriz/arbusto_bola.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 14,
+        "y": 0,
+        "z": -7.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Arbusto em bola"
+    },
+    {
+      "id": "obj-mwzank7q-dy",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 3.125,
+        "y": 0,
+        "z": -4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwzank7q-dz",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 4.25,
+        "y": 0,
+        "z": -4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwzank7q-e0",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 5.5,
+        "y": 0,
+        "z": -4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwzank7q-e1",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 6.75,
+        "y": 0,
+        "z": -4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwzank7q-e2",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 8,
+        "y": 0,
+        "z": -4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwzank7q-e3",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 9.25,
+        "y": 0,
+        "z": -4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwzank7q-e4",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 10.5,
+        "y": 0,
+        "z": -4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwzank7q-e5",
+      "assetId": "library:Scenario/IgrejaMatriz/muro_pedra.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 11.75,
+        "y": 0,
+        "z": -4.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 1.25,
+        "z": 1.25
+      },
+      "collides": true,
+      "label": "Muro de pedra",
+      "colors": {
+        "Igm_Rejunte": "#c0c4b6",
+        "Igm_PedraB": "#c0c4b6",
+        "Igm_PedraC": "#c0c4b6",
+        "Igm_PedraA": "#c0c4b6",
+        "Igm_CremeClaro": "#739734"
+      }
+    },
+    {
+      "id": "obj-mwzao2qb-e7",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": -7.5,
+        "y": 0,
+        "z": 0.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "delivery",
+      "label": "Cozinha // Entrega",
+      "color": "#FF9F43",
+      "colors": {
+        "restaurant": "#f6d84a"
+      }
+    },
+    {
+      "id": "obj-mwzaozu1-eb",
+      "assetId": "library:Scenario/Univille/column.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -2.375,
+        "y": 0,
+        "z": -6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Pilar verde do ginásio"
+    },
+    {
+      "id": "obj-mwzap4k2-ec",
+      "assetId": "library:Scenario/Univille/column.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 2.375,
+        "y": 0,
+        "z": -6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Pilar verde do ginásio"
+    },
+    {
+      "id": "obj-mwzapd6k-ef",
+      "assetId": "library:Scenario/Univille/column.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -12.4869,
+        "y": 0,
+        "z": -5.1315
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Pilar verde do ginásio"
+    },
+    {
+      "id": "obj-mwzaph38-eg",
+      "assetId": "library:Scenario/Univille/column.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 12.4891,
+        "y": 0,
+        "z": -5.0811
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Pilar verde do ginásio"
+    },
+    {
+      "id": "obj-mwzapmg4-eh",
+      "assetId": "library:Scenario/Univille/column.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -12.551,
+        "y": 0,
+        "z": 8.0164
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Pilar verde do ginásio"
+    },
+    {
+      "id": "obj-mwzapptg-ei",
+      "assetId": "library:Scenario/Univille/column.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 12.3099,
+        "y": 0,
+        "z": 8.0261
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Pilar verde do ginásio"
+    },
+    {
+      "id": "obj-mwzaq4zn-el",
+      "assetId": "library:Scenario/Univille/truss.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 0,
+        "y": 3,
+        "z": -7.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Tesoura metálica da cobertura"
+    },
+    {
+      "id": "obj-mwzaqcu3-em",
+      "assetId": "library:Scenario/Univille/truss.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 0,
+        "y": 3,
+        "z": -6.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": -3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Tesoura metálica da cobertura"
+    },
+    {
+      "id": "obj-mwzaqqc3-en",
+      "assetId": "library:Scenario/Univille/truss.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": -2.5,
+        "y": 3,
+        "z": -6.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.4,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Tesoura metálica da cobertura"
+    },
+    {
+      "id": "obj-mwzar45o-eo",
+      "assetId": "library:Scenario/Univille/truss.glb",
+      "role": "decor",
+      "category": "room",
+      "position": {
+        "x": 2.5,
+        "y": 3,
+        "z": -6.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.4,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Tesoura metálica da cobertura"
+    },
+    {
+      "id": "obj-mwzasc5e-eq",
+      "assetId": "library:Scenario/Univille/backpack.glb",
+      "role": "decor",
+      "category": "decor",
+      "position": {
+        "x": 10.25,
+        "y": 0.8045,
+        "z": -1.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -2.3562,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Mochila escolar"
+    },
+    {
+      "id": "obj-mwzasmo5-ev",
       "assetId": "library:Scenario/Univille/recycling_bin.glb",
       "role": "decor",
       "category": "decor",
       "position": {
-        "x": 9.42,
+        "x": 2.25,
         "y": 0,
-        "z": 4.51
+        "z": 2.5
       },
       "rotation": {
         "x": 0,
-        "y": 3.141592653589793,
+        "y": -1.5708,
         "z": 0
       },
       "scale": {
@@ -1137,41 +5338,18 @@
       "label": "Lixeira seletiva dupla"
     },
     {
-      "id": "univille-050",
-      "assetId": "library:Scenario/Univille/backpack.glb",
+      "id": "obj-mwzaspot-ew",
+      "assetId": "library:Scenario/Univille/recycling_bin.glb",
       "role": "decor",
       "category": "decor",
       "position": {
-        "x": 8.7,
-        "y": 0.782,
-        "z": 0.05
+        "x": -2.25,
+        "y": 0,
+        "z": 2.5
       },
       "rotation": {
         "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "collides": false,
-      "label": "Mochila escolar"
-    },
-    {
-      "id": "univille-051",
-      "assetId": "library:Scenario/Univille/wayfinding.glb",
-      "role": "decor",
-      "category": "decor",
-      "position": {
-        "x": 7.91,
-        "y": 0,
-        "z": -4.43
-      },
-      "rotation": {
-        "x": 0,
-        "y": 3.141592653589793,
+        "y": -1.5708000000000002,
         "z": 0
       },
       "scale": {
@@ -1180,571 +5358,21 @@
         "z": 1
       },
       "collides": true,
-      "label": "Placa de orientação"
+      "label": "Lixeira seletiva dupla"
     },
     {
-      "id": "univille-052",
-      "assetId": "station:oven",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": -6,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "oven",
-      "label": "Cozinha // Forno",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-053",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_single.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": -4.8,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "stove",
-      "label": "Cozinha // Fogão",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-054",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_single.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": -3.5999999999999996,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "stove",
-      "label": "Cozinha // Fogão",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-055",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_single.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": -2.4,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "stove",
-      "label": "Cozinha // Fogão",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-056",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": -1.2,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "cutting_board",
-      "label": "Cozinha // Tábua de corte",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-057",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": 0,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "cutting_board",
-      "label": "Cozinha // Tábua de corte",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-058",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": 1.2,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "mixer",
-      "label": "Cozinha // Batedeira",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-059",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": 2.4,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "mixer",
-      "label": "Cozinha // Batedeira",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-060",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": 3.5999999999999996,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "plate_rack",
-      "label": "Cozinha // Pratos limpos",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-061",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_sink.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": 4.8,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "sink",
-      "label": "Cozinha // Pia",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-062",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": 6,
-        "y": 0,
-        "z": -3.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "extinguisher_stand",
-      "label": "Cozinha // Extintor",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-063",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": -1.8,
-        "y": 0,
-        "z": 0
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "counter",
-      "label": "Cozinha // Bancada",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-064",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": 1.8,
-        "y": 0,
-        "z": 0
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "counter",
-      "label": "Cozinha // Bancada",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-065",
-      "assetId": "library:Scenario/KayKit_Prototype_Bits_1.1_FREE/KayKit_Prototype_Bits_1.1_FREE/Assets/gltf/Barrel_A.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": -6,
-        "y": 0,
-        "z": 3.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "trash",
-      "label": "Cozinha // Lixo",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-066",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": -4.8,
-        "y": 0,
-        "z": 3.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": 3.141592653589793,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "dirty_return",
-      "label": "Cozinha // Pratos sujos",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-067",
-      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
-      "role": "station",
-      "category": "station",
-      "position": {
-        "x": 6,
-        "y": 0,
-        "z": 3.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": 3.141592653589793,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.9,
-        "z": 0.6
-      },
-      "collides": true,
-      "stationId": "delivery",
-      "label": "Cozinha // Entrega",
-      "color": "#FF9F43"
-    },
-    {
-      "id": "univille-068",
-      "assetId": "ingredient-crate:ram_module",
-      "role": "dispenser",
-      "category": "dispenser",
-      "position": {
-        "x": -3,
-        "y": 0,
-        "z": 3.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": 3.141592653589793,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.98,
-        "z": 0.6
-      },
-      "collides": true,
-      "ingredientId": "ram_module",
-      "label": "Caixa // Módulo de RAM",
-      "color": "#44DFFF"
-    },
-    {
-      "id": "univille-069",
-      "assetId": "ingredient-crate:cache_fragment",
-      "role": "dispenser",
-      "category": "dispenser",
-      "position": {
-        "x": -1.7999999999999998,
-        "y": 0,
-        "z": 3.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": 3.141592653589793,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.98,
-        "z": 0.6
-      },
-      "collides": true,
-      "ingredientId": "cache_fragment",
-      "label": "Caixa // Fragmento de cache",
-      "color": "#44DFFF"
-    },
-    {
-      "id": "univille-070",
-      "assetId": "ingredient-crate:cache_cream",
-      "role": "dispenser",
-      "category": "dispenser",
-      "position": {
-        "x": -0.6,
-        "y": 0,
-        "z": 3.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": 3.141592653589793,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.98,
-        "z": 0.6
-      },
-      "collides": true,
-      "ingredientId": "cache_cream",
-      "label": "Caixa // Creme de cache",
-      "color": "#44DFFF"
-    },
-    {
-      "id": "univille-071",
-      "assetId": "ingredient-crate:data_cream",
-      "role": "dispenser",
-      "category": "dispenser",
-      "position": {
-        "x": 0.6,
-        "y": 0,
-        "z": 3.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": 3.141592653589793,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.98,
-        "z": 0.6
-      },
-      "collides": true,
-      "ingredientId": "data_cream",
-      "label": "Caixa // Creme de dados",
-      "color": "#44DFFF"
-    },
-    {
-      "id": "univille-072",
-      "assetId": "ingredient-crate:cooling_fluid",
-      "role": "dispenser",
-      "category": "dispenser",
-      "position": {
-        "x": 1.7999999999999998,
-        "y": 0,
-        "z": 3.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": 3.141592653589793,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.98,
-        "z": 0.6
-      },
-      "collides": true,
-      "ingredientId": "cooling_fluid",
-      "label": "Caixa // Fluido refrigerante",
-      "color": "#44DFFF"
-    },
-    {
-      "id": "univille-073",
-      "assetId": "ingredient-crate:binary_sugar",
-      "role": "dispenser",
-      "category": "dispenser",
-      "position": {
-        "x": 3,
-        "y": 0,
-        "z": 3.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": 3.141592653589793,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.98,
-        "z": 0.6
-      },
-      "collides": true,
-      "ingredientId": "binary_sugar",
-      "label": "Caixa // Açúcar binário",
-      "color": "#44DFFF"
-    },
-    {
-      "id": "univille-074",
+      "id": "obj-mwzatllx-ez",
       "assetId": "build-player-spawn-1",
       "role": "spawn",
       "category": "spawn",
       "position": {
-        "x": -2.75,
+        "x": -1,
         "y": 0,
-        "z": -1.9
+        "z": 1.5
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -2.356194490192345,
         "z": 0
       },
       "scale": {
@@ -1758,18 +5386,18 @@
       "color": "#4FD96B"
     },
     {
-      "id": "univille-075",
+      "id": "obj-mwzatr4u-f3",
       "assetId": "build-player-spawn-2",
       "role": "spawn",
       "category": "spawn",
       "position": {
-        "x": 2.75,
+        "x": 0.75,
         "y": 0,
-        "z": -1.9
+        "z": 1.5
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -2.356194490192345,
         "z": 0
       },
       "scale": {
@@ -1783,18 +5411,18 @@
       "color": "#4A9DFF"
     },
     {
-      "id": "univille-076",
+      "id": "obj-mwzatx0x-f5",
       "assetId": "build-player-spawn-3",
       "role": "spawn",
       "category": "spawn",
       "position": {
-        "x": -2.75,
+        "x": -1,
         "y": 0,
-        "z": 1.85
+        "z": 3.75
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -2.356194490192345,
         "z": 0
       },
       "scale": {
@@ -1808,18 +5436,18 @@
       "color": "#FF5A5F"
     },
     {
-      "id": "univille-077",
+      "id": "obj-mwzatzot-f7",
       "assetId": "build-player-spawn-4",
       "role": "spawn",
       "category": "spawn",
       "position": {
-        "x": 2.75,
+        "x": 0.75,
         "y": 0,
-        "z": 1.85
+        "z": 3.75
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": -2.356194490192345,
         "z": 0
       },
       "scale": {
@@ -1833,78 +5461,817 @@
       "color": "#FFC93C"
     },
     {
-      "id": "univille-078",
-      "assetId": "wedding-mannequin",
-      "role": "robot",
-      "category": "robot",
+      "id": "obj-mwzaue8n-f9",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
+      "role": "station",
+      "category": "station",
       "position": {
-        "x": 8.6,
-        "y": 0.455,
-        "z": 1.1
+        "x": 3.25,
+        "y": 0,
+        "z": -2
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": 1.5707926535897931,
         "z": 0
       },
       "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
       },
-      "collides": false,
-      "label": "Robô sentado",
-      "robot": {
-        "customer": true,
-        "canMove": false,
-        "idleClip": "Sit_Chair_Idle",
-        "wanderRadius": 2.4,
-        "moveSpeed": 1.15,
-        "displayName": ""
-      },
-      "color": "#9FE8FF"
+      "collides": true,
+      "stationId": "counter",
+      "label": "Cozinha // Bancada",
+      "color": "#FF9F43"
     },
     {
-      "id": "univille-079",
-      "assetId": "wedding-mannequin",
-      "role": "robot",
-      "category": "robot",
+      "id": "obj-mwzaufkl-fa",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
+      "role": "station",
+      "category": "station",
       "position": {
-        "x": 8.6,
-        "y": 0.455,
-        "z": -0.62
+        "x": 3.25,
+        "y": 0,
+        "z": -1
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": 1.5707926535897931,
         "z": 0
       },
       "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
       },
-      "collides": false,
-      "label": "Robô sentado",
-      "robot": {
-        "customer": true,
-        "canMove": false,
-        "idleClip": "Sit_Chair_Idle",
-        "wanderRadius": 2.4,
-        "moveSpeed": 1.15,
-        "displayName": ""
-      },
-      "color": "#9FE8FF"
+      "collides": true,
+      "stationId": "counter",
+      "label": "Cozinha // Bancada",
+      "color": "#FF9F43"
     },
     {
-      "id": "univille-080",
+      "id": "obj-mwzauj6l-fb",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 3.25,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "counter",
+      "label": "Cozinha // Bancada",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzavgv9-fd",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 7.5,
+        "y": 0,
+        "z": 3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "cutting_board",
+      "label": "Cozinha // Tábua de corte",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzavjxq-fe",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 9.5,
+        "y": 0,
+        "z": 3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "cutting_board",
+      "label": "Cozinha // Tábua de corte",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzavsgt-ff",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 8.5,
+        "y": 0,
+        "z": 3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "counter",
+      "label": "Cozinha // Bancada",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzaw9ou-fh",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 8,
+        "y": 0,
+        "z": 0.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7854,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "cutting_board",
+      "label": "Cozinha // Tábua de corte",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzawk0c-fj",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 7.25,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": -2.3562,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "cutting_board",
+      "label": "Cozinha // Tábua de corte",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzax2ae-fl",
+      "assetId": "library:Scenario/KayKit_Prototype_Bits_1.1_FREE/KayKit_Prototype_Bits_1.1_FREE/Assets/gltf/Barrel_A.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 3.25,
+        "y": 0.25,
+        "z": 7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "trash",
+      "label": "Cozinha // Lixo",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzaxt33-fp",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_sink.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 8.5,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": -3.1415853071795867,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "sink",
+      "label": "Cozinha // Pia",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzaxxxh-fr",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 9.5,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": -3.1415853071795867,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "dirty_return",
+      "label": "Cozinha // Pratos sujos",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzayamg-ft",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_B.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 7.5,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": -3.1415853071795867,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "plate_rack",
+      "label": "Cozinha // Pratos limpos",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzaz0km-fx",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 6.75,
+        "y": 0,
+        "z": -4
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.000003673205103638111,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "extinguisher_stand",
+      "label": "Cozinha // Extintor",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzaz75h-fz",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_single.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 4.75,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.000007346410207031292,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "stove",
+      "label": "Cozinha // Fogão",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzaz9ji-g0",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/stove_single.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 5.9636,
+        "y": 0,
+        "z": 7.217
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.000003673205103638111,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "stove",
+      "label": "Cozinha // Fogão",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzazr7h-g4",
+      "assetId": "station:oven",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 3.25,
+        "y": 0,
+        "z": -3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "oven",
+      "label": "Cozinha // Forno",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzb1epq-g6",
+      "assetId": "library:Scenario/KayKit_Restaurant_Bits_1.0_FREE/KayKit_Restaurant_Bits_1.0_FREE/Assets/gltf/kitchencounter_straight_A.gltf",
+      "role": "station",
+      "category": "station",
+      "position": {
+        "x": 12,
+        "y": 0,
+        "z": 1.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.9,
+        "z": 0.6
+      },
+      "collides": true,
+      "stationId": "mixer",
+      "label": "Cozinha // Batedeira",
+      "color": "#FF9F43"
+    },
+    {
+      "id": "obj-mwzb2fyb-g8",
+      "assetId": "ingredient-crate:binary_sugar",
+      "role": "dispenser",
+      "category": "dispenser",
+      "position": {
+        "x": -11.25,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.98,
+        "z": 0.6
+      },
+      "collides": true,
+      "ingredientId": "binary_sugar",
+      "label": "Caixa // Açúcar binário",
+      "color": "#44DFFF"
+    },
+    {
+      "id": "obj-mwzb2jah-ga",
+      "assetId": "ingredient-crate:cache_fragment",
+      "role": "dispenser",
+      "category": "dispenser",
+      "position": {
+        "x": -9.75,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.98,
+        "z": 0.6
+      },
+      "collides": true,
+      "ingredientId": "cache_fragment",
+      "label": "Caixa // Fragmento de cache",
+      "color": "#44DFFF"
+    },
+    {
+      "id": "obj-mwzb2l6g-gc",
+      "assetId": "ingredient-crate:data_cream",
+      "role": "dispenser",
+      "category": "dispenser",
+      "position": {
+        "x": -8.25,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.98,
+        "z": 0.6
+      },
+      "collides": true,
+      "ingredientId": "data_cream",
+      "label": "Caixa // Creme de dados",
+      "color": "#44DFFF"
+    },
+    {
+      "id": "obj-mwzb2sfq-ge",
+      "assetId": "ingredient-crate:ram_module",
+      "role": "dispenser",
+      "category": "dispenser",
+      "position": {
+        "x": -6.75,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.98,
+        "z": 0.6
+      },
+      "collides": true,
+      "ingredientId": "ram_module",
+      "label": "Caixa // Módulo de RAM",
+      "color": "#44DFFF"
+    },
+    {
+      "id": "obj-mwzb2u9a-gg",
+      "assetId": "ingredient-crate:cache_cream",
+      "role": "dispenser",
+      "category": "dispenser",
+      "position": {
+        "x": -5.25,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.98,
+        "z": 0.6
+      },
+      "collides": true,
+      "ingredientId": "cache_cream",
+      "label": "Caixa // Creme de cache",
+      "color": "#44DFFF"
+    },
+    {
+      "id": "obj-mwzb2vgr-gi",
+      "assetId": "ingredient-crate:cooling_fluid",
+      "role": "dispenser",
+      "category": "dispenser",
+      "position": {
+        "x": -3.75,
+        "y": 0,
+        "z": 7.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1416,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.98,
+        "z": 0.6
+      },
+      "collides": true,
+      "ingredientId": "cooling_fluid",
+      "label": "Caixa // Fluido refrigerante",
+      "color": "#44DFFF"
+    },
+    {
+      "id": "obj-mwzb3x3a-go",
+      "assetId": "wedding-mannequin",
+      "role": "mechanism",
+      "category": "mechanism",
+      "position": {
+        "x": -9.5,
+        "y": 0,
+        "z": -3.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.000003673205103638111,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": true,
+      "label": "Mecanismo // Briga de robôs",
+      "color": "#D9534F",
+      "mechanism": {
+        "kind": "brawl",
+        "speed": 1,
+        "directionYaw": 0,
+        "waypoints": [],
+        "pauseSeconds": 0.6,
+        "phase": 0,
+        "activation": {
+          "mode": "always"
+        },
+        "portalPairId": ""
+      }
+    },
+    {
+      "id": "obj-mwzb4a8x-gr",
+      "assetId": "robot-guitar",
+      "role": "robot",
+      "category": "robot",
+      "position": {
+        "x": -9.75,
+        "y": 0,
+        "z": 2.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 2.356190816987241,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": false,
+      "label": "Robô violonista",
+      "color": "#9FE8FF",
+      "robot": {
+        "customer": false,
+        "canMove": false,
+        "idleClip": "Band_Guitar",
+        "wanderRadius": 2.4,
+        "moveSpeed": 1.15,
+        "displayName": ""
+      }
+    },
+    {
+      "id": "obj-mwzb4pci-gt",
       "assetId": "wedding-mannequin",
       "role": "robot",
       "category": "robot",
       "position": {
-        "x": 8.6,
-        "y": 0.455,
-        "z": -2.29
+        "x": -0.25,
+        "y": 0,
+        "z": -2.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.000003673205103638111,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": false,
+      "label": "Robô convidado",
+      "color": "#9FE8FF",
+      "robot": {
+        "customer": true,
+        "canMove": true,
+        "idleClip": "Idle_A",
+        "wanderRadius": 2.4,
+        "moveSpeed": 1.15,
+        "displayName": ""
+      }
+    },
+    {
+      "id": "obj-mwzb4yjh-gu",
+      "assetId": "wedding-mannequin",
+      "role": "robot",
+      "category": "robot",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.1415889803846895,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": false,
+      "label": "Robô convidado",
+      "color": "#9FE8FF",
+      "robot": {
+        "customer": true,
+        "canMove": true,
+        "idleClip": "Idle_A",
+        "wanderRadius": 2.4,
+        "moveSpeed": 1.15,
+        "displayName": ""
+      }
+    },
+    {
+      "id": "obj-mwzb52a5-gv",
+      "assetId": "wedding-mannequin",
+      "role": "robot",
+      "category": "robot",
+      "position": {
+        "x": -4.25,
+        "y": 0,
+        "z": 5
+      },
+      "rotation": {
+        "x": 0,
+        "y": -2.3561981633974485,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": false,
+      "label": "Robô convidado",
+      "color": "#9FE8FF",
+      "robot": {
+        "customer": true,
+        "canMove": true,
+        "idleClip": "Idle_A",
+        "wanderRadius": 2.4,
+        "moveSpeed": 1.15,
+        "displayName": ""
+      }
+    },
+    {
+      "id": "obj-mwzb66jz-gx",
+      "assetId": "wedding-mannequin",
+      "role": "robot",
+      "category": "robot",
+      "position": {
+        "x": -4.75,
+        "y": 0,
+        "z": 0.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": false,
+      "label": "Robô parado",
+      "color": "#9FE8FF",
+      "robot": {
+        "customer": true,
+        "canMove": false,
+        "idleClip": "Waving",
+        "wanderRadius": 2.4,
+        "moveSpeed": 1.15,
+        "displayName": ""
+      }
+    },
+    {
+      "id": "obj-mwzb6ddw-gy",
+      "assetId": "wedding-mannequin",
+      "role": "robot",
+      "category": "robot",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": 0.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "collides": false,
+      "label": "Robô parado",
+      "color": "#9FE8FF",
+      "robot": {
+        "customer": true,
+        "canMove": false,
+        "idleClip": "Waving",
+        "wanderRadius": 2.4,
+        "moveSpeed": 1.15,
+        "displayName": ""
+      }
+    },
+    {
+      "id": "obj-mwzb6khv-gz",
+      "assetId": "wedding-mannequin",
+      "role": "robot",
+      "category": "robot",
+      "position": {
+        "x": -7.5,
+        "y": 0,
+        "z": -1.5
       },
       "rotation": {
         "x": 0,
@@ -1917,22 +6284,22 @@
         "z": 1
       },
       "collides": false,
-      "label": "Robô sentado",
+      "label": "Robô parado",
+      "color": "#9FE8FF",
       "robot": {
         "customer": true,
         "canMove": false,
-        "idleClip": "Sit_Chair_Idle",
+        "idleClip": "Waving",
         "wanderRadius": 2.4,
         "moveSpeed": 1.15,
         "displayName": ""
-      },
-      "color": "#9FE8FF"
+      }
     }
   ],
   "scenarioId": "univille",
   "meta": {
-    "description": "Cozinha experimental do campus ao lado da sala de aula. Prepare o cardápio da Univille na dificuldade Colapso.",
-    "shiftDurationSeconds": 240,
+    "description": "Os quase formandos robôs estão fazendo um churrasco na Univille! Prepare tudo antes que a tempestade deixe a festa sem energia e os convidados sem bateria!",
+    "shiftDurationSeconds": 195,
     "difficultyId": "meltdown"
   }
 }

@@ -114,7 +114,7 @@ export const buildLevelCatalog = (
 
 /** Formats a shift duration the way the picker shows it. */
 export const formatShiftDuration = (seconds: number): string => {
-  const safe = Math.max(0, Math.round(seconds));
+  const safe = Math.max(0, Math.ceil(seconds));
   const minutes = Math.floor(safe / 60);
   const rest = safe % 60;
   return rest === 0 ? t("common.minutes", { minutes }) : `${minutes}:${rest.toString().padStart(2, "0")}`;

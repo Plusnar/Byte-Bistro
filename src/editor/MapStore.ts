@@ -116,9 +116,7 @@ export const sanitizeMapMeta = (value: unknown): MapMeta => {
   const difficultyId = record.difficultyId;
   return {
     description: stringValue(record.description, "").slice(0, 240),
-    shiftDurationSeconds: Math.round(
-      Math.min(900, Math.max(60, finiteNumber(record.shiftDurationSeconds, 195))),
-    ),
+    shiftDurationSeconds: Math.min(900, Math.max(60, finiteNumber(record.shiftDurationSeconds, 195))),
     difficultyId: isDifficultyId(difficultyId) ? difficultyId : "standard",
     // Only kept when it is a sane ascending trio; a hand-edited file cannot ask for a star
     // at zero coins or put the second star below the first.

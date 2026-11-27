@@ -1236,7 +1236,7 @@ export class EditorUI {
         <header class="bm-drawer-head"><strong>${t("editor.settings")}</strong>
           <button type="button" class="bm-icon-button" data-action="close-settings" aria-label="${t("common.close")}">${icon("close")}</button></header>
         <label class="bm-field">${t("editor.description")}<textarea data-meta="description" rows="3" maxlength="240" placeholder="${t("editor.descriptionPlaceholder")}"></textarea></label>
-        <label class="bm-field">${t("editor.shiftTime")}<input type="number" data-meta="duration" min="60" max="900" step="5" value="195"></label>
+        <label class="bm-field">${t("editor.shiftTime")}<input type="number" data-meta="duration" min="60" max="900" step="any" value="195"></label>
         <label class="bm-field">${t("editor.difficulty")}<select data-meta="difficulty">${DIFFICULTY_IDS
           .map((id) => `<option value="${id}">${DIFFICULTY_PROFILES[id].label}</option>`).join("")}</select></label>
         <p class="bm-muted">${t("editor.settingsNote")}</p>

@@ -165,6 +165,7 @@ export interface GameUICallbacks {
   onRestart?: () => void;
   onResume?: () => void;
   onPause?: () => void;
+  onMusicMuteChange?: (muted: boolean) => void;
   /** Leaves the running shift for the level and cook picker. */
   onQuitToMenu?: () => void;
   /** The shift was started from the map editor: back to it, with the map as it was. */
@@ -681,6 +682,12 @@ export class GameUI {
   /** The splash is opaque and covers the whole canvas, so nothing behind it needs drawing. */
   get isSplashVisible(): boolean {
     return !this.splash.hidden;
+  }
+
+  setMusicMuted(muted: boolean): void {
+    for (const button of this.shell.querySelectorAll<HTMLButtonElement>("[data-action='mute-music']")) {
+      button.setAttribute("aria-pressed", String(muted));
+    }
   }
 
   showSplash(visible = true): void {
@@ -1538,6 +1545,8 @@ export class GameUI {
     }, { signal });
 
     this.shell.addEventListener("click", (event) => {
+      const mute = event.target instanceof Element ? event.target.closest("[data-action='mute-music']") : null;
+      if (mute) this.callbacks.onMusicMuteChange?.(mute.getAttribute("aria-pressed") !== "true");
       const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("[data-language]") : null;
       const language = button?.dataset.language as Language | undefined;
       if (language && LANGUAGES.includes(language)) setLanguage(language);
@@ -1944,6 +1953,10 @@ export class GameUI {
     return `<div class="language-switch quality-switch" role="group" data-i18n-attr="aria-label:graphics.label">${buttons}</div>`;
   }
 
+  private static musicToggle(): string {
+    return `<button class="secondary-action music-toggle" type="button" data-action="mute-music" data-i18n="audio.muteMusic" aria-pressed="false"></button>`;
+  }
+
   private createMarkup(): string {
     return `
       <div class="hud-layer" data-ui="hud" aria-hidden="false">
@@ -1986,7 +1999,10 @@ export class GameUI {
               <button class="secondary-action bistro-home-icon" type="button" data-collection="achievements" data-i18n-attr="aria-label:collection.achievements;title:collection.achievements"></button>
               <details class="bistro-home-settings">
                 <summary class="secondary-action bistro-home-icon" data-i18n-attr="aria-label:menu.settings;title:menu.settings"></summary>
-                ${GameUI.qualitySwitch()}
+                <div class="home-settings-panel">
+                  ${GameUI.qualitySwitch()}
+                  ${GameUI.musicToggle()}
+                </div>
               </details>
               <button class="secondary-action bistro-home-icon bistro-account-action" type="button" data-action="account" data-i18n-attr="aria-label:account.title;title:account.title"></button>
               ${GameUI.languageSwitch()}
@@ -2075,6 +2091,7 @@ export class GameUI {
           <button class="secondary-action overlay-menu-action" type="button" data-action="quit-to-menu"><span data-i18n="pause.toMenu"></span></button>
           ${GameUI.languageSwitch()}
           ${GameUI.qualitySwitch()}
+          ${GameUI.musicToggle()}
           <div class="pause-hint"><kbd>ESC</kbd><span data-i18n="pause.hintResume"></span></div>
         </div>
       </section>

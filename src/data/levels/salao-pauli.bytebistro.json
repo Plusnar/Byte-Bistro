@@ -14769,7 +14769,7 @@
   "scenarioId": "wedding",
   "meta": {
     "description": "Chitãozinho & XoroBot estão agitando o Salão Pauli! Mas, entre uma sofrência e outra, o baile virou pancadaria. Desvie das garrafas voadoras, sirva os pedidos e prepare o X-Salada Computacional mais famoso da cidade. Só não entre em curto-circuito!",
-    "shiftDurationSeconds": 195,
+    "shiftDurationSeconds": 202.24,
     "difficultyId": "intense"
   }
 }

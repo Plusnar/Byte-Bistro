@@ -35,10 +35,17 @@ export const BACKDROP_COLORS = {
   grass: "#6FA24A",
 } as const;
 
+export interface SkyPalette {
+  readonly zenith: string;
+  readonly horizon: string;
+  readonly belowHorizon: string;
+}
+
 export interface OutdoorBackdropOptions {
   /** Must stay under the camera's maxZ: the dome follows the camera at this radius. */
   readonly skyRadius?: number;
   readonly groundRadius?: number;
+  readonly skyPalette?: SkyPalette;
 }
 
 export class OutdoorBackdrop {
@@ -58,11 +65,12 @@ export class OutdoorBackdrop {
     options: OutdoorBackdropOptions = {},
   ) {
     this.root = new TransformNode("outdoor-backdrop", scene);
-    const horizon = Color3.FromHexString(BACKDROP_COLORS.horizon);
+    const skyPalette = options.skyPalette ?? BACKDROP_COLORS;
+    const horizon = Color3.FromHexString(skyPalette.horizon);
     scene.clearColor = Color4.FromColor3(horizon, 1);
     scene.fogColor = horizon.clone();
 
-    this.createSky(options.skyRadius ?? 180);
+    this.createSky(options.skyRadius ?? 180, skyPalette);
     this.createGround(options.groundRadius ?? 140);
 
     if (!assets.has(BACKDROP_ASSET_ID)) {
@@ -92,15 +100,15 @@ export class OutdoorBackdrop {
   }
 
   /** A dome that follows the camera, painted with a vertex-colour gradient: no texture. */
-  private createSky(radius: number): void {
+  private createSky(radius: number, palette: SkyPalette): void {
     const sky = MeshBuilder.CreateSphere("backdrop-sky", {
       diameter: radius * 2,
       segments: 24,
       sideOrientation: Mesh.BACKSIDE,
     }, this.scene);
-    const zenith = Color3.FromHexString(BACKDROP_COLORS.zenith);
-    const horizon = Color3.FromHexString(BACKDROP_COLORS.horizon);
-    const below = Color3.FromHexString(BACKDROP_COLORS.belowHorizon);
+    const zenith = Color3.FromHexString(palette.zenith);
+    const horizon = Color3.FromHexString(palette.horizon);
+    const below = Color3.FromHexString(palette.belowHorizon);
     const positions = sky.getVerticesData(VertexBuffer.PositionKind) ?? [];
     const colors: number[] = [];
     for (let i = 0; i < positions.length; i += 3) {

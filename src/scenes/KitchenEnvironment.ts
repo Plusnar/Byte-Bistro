@@ -45,6 +45,7 @@ import { createPartitionedCollider, needsPartitioning } from "../physics/partiti
 import { excludeFromGroundProbe } from "../physics/groundProbe";
 import { batchStaticMeshes } from "../core/render/staticBatching";
 import { OutdoorBackdrop } from "./OutdoorBackdrop";
+import { CampusStorm, STORM_SKY } from "./CampusStorm";
 import { BUILD_LOT_HALF, depthNudge, isPostAsset } from "../editor/buildTools";
 import { applyColorOverrides, MaterialOverrideCache } from "./materialOverrides";
 import { MAX_PAULI_EMITTERS, PauliLighting, isPauliFixture } from "./PauliLighting";
@@ -582,6 +583,7 @@ export class KitchenEnvironment {
 
   private readonly lights: Light[] = [];
   readonly pauliLighting: PauliLighting | null;
+  readonly campusStorm: CampusStorm | null;
   private readonly instances: ModelInstance[] = [];
   private readonly placementRoots: TransformNode[] = [];
   /** Recoloured material clones, shared by every object painted the same. */
@@ -630,11 +632,13 @@ export class KitchenEnvironment {
 
     scene.collisionsEnabled = true;
     // Also sets the clear and fog colour to the horizon, in place of the old black void.
-    this.backdrop = new OutdoorBackdrop(scene, assets);
+    const shelter = options.map && scenario.stormShelter;
+    this.backdrop = new OutdoorBackdrop(scene, assets, shelter ? { skyPalette: STORM_SKY } : {});
     scene.ambientColor = Color3.FromHexString(
       options.map?.environment.ambient ?? scenario.lighting.ambient,
     );
     this.createLighting(sequence, scenario);
+    this.campusStorm = shelter ? new CampusStorm(scene, shelter, this.lights) : null;
 
     // The main level is the wedding hall; DECOR_PLACEMENTS (the old server room) now only
     // feeds the editor's catalogue.
@@ -657,6 +661,7 @@ export class KitchenEnvironment {
     for (const placementRoot of this.placementRoots) placementRoot.dispose(false, false);
     this.placementRoots.length = 0;
     this.pauliLighting?.dispose();
+    this.campusStorm?.dispose();
     for (const light of this.lights) light.dispose();
     this.backdrop.dispose();
     this.constructionMaterials.dispose();

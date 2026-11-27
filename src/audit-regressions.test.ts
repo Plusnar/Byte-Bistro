@@ -8,7 +8,7 @@ import type { MapData } from "./editor/MapData";
 import { Vector3, MeshBuilder, Scene, NullEngine, PBRMaterial } from "@babylonjs/core";
 import { flightGroundContact } from "./physics/groundProbe";
 import { heightAt, throwLaunch, throwSphereContact, throwStationContact } from "./gameplay/throwArc";
-import { WEDDING_MENU, WEDDING_SCENARIO } from "./data/scenarios";
+import { UNIVILLE_MENU, UNIVILLE_SCENARIO, WEDDING_MENU, WEDDING_SCENARIO } from "./data/scenarios";
 import { stationsFromMap } from "./data/kitchenLayout";
 import { CHOP_SECONDS, MIX_SECONDS, getFoodDefinition, vesselForState } from "./data/kitchen";
 import { RECIPES } from "./data/recipes";
@@ -17,6 +17,9 @@ import { computeGuide } from "./gameplay/kitchen/KitchenGuide";
 import { KitchenModel, type Workstation } from "./gameplay/kitchen/KitchenModel";
 import { isConstruction, ConstructionMaterials } from "./core/render/structureVisibility";
 import { isMapPlayable, mapRequirements } from "./editor/validation";
+import { campusPower, outagePhase, rainZones } from "./scenes/CampusStorm";
+import { getOfficialLevel } from "./data/officialLevels";
+import { resultMusic } from "./core/Soundtrack";
 
 vi.mock("./core/PlayerAccount", async (original) => ({
   ...await original<typeof import("./core/PlayerAccount")>(),
@@ -44,6 +47,48 @@ const map = (name: string, updatedAt = 1): MapData => ({
 
 const SLOT = "slot-a";
 const USER = "user-a";
+
+describe("soundtrack", () => {
+  it("preserves the fractional music durations when loading official maps", () => {
+    expect(getOfficialLevel("schlachtfest")?.map.meta?.shiftDurationSeconds).toBe(204.8);
+    expect(getOfficialLevel("salao-pauli")?.map.meta?.shiftDurationSeconds).toBe(202.24);
+  });
+
+  it("plays defeat music for C and D, and success music for S, A and B", () => {
+    expect((["S", "A", "B", "C", "D"] as const).map(resultMusic))
+      .toEqual(["success", "success", "success", "defeat", "defeat"]);
+  });
+});
+
+describe("the official Univille storm", () => {
+  it("loads the Univille menu, duration, difficulty and kitchen from the shipped map", () => {
+    const level = getOfficialLevel("univille")!;
+    expect(level.map.scenarioId).toBe(UNIVILLE_SCENARIO.id);
+    expect(level.map.meta).toMatchObject({ shiftDurationSeconds: 195, difficultyId: "meltdown" });
+    expect(UNIVILLE_SCENARIO.recipeIds).toEqual(UNIVILLE_MENU);
+    expect(isMapPlayable(level.map)).toBe(true);
+  });
+
+  it("repeats mild dips with full recovery and respects reduced motion", () => {
+    const powerAt = (seconds: number) => campusPower(outagePhase(seconds), false);
+    expect(powerAt(10)).toBe(1);
+    expect(powerAt(19)).toBe(0.75);
+    expect(powerAt(22)).toBe(1);
+    expect(powerAt(46)).toBe(0.75);
+    expect(campusPower(0.45, true)).toBe(1);
+    expect(campusPower(0.45, false)).toBeLessThan(1);
+  });
+
+  it("keeps every rain emitter outside the indoor footprint", () => {
+    const shelter = UNIVILLE_SCENARIO.stormShelter!;
+    const zones = rainZones(shelter);
+    expect(zones).toHaveLength(4);
+    for (const zone of zones) {
+      expect(zone.maxX <= shelter.minX || zone.minX >= shelter.maxX ||
+        zone.maxZ <= shelter.minZ || zone.minZ >= shelter.maxZ).toBe(true);
+    }
+  });
+});
 
 describe("recipe preparation", () => {
   it.each(RECIPES.map(recipe => [recipe.id, recipe] as const))("prepares and serves %s from its required states", (_id, recipe) => {

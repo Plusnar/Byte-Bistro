@@ -2,6 +2,7 @@ import type { Messages } from "./index";
 
 /** English texts: the same keys as `pt.ts`, which the `Messages` type enforces. */
 export const en: Messages = {
+  audio: { muteMusic: "Mute music" },
   language: {
     label: "Language",
     pt: "Português",
@@ -525,7 +526,7 @@ export const en: Messages = {
     },
     univille: {
       name: "Univille",
-      description: "The campus test kitchen has opened next to the classroom. Split the work across the cutting board, stove, oven and mixer to serve the game's toughest menu.",
+      description: "The soon-to-graduate robots are having a barbecue at Univille! Get everything ready before the storm cuts the power and the guests run out of battery!",
     },
   },
   credits: {
@@ -573,6 +574,7 @@ export const en: Messages = {
   kitchen: {
     deliverHere: "Deliver here",
     shiftIntro: "{level} // Chop, cook, plate and serve the dishes",
+    stormPowerDip: "Power flickered! The lights will be back in a moment.",
     onlyIngredientsThrow: "Only ingredients can be thrown",
     hey: "Hey!",
     heyCarrying: "Hey! I have {item}",

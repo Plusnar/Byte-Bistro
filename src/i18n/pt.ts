@@ -6,6 +6,7 @@
  * `{name}` marks a placeholder filled in by `t(key, { name })`.
  */
 export const pt = {
+  audio: { muteMusic: "Silenciar música" },
   language: {
     label: "Idioma",
     pt: "Português",
@@ -529,7 +530,7 @@ export const pt = {
     },
     univille: {
       name: "Univille",
-      description: "A cozinha experimental do campus abriu ao lado da sala de aula. Divida o trabalho entre a tábua, o fogão, o forno e a batedeira para servir o cardápio mais difícil do jogo.",
+      description: "Os quase formandos robôs estão fazendo um churrasco na Univille! Prepare tudo antes que a tempestade deixe a festa sem energia e os convidados sem bateria!",
     },
   },
   credits: {
@@ -577,6 +578,7 @@ export const pt = {
   kitchen: {
     deliverHere: "Entregue aqui",
     shiftIntro: "{level} // Corte, cozinhe, monte e entregue os pratos",
+    stormPowerDip: "A energia oscilou! As luzes vão voltar em instantes.",
     onlyIngredientsThrow: "Só ingredientes podem ser arremessados",
     hey: "Ei!",
     heyCarrying: "Ei! Peguei {item}",

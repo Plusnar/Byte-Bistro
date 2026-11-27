@@ -50,6 +50,7 @@ export const createDefaultPersistentState = (): PersistentGameState => ({
   levelBestScore: {},
   settings: {
     masterVolume: 0.7,
+    musicMuted: false,
     reducedMotion: false,
     showDebug: false,
     language: null,
