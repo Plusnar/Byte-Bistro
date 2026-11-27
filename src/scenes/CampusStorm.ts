@@ -13,10 +13,18 @@ export const STORM_SKY: SkyPalette = {
 const FIRST_OUTAGE = 17;
 const OUTAGE_PERIOD = 27;
 const OUTAGE_DURATION = 10;
+const DARKEN_DURATION = 3;
 const RAIN_SPEED = 0.01;
 
-export const isCampusBlackout = (elapsed: number): boolean =>
-  elapsed >= FIRST_OUTAGE && (elapsed - FIRST_OUTAGE) % OUTAGE_PERIOD < OUTAGE_DURATION;
+export const campusDarkness = (elapsed: number): number => {
+  const sinceFirstFade = elapsed - (FIRST_OUTAGE - DARKEN_DURATION);
+  if (sinceFirstFade < 0) return 0;
+  const phase = sinceFirstFade % OUTAGE_PERIOD;
+  if (phase >= DARKEN_DURATION + OUTAGE_DURATION) return 0;
+  if (phase >= DARKEN_DURATION) return 1;
+  const progress = phase / DARKEN_DURATION;
+  return progress * progress * (3 - 2 * progress);
+};
 
 /** Non-overlapping outdoor strips. Rain falls vertically so it cannot drift under cover. */
 export const rainZones = (shelter: Readonly<MovementBounds>): readonly MovementBounds[] => {
@@ -51,7 +59,7 @@ export class CampusStorm {
 
   stop(): void {
     this.inOutage = false;
-    this.blackout?.setEnabled(false);
+    this.blackout?.setDarkness(0);
     this.rain?.stop();
     this.rain?.reset();
   }
@@ -61,11 +69,12 @@ export class CampusStorm {
   }
 
   update(elapsed: number): boolean {
-    const outage = isCampusBlackout(elapsed);
-    if (outage === this.inOutage) return false;
+    const darkness = campusDarkness(elapsed);
+    this.blackout?.setDarkness(darkness);
+    const outage = darkness === 1;
+    const began = outage && !this.inOutage;
     this.inOutage = outage;
-    this.blackout?.setEnabled(outage);
-    return outage;
+    return began;
   }
 
   dispose(): void {

@@ -17,7 +17,7 @@ import { computeGuide } from "./gameplay/kitchen/KitchenGuide";
 import { KitchenModel, type Workstation } from "./gameplay/kitchen/KitchenModel";
 import { isConstruction, ConstructionMaterials } from "./core/render/structureVisibility";
 import { isMapPlayable, mapRequirements } from "./editor/validation";
-import { isCampusBlackout, rainZones } from "./scenes/CampusStorm";
+import { campusDarkness, rainZones } from "./scenes/CampusStorm";
 import { getOfficialLevel } from "./data/officialLevels";
 import { resultMusic, Soundtrack } from "./core/Soundtrack";
 
@@ -105,12 +105,15 @@ describe("the official Univille storm", () => {
     expect(isMapPlayable(level.map)).toBe(true);
   });
 
-  it("repeats full blackouts that each last ten seconds of play", () => {
+  it("darkens over three seconds before each ten-second blackout", () => {
     for (const start of [17, 44, 71]) {
-      expect(isCampusBlackout(start - 0.001)).toBe(false);
-      expect(isCampusBlackout(start)).toBe(true);
-      expect(isCampusBlackout(start + 9.999)).toBe(true);
-      expect(isCampusBlackout(start + 10)).toBe(false);
+      expect(campusDarkness(start - 3)).toBe(0);
+      expect(campusDarkness(start - 2.5)).toBeGreaterThan(0);
+      expect(campusDarkness(start - 1.5)).toBeCloseTo(0.5);
+      expect(campusDarkness(start - 0.25)).toBeLessThan(1);
+      expect(campusDarkness(start)).toBe(1);
+      expect(campusDarkness(start + 9.999)).toBe(1);
+      expect(campusDarkness(start + 10)).toBe(0);
     }
   });
 

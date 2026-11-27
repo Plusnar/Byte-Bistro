@@ -926,7 +926,7 @@ export class KitchenScene implements ManagedScene {
     if (this.environment.campusStorm?.update(
       this.shiftElapsedSeconds,
     )) {
-      this.sfx.play("thunder", 0.35);
+      this.sfx.play("thunder", 0.8);
       this.notify(t("kitchen.stormPowerDip"), "warning", 2600);
     }
     this.environment.pauliLighting?.update(delta);

@@ -1,6 +1,6 @@
 import { Matrix, Vector3, Viewport, type Camera, type Observer, type Scene, type TransformNode } from "@babylonjs/core";
 
-const LIGHT_RADIUS = 1.45;
+const LIGHT_RADIUS = 1.7;
 const LIGHT_HEIGHT = 0.68;
 const MAX_MASK_EDGE = 960;
 
@@ -13,6 +13,7 @@ export class CampusBlackout {
   private readonly edge = Vector3.Zero();
   private observer: Observer<Scene> | null = null;
   private players: readonly TransformNode[] = [];
+  private darkness = 0;
 
   static create(scene: Scene): CampusBlackout | null {
     const surface = scene.getEngine().getRenderingCanvas();
@@ -50,7 +51,11 @@ export class CampusBlackout {
     this.players = players;
   }
 
-  setEnabled(enabled: boolean): void {
+  setDarkness(darkness: number): void {
+    if (darkness === this.darkness) return;
+    this.darkness = darkness;
+    this.canvas.style.opacity = String(darkness);
+    const enabled = darkness > 0;
     if (enabled && !this.observer) {
       this.observer = this.scene.onAfterRenderObservable.add(this.draw);
     } else if (!enabled && this.observer) {
@@ -61,7 +66,7 @@ export class CampusBlackout {
   }
 
   dispose(): void {
-    this.setEnabled(false);
+    this.setDarkness(0);
     this.canvas.remove();
   }
 
@@ -85,7 +90,7 @@ export class CampusBlackout {
     } else if (this.scene.activeCamera) {
       this.drawLights(this.scene.activeCamera, width, height);
     }
-    this.canvas.hidden = false;
+    if (this.canvas.hidden) this.canvas.hidden = false;
   };
 
   private drawLights(camera: Camera, width: number, height: number): void {
