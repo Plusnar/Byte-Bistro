@@ -532,7 +532,7 @@ export const en: Messages = {
   credits: {
     title: "Story & credits",
     storyHeading: "How Byte Bistro began",
-    story1: "Byte Bistro began as an academic project for the Software Design and Architecture course taught by Professor Milena Félix. While students William Fagundes and Sandriely were trading ideas, the plan emerged to make a game that combined creativity, technology, humour and local culture.",
+    story1: "Byte Bistro began as an academic project for the Software Design and Architecture course taught by Professor Milena Félix. While students William Fagundes and Sandriely Maciel were trading ideas, the plan emerged to make a game that combined creativity, technology, humour and local culture.",
     story2: "Inspired by the chaotic, fun gameplay of Overcooked, Byte Bistro is a cooking adventure set in a futuristic São Bento do Sul, where artificial intelligence and robots took control of humanity after a completely unexpected accident.",
     story3: "It all started when a worker at a robot factory accidentally spilled donut cream into the machinery's central core. The incident set off an unexpected reaction: the artificial intelligence became self-aware and, as a result, took over the world.",
     story4: "Now humans must cook for their new robot rulers, serving rather unusual dishes such as RAM memory cakes and other tech combinations that are delicious — at least to robots.",

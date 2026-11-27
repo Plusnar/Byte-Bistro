@@ -643,6 +643,7 @@ export class KitchenScene implements ManagedScene {
     if (this.started && !this.runtime.shiftEnded) return;
     while (this.allCooks.length < next) this.allCooks.push(this.createCook(this.allCooks.length as PlayerIndex));
     this.players = this.allCooks.slice(0, next);
+    this.environment.campusStorm?.blackout?.setPlayers(this.players.map(slot => slot.player.root));
     for (const slot of this.allCooks) {
       const active = slot.index < next;
       slot.player.root.setEnabled(active);
@@ -851,7 +852,7 @@ export class KitchenScene implements ManagedScene {
    */
   abortShift(): void {
     this.started = false;
-    this.environment.stopCampusStorm();
+    this.environment.campusStorm?.stop();
     this.resultShown = false;
     this.manualPaused = false;
     if (this.cookbookOpen) this.ui.toggleCookbook(false);
@@ -923,12 +924,12 @@ export class KitchenScene implements ManagedScene {
 
     this.kitchenClockMs += delta * 1_000;
     if (this.environment.campusStorm?.update(
-      this.runtime.shiftDuration - this.runtime.shiftTimeRemaining, this.reducedMotion?.matches ?? false,
+      this.shiftElapsedSeconds,
     )) {
       this.sfx.play("thunder", 0.35);
       this.notify(t("kitchen.stormPowerDip"), "warning", 2600);
     }
-    this.environment.pauliLighting?.update(delta, this.environment.campusStorm?.powerLevel);
+    this.environment.pauliLighting?.update(delta);
     this.updateOrders(delta);
     this.wedding.syncOrders(this.runtime.activeOrders, this.orderUrgencySeconds());
     this.wedding.update(delta);
@@ -2863,7 +2864,7 @@ export class KitchenScene implements ManagedScene {
   private finishShift(): void {
     if (this.resultShown) return;
     this.resultShown = true;
-    this.environment.stopCampusStorm();
+    this.environment.campusStorm?.stop();
     for (const slot of this.players) slot.input.enabled = false;
     for (const slot of this.players) {
       this.setStationKeyPrompt(slot, null);

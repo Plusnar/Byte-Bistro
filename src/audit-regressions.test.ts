@@ -17,7 +17,7 @@ import { computeGuide } from "./gameplay/kitchen/KitchenGuide";
 import { KitchenModel, type Workstation } from "./gameplay/kitchen/KitchenModel";
 import { isConstruction, ConstructionMaterials } from "./core/render/structureVisibility";
 import { isMapPlayable, mapRequirements } from "./editor/validation";
-import { campusPower, outagePhase, rainZones } from "./scenes/CampusStorm";
+import { isCampusBlackout, rainZones } from "./scenes/CampusStorm";
 import { getOfficialLevel } from "./data/officialLevels";
 import { resultMusic, Soundtrack } from "./core/Soundtrack";
 
@@ -105,16 +105,13 @@ describe("the official Univille storm", () => {
     expect(isMapPlayable(level.map)).toBe(true);
   });
 
-  it("repeats near-blackouts with smooth transitions and full recovery", () => {
-    const powerAt = (seconds: number) => campusPower(outagePhase(seconds), false);
-    expect(powerAt(10)).toBe(1);
-    expect(powerAt(19)).toBe(0.06);
-    expect(powerAt(20.8)).toBeGreaterThan(0.06);
-    expect(powerAt(22)).toBe(1);
-    expect(powerAt(46)).toBe(0.06);
-    expect(campusPower(0.45, true)).toBe(1);
-    expect(campusPower(0.45, false)).toBeLessThan(1);
-    expect(campusPower(3, true)).toBe(0.06);
+  it("repeats full blackouts that each last ten seconds of play", () => {
+    for (const start of [17, 44, 71]) {
+      expect(isCampusBlackout(start - 0.001)).toBe(false);
+      expect(isCampusBlackout(start)).toBe(true);
+      expect(isCampusBlackout(start + 9.999)).toBe(true);
+      expect(isCampusBlackout(start + 10)).toBe(false);
+    }
   });
 
   it("keeps every rain emitter outside the indoor footprint", () => {

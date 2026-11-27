@@ -536,7 +536,7 @@ export const pt = {
   credits: {
     title: "História e créditos",
     storyHeading: "Como o Byte Bistro nasceu",
-    story1: "O Byte Bistro nasceu de um projeto acadêmico desenvolvido para a disciplina de Design e Arquitetura de Software, ministrada pela professora Milena Félix. Durante uma troca de ideias entre os alunos William Fagundes e Sandriely, surgiu a proposta de criar um jogo que combinasse criatividade, tecnologia, humor e elementos da cultura local.",
+    story1: "O Byte Bistro nasceu de um projeto acadêmico desenvolvido para a disciplina de Design e Arquitetura de Software, ministrada pela professora Milena Félix. Durante uma troca de ideias entre os alunos William Fagundes e Sandriely Maciel, surgiu a proposta de criar um jogo que combinasse criatividade, tecnologia, humor e elementos da cultura local.",
     story2: "Inspirado na dinâmica caótica e divertida de Overcooked, o Byte Bistro apresenta uma aventura culinária ambientada em uma versão futurista de São Bento do Sul, onde a inteligência artificial e os robôs assumiram o controle da humanidade após um acidente completamente inusitado.",
     story3: "Tudo começou quando um funcionário de uma fábrica de robôs acidentalmente derrubou creme de donut no núcleo central do maquinário. O incidente desencadeou uma reação inesperada, fazendo com que a inteligência artificial adquirisse consciência própria e, consequentemente, dominasse o mundo.",
     story4: "Agora, os humanos são obrigados a preparar refeições para seus novos governantes robóticos, servindo pratos nada convencionais, como bolos de memória RAM e outras deliciosas — pelo menos para os robôs — combinações tecnológicas.",

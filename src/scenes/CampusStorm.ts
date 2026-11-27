@@ -1,8 +1,8 @@
-import { DynamicTexture, ParticleSystem, Vector3, type Color3, type Light, type Scene } from "@babylonjs/core";
+import { DynamicTexture, ParticleSystem, Vector3, type Scene } from "@babylonjs/core";
 import { trackParticleSystem } from "../core/perf/effectBudget";
 import type { MovementBounds } from "../entities/Player";
 import type { SkyPalette } from "./OutdoorBackdrop";
-import { clamp } from "../utils/math";
+import { CampusBlackout } from "./CampusBlackout";
 
 export const STORM_SKY: SkyPalette = {
   zenith: "#38495B",
@@ -10,22 +10,13 @@ export const STORM_SKY: SkyPalette = {
   belowHorizon: "#788782",
 };
 
-const FIRST_OUTAGE = 16;
+const FIRST_OUTAGE = 17;
 const OUTAGE_PERIOD = 27;
-const OUTAGE_POWER = 0.06;
+const OUTAGE_DURATION = 10;
 const RAIN_SPEED = 0.01;
 
-/** Simulated seconds in the current power dip. The initial grace period has no dip. */
-export const outagePhase = (elapsed: number): number =>
-  elapsed < FIRST_OUTAGE ? Infinity : (elapsed - FIRST_OUTAGE) % OUTAGE_PERIOD;
-
-export const campusPower = (phase: number, reducedMotion: boolean): number => {
-  const fadeIn = clamp((phase - 1) / 0.9, 0, 1);
-  const fadeOut = clamp((5.6 - phase) / 1.2, 0, 1);
-  const warning = reducedMotion ? 0 : Math.max(0, 1 - Math.abs(phase - 0.45) / 0.45) * 0.10;
-  const outage = Math.min(fadeIn, fadeOut);
-  return (1 - outage) + OUTAGE_POWER * outage - warning;
-};
+export const isCampusBlackout = (elapsed: number): boolean =>
+  elapsed >= FIRST_OUTAGE && (elapsed - FIRST_OUTAGE) % OUTAGE_PERIOD < OUTAGE_DURATION;
 
 /** Non-overlapping outdoor strips. Rain falls vertically so it cannot drift under cover. */
 export const rainZones = (shelter: Readonly<MovementBounds>): readonly MovementBounds[] => {
@@ -44,19 +35,12 @@ export const rainZones = (shelter: Readonly<MovementBounds>): readonly MovementB
 /** Owned by KitchenEnvironment. Keeps the outage independent of HUD and station alerts. */
 export class CampusStorm {
   private readonly rain: ParticleSystem | null;
-  private readonly baseIntensity: readonly number[];
-  private readonly baseAmbient: Color3;
-  private power = 1;
+  readonly blackout: CampusBlackout | null;
   private inOutage = false;
 
-  constructor(private readonly scene: Scene, shelter: Readonly<MovementBounds>, private readonly lights: readonly Light[]) {
-    this.baseIntensity = lights.map(light => light.intensity);
-    this.baseAmbient = scene.ambientColor.clone();
+  constructor(scene: Scene, shelter: Readonly<MovementBounds>) {
+    this.blackout = CampusBlackout.create(scene);
     this.rain = typeof document === "undefined" ? null : this.createRain(scene, shelter);
-  }
-
-  get powerLevel(): number {
-    return this.power;
   }
 
   reset(): void {
@@ -67,7 +51,7 @@ export class CampusStorm {
 
   stop(): void {
     this.inOutage = false;
-    this.setPower(1);
+    this.blackout?.setEnabled(false);
     this.rain?.stop();
     this.rain?.reset();
   }
@@ -76,26 +60,17 @@ export class CampusStorm {
     if (this.rain) this.rain.updateSpeed = paused ? 0 : RAIN_SPEED;
   }
 
-  update(elapsed: number, reducedMotion: boolean): boolean {
-    const phase = outagePhase(elapsed);
-    this.setPower(campusPower(phase, reducedMotion));
-    const outage = phase >= 1 && phase < 5.6;
-    const began = outage && !this.inOutage;
+  update(elapsed: number): boolean {
+    const outage = isCampusBlackout(elapsed);
+    if (outage === this.inOutage) return false;
     this.inOutage = outage;
-    return began;
+    this.blackout?.setEnabled(outage);
+    return outage;
   }
 
   dispose(): void {
+    this.blackout?.dispose();
     this.rain?.dispose();
-  }
-
-  private setPower(factor: number): void {
-    if (factor === this.power) return;
-    this.power = factor;
-    this.baseAmbient.scaleToRef(factor, this.scene.ambientColor);
-    for (let index = 0; index < this.lights.length; index += 1) {
-      this.lights[index]!.intensity = this.baseIntensity[index]! * factor;
-    }
   }
 
   private createRain(scene: Scene, shelter: Readonly<MovementBounds>): ParticleSystem {

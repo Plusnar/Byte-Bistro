@@ -638,7 +638,7 @@ export class KitchenEnvironment {
       options.map?.environment.ambient ?? scenario.lighting.ambient,
     );
     this.createLighting(sequence, scenario);
-    this.campusStorm = shelter ? new CampusStorm(scene, shelter, this.lights) : null;
+    this.campusStorm = shelter ? new CampusStorm(scene, shelter) : null;
 
     // The main level is the wedding hall; DECOR_PLACEMENTS (the old server room) now only
     // feeds the editor's catalogue.
@@ -649,11 +649,6 @@ export class KitchenEnvironment {
     this.ready = this.loadScenario(placements).then(() => { if (!this.disposed) this.batchStaticDecor(); });
   }
 
-  stopCampusStorm(): void {
-    if (!this.campusStorm) return;
-    this.campusStorm.stop();
-    this.pauliLighting?.update(0);
-  }
 
   dispose(): void {
     if (this.disposed) return;

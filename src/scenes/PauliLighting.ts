@@ -31,7 +31,6 @@ const TURN = Math.PI * 2;
 
 type Fixture = (typeof FIXTURES)[FixtureId];
 interface Group {
-  readonly intensity: number;
   readonly palette: readonly Color3[];
   readonly color: Color3;
   readonly lenses: Set<PBRMaterial>;
@@ -72,7 +71,6 @@ export class PauliLighting {
   private beamCount = BEAM_COUNT;
   private emitterCount = 0;
   private elapsed = 0;
-  private power = 1;
 
   constructor(private readonly scene: Scene, parent?: TransformNode) {
     // Only light effects animate under this root. The fixture housings remain static décor.
@@ -91,7 +89,7 @@ export class PauliLighting {
     let group = this.groups.get(fixture);
     if (!group) {
       const palette = fixture.colors.map(hex => Color3.FromHexString(hex).toLinearSpace(true));
-      group = { intensity: fixture.intensity, palette, color: palette[0]!.clone(), lenses: new Set(), emitters: [] };
+      group = { palette, color: palette[0]!.clone(), lenses: new Set(), emitters: [] };
       this.groups.set(fixture, group);
     }
     for (const mesh of meshes) {
@@ -151,18 +149,14 @@ export class PauliLighting {
     }
   }
 
-  update(deltaSeconds: number, power = 1): void {
+  update(deltaSeconds: number): void {
     this.elapsed += this.reducedMotion ? 0 : deltaSeconds;
     const colorPhase = this.elapsed / SECONDS_PER_COLOR;
     for (const group of this.groups.values()) {
       samplePalette(group.palette, colorPhase, group.color);
-      for (const lens of group.lenses) group.color.scaleToRef(power, lens.emissiveColor);
-      for (const emitter of group.emitters) {
-        emitter.diffuse.copyFrom(group.color);
-        if (power !== this.power) emitter.intensity = group.intensity * power;
-      }
+      for (const lens of group.lenses) lens.emissiveColor.copyFrom(group.color);
+      for (const emitter of group.emitters) emitter.diffuse.copyFrom(group.color);
     }
-    this.power = power;
     for (const spot of this.spots) {
       const yaw = Math.sin(this.elapsed * .82 + spot.phase) * .55;
       const { x, y, z } = spot.restDirection;
@@ -170,7 +164,6 @@ export class PauliLighting {
       const cos = Math.cos(yaw);
       spot.light.direction.set(x * cos + z * sin, y, z * cos - x * sin);
       samplePalette(spot.palette, colorPhase, this.tinted);
-      this.tinted.scaleInPlace(power);
       spot.beam.aim(spot.light.position, spot.light.direction, spot.light.range, .15, this.tinted);
     }
     for (const globe of this.globes) {
@@ -181,7 +174,6 @@ export class PauliLighting {
         const tilt = -.59 - .24 * Math.sin(rotation * .63 + index * .9);
         this.direction.set(Math.sin(angle), tilt, Math.cos(angle)).normalize();
         samplePalette(globe.palette, colorPhase + index, this.tinted);
-        this.tinted.scaleInPlace(power);
         globe.beams[index]!.aim(globe.light.position, this.direction, globe.light.range, .085, this.tinted);
         if (index === 0) globe.light.direction.copyFrom(this.direction);
       }
