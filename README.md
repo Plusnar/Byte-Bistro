@@ -52,7 +52,7 @@ O jogo é ambientado em **São Bento do Sul (SC)** como forma de divulgar a cida
 
 ## Como jogar
 
-**No computador**, clique em **Jogar pelo computador** na tela de pareamento para abrir o modo local de um jogador. **Para jogar com celulares**, use a mesma sala para conectar de um a quatro jogadores. Cada pessoa usa o próprio celular como controle.
+Depois da introdução, clique em **Jogar** para abrir a tela de pareamento. **No computador**, escolha **Jogar pelo computador** para abrir o modo local de um jogador. **Para jogar com celulares**, use a mesma sala para conectar de um a quatro jogadores. Cada pessoa usa o próprio celular como controle.
 
 1. **Conecte os celulares.** Leia o QR Code ou abra o [controle no navegador](https://byte-bistro.pages.dev/controller) e digite o código de seis caracteres. O primeiro celular é o P1. Os seguintes ficam nas vagas P2, P3 e P4. Cada jogador tem sua cor, na ordem em que entra: **verde** (P1), **azul** (P2), **vermelho** (P3) e **amarelo** (P4).
 2. **O P1 aperta A** quando todos entrarem. A sala é trancada e quem cair pode se reconectar à mesma vaga.

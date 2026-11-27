@@ -17,6 +17,7 @@ import { mapLevels } from "../data/levelMap";
 import { starsForRank, type LevelRanks } from "../data/levelRanks";
 import { nextStarTarget } from "../data/levelGoals";
 import { confirmDialog } from "./confirmDialog";
+import { playBootIntro } from "./BootIntro";
 import { FOOD_STATE_LABEL, STATION_KIND_LABEL } from "../data/kitchen";
 import type { ComponentStage } from "../gameplay/kitchen/KitchenGuide";
 import { preparationSteps, stepStatus, type PrepStation } from "./orderTicketSteps";
@@ -156,7 +157,7 @@ export const chipState = (
 };
 
 /** The menu's steps, in the order a session goes through them. */
-export type SplashStep = "pair" | "home" | "level" | "characters";
+export type SplashStep = "intro" | "pair" | "home" | "level" | "characters";
 
 export interface GameUICallbacks {
   /** One character id per player, in player order. */
@@ -178,6 +179,7 @@ export interface GameUICallbacks {
   /** "Criar mapa" or "Meus mapas" was pressed while signed out. */
   onMapsLocked?: () => void;
   onPlayOnComputer?: () => void;
+  onHomePlay?: () => void;
   onOpenCollection?: (view: "items" | "achievements") => void;
   /** Fires when a level card is chosen, before the cooks are picked. */
   onLevelChange?: (entry: LevelEntry) => void;
@@ -254,6 +256,7 @@ export class GameUI {
   private readonly callbacks: GameUICallbacks;
   private readonly listenerController = new AbortController();
   private readonly menuVideo: HTMLVideoElement;
+  private introPlayback: AbortController | null = null;
   private readonly menuPortrait = window.matchMedia("(max-aspect-ratio: 4/3)");
   private readonly menuReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   private readonly menuNetwork = (navigator as Navigator & {
@@ -693,6 +696,10 @@ export class GameUI {
   showSplash(visible = true): void {
     if (this.destroyed) return;
     this.splash.hidden = !visible;
+    if (!visible && this.splashStep === "intro") {
+      this.introPlayback?.abort();
+      this.setSplashStep("home");
+    }
     // Start keeps focus as the splash hides; a hidden focused button would still swallow
     // player two's Enter during the shift.
     if (!visible && document.activeElement instanceof HTMLElement &&
@@ -713,6 +720,7 @@ export class GameUI {
     this.destroyed = true;
     this.stopLanguage();
     this.listenerController.abort();
+    this.introPlayback?.abort();
     this.menuBootObserver?.disconnect();
     this.menuVideo.pause();
     if (this.dialogueTimeoutId !== null) window.clearTimeout(this.dialogueTimeoutId);
@@ -1207,6 +1215,15 @@ export class GameUI {
     return (this.selectionScreen.dataset.step as SplashStep | undefined) ?? "home";
   }
 
+  async playIntro(): Promise<void> {
+    const controller = new AbortController();
+    this.introPlayback = controller;
+    const video = this.requireElement<HTMLVideoElement>("[data-ui='intro-video']");
+    video.muted = true;
+    await playBootIntro(video, controller.signal);
+    this.introPlayback = null;
+  }
+
   /** Where the phone pairing panel (QR code and player slots) is drawn. */
   pairPanel(): HTMLElement {
     return this.requireElement("[data-ui='pair-panel']");
@@ -1448,7 +1465,13 @@ export class GameUI {
     this.shell.addEventListener("keydown", this.handleOverlayKey, { signal, capture: true });
     // Play → pick the level on the map (it zooms in) → pick the cooks → the match.
     this.requireElement<HTMLButtonElement>("[data-action='home-play']").addEventListener("click", () => {
-      this.setSplashStep("level");
+      if (this.callbacks.onHomePlay) this.callbacks.onHomePlay();
+      else this.setSplashStep("level");
+    }, { signal });
+    this.requireElement<HTMLButtonElement>("[data-action='intro-sound']").addEventListener("click", (event) => {
+      const video = this.requireElement<HTMLVideoElement>("[data-ui='intro-video']");
+      video.muted = !video.muted;
+      (event.currentTarget as HTMLButtonElement).setAttribute("aria-pressed", String(!video.muted));
     }, { signal });
     this.requireElement<HTMLButtonElement>("[data-action='retry-level-map']").addEventListener("click", () => this.levelMap?.retry(), { signal });
     this.requireElement<HTMLButtonElement>("[data-action='credits']").addEventListener("click", () => this.callbacks.onOpenCredits?.(), { signal });
@@ -1990,6 +2013,10 @@ export class GameUI {
 
       <section class="full-overlay splash-overlay" data-ui="splash" role="dialog" aria-modal="true" aria-labelledby="splash-title" tabindex="-1">
         <div class="selection-screen">
+          <section class="boot-intro" data-ui="boot-intro" data-i18n-attr="aria-label:intro.title">
+            <video data-ui="intro-video" muted playsinline preload="none" data-i18n-attr="aria-label:intro.title"></video>
+            <button type="button" class="secondary-action" data-action="intro-sound" aria-pressed="false" data-i18n="intro.sound"></button>
+          </section>
           <video class="bistro-home-video" muted loop playsinline preload="none" aria-hidden="true"></video>
           <div class="bistro-home-scrim" aria-hidden="true"></div>
           <header class="selection-header">

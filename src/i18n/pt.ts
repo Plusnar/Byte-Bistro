@@ -7,6 +7,7 @@
  */
 export const pt = {
   audio: { muteMusic: "Silenciar música" },
+  intro: { title: "Introdução do Byte Bistro", sound: "Som da introdução" },
   language: {
     label: "Idioma",
     pt: "Português",

@@ -146,6 +146,7 @@ export class Game {
   /** Set when preparing a shift failed; the next Start rebuilds the kitchen before retrying. */
   private kitchenNeedsRebuild = false;
   private menuReady = false;
+  private controlsChosen = false;
   private cookPreloadTimer = 0;
   /** Gamepads drive the cooks alongside the keyboard. */
   private readonly gamepads = new GamepadBinder();
@@ -229,6 +230,7 @@ export class Game {
         void import("../ui/Credits").then(({ openCredits }) => { if (!this.disposed) openCredits(); });
       },
       onPlayOnComputer: () => this.playOnComputer(),
+      onHomePlay: () => this.openPlay(),
       onOpenCollection: (view) => openCollection(view, this.persistentState),
       onOpenEditor: () => { void this.openEditorIfSignedIn(); },
       onMapsLocked: () => this.askToSignInForMaps(),
@@ -252,9 +254,9 @@ export class Game {
       root: this.ui.root(),
       splashStep: () => (this.ui.isSplashVisible && !this.editor ? this.ui.splashStep : null),
     });
-    // Offer phone pairing and local play after loading. Automated runs go straight to a shift.
+    // Open with the intro. Automated runs go straight to a shift.
     const autostarting = new URLSearchParams(window.location.search).has("autostart");
-    if (!autostarting) this.ui.setSplashStep("pair");
+    if (!autostarting) this.ui.setSplashStep("intro");
     // Priority 1: only what the menu shows. The kitchen scene is not built yet.
     this.characterPreview = new CharacterPreview(this.ui.characterPreviewCanvas(), {
       characters: CHARACTERS,
@@ -360,7 +362,7 @@ export class Game {
       this.music.update("editor");
     } else if (this.ui.isSplashVisible) {
       const step = this.ui.splashStep;
-      this.music.update(!this.menuReady ? null
+      this.music.update(!this.menuReady || step === "intro" ? null
         : step === "level" ? "level-select"
         : step === "characters" ? "character-select" : "menu");
     } else {
@@ -429,13 +431,12 @@ export class Game {
     });
   }
 
-  private finishBoot(): void {
+  private async finishBoot(): Promise<void> {
     if (this.menuReady) return;
     this.menuReady = true;
     performance.mark("bb:menu-ready");
-    void this.loading?.hide();
+    const loadingHidden = this.loading?.hide();
     this.unloadUnusedAssets();
-    if (this.ui.splashStep === "pair") void this.ensurePhoneHub();
     // Priority 2 starts only now, so it never competed with the menu for bandwidth.
     whenIdle(() => {
       void this.preloadGameplay();
@@ -445,6 +446,11 @@ export class Game {
         void this.getAccountPanel().then((panel) => panel.resume()).catch(() => undefined);
       }
     });
+    await loadingHidden;
+    if (this.disposed || !this.ui.isSplashVisible || this.ui.splashStep !== "intro") return;
+    await this.ui.playIntro();
+    if (this.disposed || !this.ui.isSplashVisible || this.ui.splashStep !== "intro") return;
+    this.ui.setSplashStep("home");
   }
 
   /**
@@ -787,6 +793,15 @@ export class Game {
     this.finishPairing(1);
   }
 
+  private openPlay(): void {
+    if (this.controlsChosen) {
+      this.ui.setSplashStep("level");
+      return;
+    }
+    this.ui.setSplashStep("pair");
+    void this.ensurePhoneHub();
+  }
+
   /** Player one pressed A on their phone: the connected phones become the players. */
   private settlePairing(): void {
     const players = this.phoneHub?.settlePlayers() ?? 0;
@@ -798,10 +813,11 @@ export class Game {
   }
 
   private finishPairing(players: number): void {
+    this.controlsChosen = true;
     this.ui.setPlayerCount(players);
     this.kitchenScene?.setCookCount(players);
     this.navigator.clearFocus();
-    this.ui.setSplashStep("home");
+    this.ui.setSplashStep("level");
     this.phoneHub?.refreshPads();
   }
 

@@ -3,6 +3,7 @@ import type { Messages } from "./index";
 /** English texts: the same keys as `pt.ts`, which the `Messages` type enforces. */
 export const en: Messages = {
   audio: { muteMusic: "Mute music" },
+  intro: { title: "Byte Bistro introduction", sound: "Intro sound" },
   language: {
     label: "Language",
     pt: "Português",

@@ -730,11 +730,35 @@
 .game-ui .pause-card .pause-emblem::before,
 .game-ui .pause-card .pause-emblem::after { content: none; }
 
+.game-ui .boot-intro,
+.game-ui .selection-screen[data-step="intro"] > :not(.boot-intro),
 .game-ui .selection-screen[data-step="home"] :is(.selection-arena, .level-select, .selection-footer),
 .game-ui .selection-screen:not([data-step="home"]) .bistro-home-actions,
 .game-ui .bistro-home-video,
 .game-ui .bistro-home-scrim {
   display: none;
+}
+
+.game-ui .selection-screen[data-step="intro"] .boot-intro {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000;
+}
+.game-ui .boot-intro video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.game-ui .boot-intro [data-action="intro-sound"] {
+  position: absolute;
+  inset-inline-end: max(1rem, env(safe-area-inset-right));
+  inset-block-end: max(1rem, env(safe-area-inset-bottom));
+}
+.game-ui .boot-intro [data-action="intro-sound"][aria-pressed="true"] {
+  outline: 2px solid #91edff;
+  outline-offset: -3px;
 }
 
 .game-ui .splash-overlay:has([data-step="home"]) {

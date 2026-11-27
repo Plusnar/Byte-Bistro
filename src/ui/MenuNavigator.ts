@@ -125,7 +125,7 @@ export class MenuNavigator {
       if (overlay && !overlay.hidden) return { kind, element: overlay };
     }
     const step = this.host.splashStep();
-    if (!step) return null;
+    if (!step || step === "intro") return null;
     const screen = root.querySelector<HTMLElement>(".selection-screen");
     if (!screen) return null;
     const element = step === "home"
