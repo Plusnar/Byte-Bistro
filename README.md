@@ -278,9 +278,6 @@ Para usar um celular de verdade na mesma rede, rode `MP_LAN=1 npm run dev` e abr
 
 Testes: `npm test` (unitários), `npm run mp:test:integration` (servidor, com `mp:dev` no ar) e `npm run mp:test:e2e` (Chrome com 4 celulares simulados, com `mp:dev` e `dev` no ar). Para a versão de publicação: `npm run build`.
 
-## Status
-
-Em desenvolvimento. O modo gráfico **Automático** ajusta a qualidade sem piscar a tela e não desce de nível à toa quando o navegador limita o jogo a 30 fps. Estão previstos novas fases e receitas, andares no modo construção, som e ajustes de equilíbrio. O controle por celular foi testado de forma automatizada (4 celulares simulados num navegador); testes em celulares e redes móveis reais estão em andamento.
 
 ## Direitos autorais
 
