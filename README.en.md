@@ -227,9 +227,6 @@ To use a real phone on the same network, run `MP_LAN=1 npm run dev` and open `ht
 
 Tests: `npm test` (unit), `npm run mp:test:integration` (server, with `mp:dev` running) and `npm run mp:test:e2e` (Chrome with 4 simulated phones, with `mp:dev` and `dev` running). Production build: `npm run build`.
 
-## Status
-
-Work in progress. Planned: new levels and recipes, storeys in build mode, sound, and balancing. The phone controller has been tested automatically (4 simulated phones in one browser); tests on real phones and mobile networks are under way.
 
 ## Copyright
 
